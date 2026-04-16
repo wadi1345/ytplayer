@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>大螢幕播放</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; background-color: #000000; color: white; margin: 0; padding: 20px; }
+        .container { max-width: 900px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 20px; border-bottom: 1px solid #333; margin-bottom: 30px; }
+        .header h2 { margin: 0; letter-spacing: 1px; color: #1e88e5; }
+        .header a { color: #888; text-decoration: none; }
+        
+        #startBtn { font-size: 20px; padding: 15px 40px; background: linear-gradient(45deg, #ff416c, #ff4b2b); color: white; border: none; border-radius: 50px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 15px rgba(255, 65, 108, 0.4); transition: 0.3s; margin-bottom: 30px; }
+        #startBtn:hover { transform: scale(1.05); }
+
+        #player-container { background: #121212; padding: 10px; border-radius: 16px; display: inline-block; box-shadow: 0 10px 30px rgba(0,0,0,0.8); margin-bottom: 40px; }
+        iframe { border-radius: 8px; }
+
+        h3 { text-align: left; color: #b3b3b3; font-size: 16px; margin-bottom: 15px; border-left: 4px solid #1e88e5; padding-left: 10px; }
+        
+        #queue-list { text-align: left; background: #181818; padding: 20px; border-radius: 16px; min-height: 150px; }
+        .queue-item { padding: 15px; border-bottom: 1px solid #2a2a2a; display: flex; flex-direction: column; gap: 5px; transition: 0.2s; }
+        .queue-item:last-child { border-bottom: none; }
+        .queue-item:hover { background: #222; border-radius: 8px; }
+        .queue-item strong { color: #1e88e5; font-size: 14px; }
+        .queue-item .song-title { font-size: 18px; color: #fff; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h2>💻 播放大螢幕</h2>
+            <a href="index.html">⬅️ 結束派對</a>
+        </div>
+        
+        <button id="startBtn" onclick="startParty()">🚀 啟動點唱機</button>
+
+        <div id="player-container">
+            <div id="youtube-player"></div>
+        </div>
+
+        <h3>接下來要播...</h3>
+        <div id="queue-list">載入中...</div>
+    </div>
+
+    <script src="https://www.youtube.com/iframe_api"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="host.js"></script>
+</body>
+</html>
