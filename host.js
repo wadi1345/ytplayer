@@ -35,6 +35,9 @@ db.ref('queue').orderByChild('timestamp').on('value', (snapshot) => {
             </div>`;
     });
     if (songQueue.length === 0) listDiv.innerHTML = '目前沒歌，快點一首！';
+    // 💡 新增：如果現在正在播保底音樂，且突然有人點歌了，立刻切換過去！
+    if (isPlayingFallback && songQueue.length > 0) {
+        playNextSong();
 });
 
 function startParty() {
@@ -44,17 +47,33 @@ function startParty() {
         playNextSong();
     } else { alert("歌單是空的！"); }
 }
+let player, songQueue = [], isPlaying = false;
+let isPlayingFallback = false; // 💡 新增：記錄目前是不是在播保底音樂
 
+// 💡 新增：你的專屬保底歌單 (放幾首長時數的 Lofi、爵士樂、流行歌單 ID)
+const fallbackPlaylist = [
+    'jfKfPfyJRdk', // Lofi Girl 24/7 直播 (非常適合辦公室)
+    '7NOSDKb0HlU', // 輕鬆咖啡廳爵士樂
+    '5qap5aO4i9A'  // Lofi Chill 純音樂
+];
 function playNextSong() {
     if (songQueue.length > 0) {
+        isPlayingFallback = false; // 標記：現在播的是正常的點歌
         const next = songQueue[0];
         player.loadVideoById(next.videoId);
         isPlaying = true;
         db.ref('queue/' + next.key).remove();
     } else {
-        isPlaying = false;
-        document.getElementById('startBtn').style.display = 'inline-block';
-        document.getElementById('skipBtn').style.display = 'none';
+        // 💡 沒歌了！進入廣播模式
+        isPlayingFallback = true; // 標記：現在正在播保底音樂
+        const randomVideo = fallbackPlaylist[Math.floor(Math.random() * fallbackPlaylist.length)];
+        player.loadVideoById(randomVideo);
+        isPlaying = true;
+        
+        // 更新大螢幕的畫面提示
+        document.getElementById('startBtn').style.display = 'none';
+        document.getElementById('skipBtn').style.display = 'inline-block';
+        document.getElementById('queue-list').innerHTML = '<div class="queue-item" style="color:#1DB954; justify-content:center; border: 1px dashed #1DB954;">📻 派對電台放送中... 快來點首新歌吧！</div>';
     }
 }
 
