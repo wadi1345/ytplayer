@@ -24,42 +24,96 @@ const YOUTUBE_API_KEY = 'AIzaSyB93SDscF6QCzu0a2-vDasQADQ6tow2m5k';
 // ==========================================
 // 3. 搜尋與加入清單的功能
 // ==========================================
+// ==========================================
+// 新增：YouTube 網址解析器 (能抓出各種格式網址中的 Video ID)
+// ==========================================
+function extractVideoID(url) {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+}
+
+// ==========================================
+// 3. 升級版：智慧搜尋與加入清單功能
+// ==========================================
 function searchYouTube() {
-    const keyword = document.getElementById('searchInput').value;
-    if (!keyword) {
-        alert('請先輸入想聽的歌喔！');
+    const input = document.getElementById('searchInput').value.trim(); // 取得輸入並去除前後空白
+    if (!input) {
+        alert('請輸入想聽的歌或貼上網址喔！');
         return;
     }
 
     const resultsDiv = document.getElementById('results');
-    resultsDiv.innerHTML = '<p>搜尋中...</p>'; 
+    resultsDiv.innerHTML = '<p style="color:#b3b3b3;">搜尋中...</p>'; 
 
-    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=5&q=${keyword}&type=video&key=${YOUTUBE_API_KEY}`;
+    // 使用解析器判斷輸入的內容是不是網址
+    const videoId = extractVideoID(input);
 
-    fetch(url)
-        .then(response => response.json())
-        .then(data => {
-            resultsDiv.innerHTML = ''; 
-            
-            if (data.items && data.items.length > 0) {
-                data.items.forEach(item => {
+    if (videoId) {
+        // ------------------------------------------
+        // 路線 A：使用者貼上的是「精確網址」
+        // (改呼叫 videos API 來取得單一影片的標題)
+        // ------------------------------------------
+        const url = `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${YOUTUBE_API_KEY}`;
+        
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                resultsDiv.innerHTML = ''; 
+                if (data.items && data.items.length > 0) {
+                    const item = data.items[0];
                     const title = item.snippet.title;
-                    const videoId = item.id.videoId;
-                    // 避免標題有單引號破壞 HTML 結構
                     const safeTitle = title.replace(/'/g, "\\'").replace(/"/g, "&quot;");
                     
-                    resultsDiv.innerHTML += `
-                        <div class="song-item">
-                            <span>🎵 ${title}</span>
+                    // 顯示這首唯一的指定歌曲，並加上特別的綠色邊框標示
+                    resultsDiv.innerHTML = `
+                        <div class="song-item" style="border: 1px solid #1DB954; background: #1a241e;">
+                            <div>
+                                <span style="color:#1DB954; font-size:12px; display:block; margin-bottom:5px;">✨ 網址精準點歌</span>
+                                <span class="song-title">🎵 ${title}</span>
+                            </div>
                             <button class="add-btn" onclick="addToQueue('${videoId}', '${safeTitle}')">加入清單</button>
                         </div>
                     `;
-                });
-            } else {
-                resultsDiv.innerHTML = '<p>找不到相關歌曲，換個關鍵字試試吧！</p>';
-            }
-        })
-        .catch(error => console.error('發生錯誤:', error));
+                } else {
+                    resultsDiv.innerHTML = '<p style="color:#ff4b2b;">找不到這部影片，可能是被設為私人或刪除了。</p>';
+                }
+            })
+            .catch(error => console.error('發生錯誤:', error));
+
+    } else {
+        // ------------------------------------------
+        // 路線 B：使用者輸入的是「一般關鍵字」(保留原本的邏輯)
+        // ------------------------------------------
+        const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=5&q=${input}&type=video&key=${YOUTUBE_API_KEY}`;
+
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                resultsDiv.innerHTML = ''; 
+                
+                if (data.items && data.items.length > 0) {
+                    data.items.forEach(item => {
+                        const title = item.snippet.title;
+                        const resultVideoId = item.id.videoId;
+                        // 確保搜出來的是影片而不是頻道
+                        if (!resultVideoId) return; 
+                        
+                        const safeTitle = title.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+                        
+                        resultsDiv.innerHTML += `
+                            <div class="song-item">
+                                <span class="song-title">🎵 ${title}</span>
+                                <button class="add-btn" onclick="addToQueue('${resultVideoId}', '${safeTitle}')">加入清單</button>
+                            </div>
+                        `;
+                    });
+                } else {
+                    resultsDiv.innerHTML = '<p style="color:#b3b3b3;">找不到相關歌曲，換個關鍵字試試吧！</p>';
+                }
+            })
+            .catch(error => console.error('發生錯誤:', error));
+    }
 }
 
 // ==========================================
