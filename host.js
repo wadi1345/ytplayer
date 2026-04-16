@@ -147,3 +147,13 @@ function removeSong(songKey) {
         alert("密碼錯誤，不准亂刪別人的歌！🚫");
     }
 }
+// 強制測試：網頁一開就顯示
+setTimeout(() => {
+    const skipBtn = document.getElementById('skipBtn');
+    if (skipBtn) {
+        skipBtn.style.display = 'inline-block';
+        console.log("已強行顯示切歌按鈕");
+    } else {
+        console.error("找不到 ID 為 skipBtn 的按鈕，請檢查 HTML！");
+    }
+}, 2000);
