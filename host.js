@@ -58,21 +58,60 @@ function playNextSong() {
     }
 }
 
-function skipSong() {
-    const pwd = prompt("請輸入管理員密碼以切換歌曲：");
+// ==========================================
+// ⭐ 升級版：不中斷音樂的自製密碼視窗邏輯
+// ==========================================
+let pendingAction = null; // 用來記住「現在到底是要切歌，還是要移除歌？」
+
+// 1. 按下強制切歌時 (不去呼叫 prompt，而是打開自製視窗)
+function requestSkip() {
+    pendingAction = 'skip'; // 記住目前的動作是切歌
+    openModal();
+}
+
+// 2. 按下移除歌曲時
+function removeSong(key) {
+    pendingAction = key; // 記住目前的動作是移除這首特定的歌
+    openModal();
+}
+
+// 3. 打開視窗的函式
+function openModal() {
+    document.getElementById('customModal').style.display = 'flex'; // 顯示視窗
+    document.getElementById('adminPwd').value = ''; // 清空上次打的密碼
+    document.getElementById('errorMsg').style.display = 'none'; // 隱藏錯誤訊息
+    document.getElementById('adminPwd').focus(); // 自動把游標停在輸入框
+}
+
+// 4. 關閉視窗的函式
+function closeModal() {
+    document.getElementById('customModal').style.display = 'none'; // 隱藏視窗
+    pendingAction = null; // 清除動作記憶
+}
+
+// 5. 按下視窗的「確認」按鈕時
+function submitPassword() {
+    const pwd = document.getElementById('adminPwd').value;
+    
+    // 密碼正確
     if (pwd === ADMIN_PASSWORD) {
-        playNextSong(); // 密碼正確，直接呼叫播放下一首的邏輯
-    } else if (pwd !== null) {
-        alert("密碼錯誤，你沒有權限切歌喔！🚫");
+        closeModal(); // 先把視窗關掉
+        
+        // 判斷剛剛是要做什麼動作，現在放行！
+        if (pendingAction === 'skip') {
+            playNextSong();
+        } else if (pendingAction) {
+            db.ref('queue/' + pendingAction).remove();
+        }
+    } else {
+        // 密碼錯誤，顯示錯誤訊息但不關閉視窗，也不中斷音樂！
+        document.getElementById('errorMsg').style.display = 'block';
     }
 }
-function removeSong(songKey) {
-    const pwd = prompt("請輸入管理員密碼以移除此歌曲：");
-    if (pwd === ADMIN_PASSWORD) {
-        // 密碼正確，直接去資料庫把這首歌刪掉
-        // Firebase 一刪除，剛剛寫的監聽器就會立刻把畫面更新！
-        db.ref('queue/' + songKey).remove();
-    } else if (pwd !== null) {
-        alert("密碼錯誤，不准亂刪別人的歌！🚫");
+
+// 讓你在密碼框按 Enter 鍵也能直接送出，不用滑鼠點確認
+document.getElementById('adminPwd').addEventListener('keypress', function (e) {
+    if (e.key === 'Enter') {
+        submitPassword();
     }
-}
+});
