@@ -2,61 +2,31 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>播放大螢幕 - 派對點唱機</title>
+    <title>播放大螢幕</title>
     <style>
-        /* 深色主題與版面配置 */
-        body { font-family: 'Segoe UI', sans-serif; text-align: center; background-color: #000; color: white; margin: 0; padding: 20px; }
-        .container { max-width: 900px; margin: 0 auto; }
-        .header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 20px; border-bottom: 1px solid #333; margin-bottom: 30px; }
-        .header h2 { margin: 0; color: #1e88e5; }
-        .header a { color: #888; text-decoration: none; font-size: 14px; }
-        
-        /* 控制按鈕區 */
-        .controls { margin-bottom: 30px; }
-        #startBtn { font-size: 18px; padding: 12px 30px; background: linear-gradient(45deg, #ff416c, #ff4b2b); color: white; border: none; border-radius: 50px; cursor: pointer; font-weight: bold; }
+        body { font-family: sans-serif; text-align: center; background-color: #000; color: white; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        #startBtn { font-size: 18px; padding: 12px 30px; background: #ff4b2b; color: white; border: none; border-radius: 50px; cursor: pointer; }
         #skipBtn { display: none; font-size: 16px; padding: 12px 25px; background: #333; color: white; border: 1px solid #555; border-radius: 50px; cursor: pointer; margin-left: 10px; }
-
-        /* 播放器容器 */
-        #player-container { background: #121212; padding: 15px; border-radius: 16px; display: inline-block; box-shadow: 0 10px 30px rgba(0,0,0,0.8); margin-bottom: 30px; }
-        
-        /* 待播清單樣式 */
-        h3 { text-align: left; color: #b3b3b3; font-size: 16px; margin-bottom: 15px; border-left: 4px solid #1e88e5; padding-left: 10px; }
-        #queue-list { text-align: left; background: #181818; padding: 10px; border-radius: 16px; min-height: 100px; }
-        
-        /* 清單項目與移除按鈕 */
+        #player-container { background: #121212; padding: 15px; border-radius: 16px; margin: 20px 0; }
+        #queue-list { text-align: left; background: #181818; padding: 10px; border-radius: 10px; }
         .queue-item { padding: 15px; border-bottom: 1px solid #2a2a2a; display: flex; justify-content: space-between; align-items: center; }
-        .queue-item:last-child { border-bottom: none; }
-        .queue-item strong { color: #1e88e5; display: block; font-size: 13px; }
-        .queue-item .song-title { font-size: 16px; color: #fff; margin-top: 3px; }
-        .remove-btn { background: #ff4b2b; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+        .remove-btn { background: #ff4b2b; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; }
     </style>
 </head>
 <body>
-
     <div class="container">
-     
-        </div>
-        
-        <div class="controls">
-            <button id="startBtn" onclick="startParty()">🚀 啟動點唱機</button>
-            <button id="skipBtn" onclick="skipSong()">⏭️ 強制切歌</button>
-        </div>
-
-        <div id="player-container">
-            <div id="youtube-player"></div>
-        </div>
-
-        <h3>接下來要播...</h3>
+        <h2>💻 播放主機</h2>
+        <button id="startBtn" onclick="startParty()">🚀 啟動點唱機</button>
+        <button id="skipBtn" onclick="skipSong()">⏭️ 強制切歌</button>
+        <div id="player-container"><div id="youtube-player"></div></div>
+        <h3>待播清單：</h3>
         <div id="queue-list">載入中...</div>
     </div>
 
     <script src="https://www.youtube.com/iframe_api"></script>
-    
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    
     <script src="host.js"></script>
-
 </body>
 </html>
