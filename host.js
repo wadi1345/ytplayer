@@ -58,5 +58,21 @@ function playNextSong() {
     }
 }
 
-function skipSong() { if(prompt("密碼？") === ADMIN_PASSWORD) playNextSong(); }
-function removeSong(key) { if(prompt("密碼？") === ADMIN_PASSWORD) db.ref('queue/' + key).remove(); }
+function skipSong() {
+    const pwd = prompt("請輸入管理員密碼以切換歌曲：");
+    if (pwd === ADMIN_PASSWORD) {
+        playNextSong(); // 密碼正確，直接呼叫播放下一首的邏輯
+    } else if (pwd !== null) {
+        alert("密碼錯誤，你沒有權限切歌喔！🚫");
+    }
+}
+function removeSong(songKey) {
+    const pwd = prompt("請輸入管理員密碼以移除此歌曲：");
+    if (pwd === ADMIN_PASSWORD) {
+        // 密碼正確，直接去資料庫把這首歌刪掉
+        // Firebase 一刪除，剛剛寫的監聽器就會立刻把畫面更新！
+        db.ref('queue/' + songKey).remove();
+    } else if (pwd !== null) {
+        alert("密碼錯誤，不准亂刪別人的歌！🚫");
+    }
+}
