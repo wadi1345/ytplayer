@@ -92,20 +92,28 @@ function startParty() {
 }
 
 function playNextSong() {
+    const listDiv = document.getElementById('queue-list'); // 取得顯示清單的區塊
+
     if (songQueue.length > 0) {
-        // 清單有歌：播使用者的歌
+        // 情況 A：清單有歌，播放使用者的歌
         isPlayingFallback = false;
         const next = songQueue[0];
         player.loadVideoById(next.videoId);
         isPlaying = true;
         db.ref('queue/' + next.key).remove();
     } else {
-        // 清單沒歌：隨機挑選保底音樂
+        // 情況 B：清單沒歌，進入廣播模式
         isPlayingFallback = true;
         const randomVideo = fallbackPlaylist[Math.floor(Math.random() * fallbackPlaylist.length)];
         player.loadVideoById(randomVideo);
         isPlaying = true;
+
+        // 💡 關鍵修復：手動更新畫面文字，不用等資料庫變動
+        if (listDiv) {
+            listDiv.innerHTML = '<div class="queue-item" style="color:#1DB954; justify-content:center; border: 1px dashed #1DB954; font-weight:bold;">📻 派對電台放送中... 快來點首新歌吧！</div>';
+        }
     }
+}
 }
 
 // ==========================================
