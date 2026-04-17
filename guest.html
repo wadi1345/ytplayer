@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>點歌端 - 完整版</title>
+    <title>點歌端 - 完美同步版</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background-color: #121212; color: #fff; margin: 0; padding: 20px; padding-bottom: 50px; }
         .container { max-width: 600px; margin: 0 auto; }
         h2 { color: #1DB954; margin-bottom: 20px; margin-top: 0; }
         h3 { color: #b3b3b3; font-size: 16px; margin-top: 30px; border-left: 4px solid #1DB954; padding-left: 10px; }
         
-        /* 🔥 新增：正在播放的超美橫幅 */
+        /* ✨ 正在播放的超美橫幅 */
         #now-playing-banner {
             background: linear-gradient(135deg, #1DB954, #0b5c25);
             padding: 15px 20px;
@@ -24,23 +24,19 @@
         #now-playing-title { font-size: 18px; font-weight: bold; margin-bottom: 5px; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
         #now-playing-user { font-size: 13px; color: rgba(255,255,255,0.9); }
 
-        /* 點歌區塊樣式 */
         .input-group { background: #282828; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
         label { display: block; font-size: 14px; color: #b3b3b3; margin-bottom: 8px; }
         input[type="text"] { width: 100%; padding: 12px; box-sizing: border-box; margin-bottom: 15px; background: #3e3e3e; color: white; border: none; border-radius: 8px; font-size: 16px; }
         .search-btn { width: 100%; padding: 14px; background-color: #1DB954; color: white; border: none; border-radius: 50px; font-weight: bold; cursor: pointer; transition: 0.3s; }
         
-        /* 靈感標籤按鈕 */
         .tag-container { text-align: center; margin-top: 15px; }
         .tag-btn { background: #333; color: #b3b3b3; border: none; padding: 6px 12px; border-radius: 20px; font-size: 12px; margin: 4px; cursor: pointer; transition: 0.2s; }
         .tag-btn:hover { background: #1DB954; color: white; }
 
-        /* 搜尋結果與清單樣式 */
         .song-item { background: #181818; padding: 15px; border-radius: 10px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #333; }
         .song-title-text { flex-grow: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; margin-right: 10px; }
         .add-btn { width: 70px; height: 35px; flex-shrink: 0; background: transparent; border: 1px solid #1DB954; color: #1DB954; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 13px; }
 
-        /* 待播清單樣式 */
         #live-queue { background: #181818; padding: 15px; border-radius: 12px; margin-top: 10px; border: 1px solid #2a2a2a; }
         .queue-item { padding: 12px 0; border-bottom: 1px solid #2a2a2a; font-size: 14px; display: flex; align-items: center; justify-content: space-between; }
         .queue-item:last-child { border-bottom: none; }
@@ -48,7 +44,7 @@
         .queue-info { flex-grow: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .queue-user { font-size: 12px; color: #888; display: block; margin-top: 3px; }
         
-        /* 🔥 新增：手機端的移除按鈕 */
+        /* 手機端的移除按鈕 */
         .remove-btn-small { background: #ff4b2b; color: white; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; margin-left: 10px; flex-shrink: 0; }
     </style>
 </head>
@@ -89,31 +85,25 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     
     <script>
-        // ==========================================
-        // 1. Firebase & API 設定 (請填入你的金鑰)
-        // ==========================================
         const firebaseConfig = {
-    apiKey: "AIzaSyBF5p7x31GP_O9ePRrhJbXJM9C6aPj4wiE",
-    authDomain: "ytplayer-be8ef.firebaseapp.com",
-    databaseURL: "https://ytplayer-be8ef-default-rtdb.firebaseio.com",
-    projectId: "ytplayer-be8ef",
-    storageBucket: "ytplayer-be8ef.firebasestorage.app",
-    messagingSenderId: "812933574917",
-    appId: "1:812933574917:web:a13e5ebef6c935c1d2076c",
-    measurementId: "G-RF61ND1XZ8"
-  };
+            apiKey: "AIzaSyBF5p7x31GP_O9ePRrhJbXJM9C6aPj4wiE",
+            authDomain: "ytplayer-be8ef.firebaseapp.com",
+            databaseURL: "https://ytplayer-be8ef-default-rtdb.firebaseio.com",
+            projectId: "ytplayer-be8ef",
+            storageBucket: "ytplayer-be8ef.firebasestorage.app",
+            messagingSenderId: "812933574917",
+            appId: "1:812933574917:web:a13e5ebef6c935c1d2076c",
+            measurementId: "G-RF61ND1XZ8"
+        };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
-        const YOUTUBE_API_KEY = 'AIzaSyB93SDscF6QCzu0a2-vDasQADQ6tow2m5k';
         
-        // 💡 手機端也要設定密碼，用來驗證移除歌曲
+        // ⚠️ 請在這裡貼回你的 YouTube 金鑰
+        const YOUTUBE_API_KEY = 'AIzaSyB93SDscF6QCzu0a2-vDasQADQ6tow2m5k';
         const ADMIN_PASSWORD = "1234";
 
         window.onload = () => { document.getElementById('userName').value = localStorage.getItem('savedName') || ''; };
 
-        // ==========================================
-        // 2. 搜尋與加入功能
-        // ==========================================
         function extractVideoID(url) {
             const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
             const match = url.match(regExp);
@@ -168,54 +158,52 @@
         }
 
         // ==========================================
-        // 3. 🔥 新增：監聽正在播放的歌曲
-        // ==========================================
-        db.ref('currentSong').on('value', (snapshot) => {
-            const current = snapshot.val();
-            if (current) {
-                document.getElementById('now-playing-title').innerText = current.title;
-                document.getElementById('now-playing-user').innerText = '點歌人：' + current.nickname;
-            } else {
-                document.getElementById('now-playing-title').innerText = '尚未開始播放';
-                document.getElementById('now-playing-user').innerText = '請大螢幕點擊啟動';
-            }
-        });
-
-        // ==========================================
-        // 4. 監聽待播清單 (並加入移除按鈕)
+        // 💡 單一資料源：用排隊清單的順序來決定畫面
         // ==========================================
         db.ref('queue').orderByChild('timestamp').on('value', (snapshot) => {
             const queueListDiv = document.getElementById('live-queue');
             queueListDiv.innerHTML = '';
             
-            let count = 0;
-            snapshot.forEach((childSnapshot) => {
-                count++;
-                const song = childSnapshot.val();
-                const songKey = childSnapshot.key;
-                
-                // 💡 畫出清單，並加上小型的移除按鈕
-                queueListDiv.innerHTML += `
-                    <div class="queue-item">
-                        <span class="queue-index">${count}</span>
-                        <div class="queue-info">
-                            <span style="color:#fff;">${song.title}</span>
-                            <span class="queue-user">點歌人：${song.nickname}</span>
-                        </div>
-                        <button class="remove-btn-small" onclick="removeSongFromGuest('${songKey}')">移除</button>
-                    </div>`;
+            const songs = [];
+            snapshot.forEach((child) => {
+                songs.push({ key: child.key, ...child.val() });
             });
 
-            if (count === 0) {
-                queueListDiv.innerHTML = '<p style="text-align:center; color:#666; font-size:14px; padding:10px 0;">目前沒人點歌，快來當第一個！</p>';
+            if (songs.length > 0) {
+                // 第 1 首直接拉到上面當作「正在播放」
+                const current = songs[0];
+                document.getElementById('now-playing-title').innerText = current.title;
+                document.getElementById('now-playing-user').innerText = '點歌人：' + current.nickname;
+
+                // 從第 2 首開始畫排隊清單
+                for (let i = 1; i < songs.length; i++) {
+                    const song = songs[i];
+                    queueListDiv.innerHTML += `
+                        <div class="queue-item">
+                            <span class="queue-index">${i}</span>
+                            <div class="queue-info">
+                                <span style="color:#fff;">${song.title}</span>
+                                <span class="queue-user">點歌人：${song.nickname}</span>
+                            </div>
+                            <button class="remove-btn-small" onclick="removeSongFromGuest('${song.key}')">移除</button>
+                        </div>`;
+                }
+
+                if (songs.length === 1) {
+                    queueListDiv.innerHTML = '<p style="text-align:center; color:#666; font-size:14px; padding:10px 0;">目前沒有下一首歌，快點一首！</p>';
+                }
+            } else {
+                // 清單全空，顯示電台
+                document.getElementById('now-playing-title').innerText = '📻 派對電台放送中...';
+                document.getElementById('now-playing-user').innerText = '快來點首新歌吧！';
+                queueListDiv.innerHTML = '<p style="text-align:center; color:#666; font-size:14px; padding:10px 0;">目前沒人排隊，快來當第一個！</p>';
             }
         });
 
         // ==========================================
-        // 5. 🔥 新增：手機端的移除功能 (密碼保護)
+        // 手機端的移除功能 (密碼保護，不中斷音樂)
         // ==========================================
         function removeSongFromGuest(songKey) {
-            // 手機端用 prompt 視窗不會干擾音樂播放，所以可以直接用
             const pwd = prompt("請輸入管理員密碼以移除歌曲：");
             if (pwd === ADMIN_PASSWORD) {
                 db.ref('queue/' + songKey).remove();
