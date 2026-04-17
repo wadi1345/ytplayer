@@ -1,5 +1,5 @@
 // ==========================================
-// 1. Firebase 設定 (請填入你自己的金鑰)
+// 1. Firebase 設定 (已替換為你的專屬金鑰)
 // ==========================================
 const firebaseConfig = {
     apiKey: "AIzaSyBF5p7x31GP_O9ePRrhJbXJM9C6aPj4wiE",
@@ -10,7 +10,7 @@ const firebaseConfig = {
     messagingSenderId: "812933574917",
     appId: "1:812933574917:web:a13e5ebef6c935c1d2076c",
     measurementId: "G-RF61ND1XZ8"
-  };
+};
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 const ADMIN_PASSWORD = "1234";
@@ -22,7 +22,6 @@ let player, songQueue = [], isPlaying = false;
 let isPlayingFallback = false; // 紀錄是否正在播保底音樂
 
 // 保底歌單 (為了怕直播網址失效，我先換成三首普通的測試短片)
-// 等你測試成功後，可以自己換成喜歡的歌曲 ID！
 const fallbackPlaylist = [
     'M7lc1UVf-VE', // YouTube 開發者測試影片
     'BaW_jenozKc', // 5秒倒數影片
@@ -122,3 +121,35 @@ function requestSkip() {
 function removeSong(key) {
     pendingAction = key;
     openModal();
+}
+
+function openModal() {
+    document.getElementById('customModal').style.display = 'flex';
+    document.getElementById('adminPwd').value = '';
+    document.getElementById('errorMsg').style.display = 'none';
+    document.getElementById('adminPwd').focus();
+}
+
+function closeModal() {
+    document.getElementById('customModal').style.display = 'none';
+    pendingAction = null;
+}
+
+function submitPassword() {
+    const pwd = document.getElementById('adminPwd').value;
+    if (pwd === ADMIN_PASSWORD) {
+        closeModal();
+        if (pendingAction === 'skip') {
+            playNextSong();
+        } else if (pendingAction) {
+            db.ref('queue/' + pendingAction).remove();
+        }
+    } else {
+        document.getElementById('errorMsg').style.display = 'block';
+    }
+}
+
+// 支援 Enter 鍵送出密碼
+document.getElementById('adminPwd').addEventListener('keypress', function (e) {
+    if (e.key === 'Enter') submitPassword();
+});
