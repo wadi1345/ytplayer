@@ -22,7 +22,7 @@ let player, songQueue = [], isPlaying = false;
 let isPlayingFallback = false;
 
 const fallbackPlaylist = [
-    'GVv4kCa9jj8',
+    'GVv4kCa9jj8'
 ];
 
 // ==========================================
