@@ -94,19 +94,33 @@ function playNextSong() {
     if (songQueue.length > 0) {
         isPlayingFallback = false;
         const next = songQueue[0];
-        // 防護：確保 player 已經準備好才播歌
+        
         if (player && typeof player.loadVideoById === 'function') {
             player.loadVideoById(next.videoId);
         }
         isPlaying = true;
+
+        // 💡 關鍵新增：把正在播放的歌寫入 Firebase，讓手機端能抓到！
+        db.ref('currentSong').set({
+            title: next.title,
+            nickname: next.nickname || '神秘人'
+        });
+
         db.ref('queue/' + next.key).remove();
     } else {
         isPlayingFallback = true;
         const randomVideo = fallbackPlaylist[Math.floor(Math.random() * fallbackPlaylist.length)];
+        
         if (player && typeof player.loadVideoById === 'function') {
             player.loadVideoById(randomVideo);
         }
         isPlaying = true;
+
+        // 💡 關鍵新增：如果是保底電台，也告訴手機端現在是電台時間
+        db.ref('currentSong').set({
+            title: '📻 派對電台放送中...',
+            nickname: '系統自動播放'
+        });
 
         if (listDiv) {
             listDiv.innerHTML = '<div class="queue-item" style="color:#1DB954; justify-content:center; border: 1px dashed #1DB954; font-weight:bold;">📻 派對電台放送中... 快來點首新歌吧！</div>';
