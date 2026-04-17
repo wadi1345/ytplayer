@@ -198,3 +198,20 @@ if (adminPwdInput) {
         if (e.key === 'Enter') submitPassword();
     });
 }
+// ==========================================
+// 7. 🔥 新增：監聽雲端音量控制
+// ==========================================
+db.ref('volume').on('value', (snapshot) => {
+    let vol = snapshot.val();
+    
+    // 如果資料庫還沒有音量資料，預設設為 100
+    if (vol === null) {
+        vol = 100;
+        db.ref('volume').set(vol);
+    }
+    
+    // 確保 YouTube 播放器已經載入完成才調整音量
+    if (player && typeof player.setVolume === 'function') {
+        player.setVolume(vol);
+    }
+});
