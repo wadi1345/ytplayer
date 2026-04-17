@@ -11,6 +11,7 @@
         h3 { color: #b3b3b3; font-size: 16px; margin-top: 30px; border-left: 4px solid #1DB954; padding-left: 10px; }
         
         /* ✨ 正在播放的超美橫幅 */
+        
         #now-playing-banner {
             background: linear-gradient(135deg, #1DB954, #0b5c25);
             padding: 15px 20px;
@@ -20,6 +21,19 @@
             display: flex;
             flex-direction: column;
         }
+        /* 🔊 新增：音量控制區樣式 */
+        .volume-control {
+            display: flex; align-items: center; justify-content: space-between;
+            background: #282828; padding: 15px 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        .volume-control span { font-size: 14px; color: #b3b3b3; margin-right: 15px; white-space: nowrap; font-weight: bold; }
+        .volume-slider {
+            flex-grow: 1; -webkit-appearance: none; background: #555; height: 6px; border-radius: 5px; outline: none; transition: 0.2s;
+        }
+        .volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #1DB954; cursor: pointer; box-shadow: 0 0 5px rgba(0,0,0,0.5);
+        }
+        .volume-slider::-webkit-slider-thumb:hover { transform: scale(1.2); }
         #now-playing-banner span.label { font-size: 12px; color: rgba(255,255,255,0.8); margin-bottom: 5px; font-weight: bold; }
         #now-playing-title { font-size: 18px; font-weight: bold; margin-bottom: 5px; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
         #now-playing-user { font-size: 13px; color: rgba(255,255,255,0.9); }
@@ -56,7 +70,11 @@
             <div id="now-playing-title">載入中...</div>
             <div id="now-playing-user">等待大螢幕連線...</div>
         </div>
-
+<div class="volume-control">
+            <span>🔊 派對音量</span>
+            <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="100" oninput="changeVolume(this.value)">
+            <span id="volumeValue" style="margin-right: 0; margin-left: 15px; min-width: 35px; text-align: right; color:#1DB954;">100%</span>
+        </div>
         <h2>📱 我要點歌</h2>
         
         <div class="input-group">
@@ -210,6 +228,26 @@
             } else if (pwd !== null) {
                 alert("密碼錯誤，只有管理員可以刪除歌曲喔！🚫");
             }
+        }
+        // ==========================================
+        // 6. 🔥 新增：音量控制即時同步邏輯
+        // ==========================================
+        const volumeSlider = document.getElementById('volumeSlider');
+        const volumeValue = document.getElementById('volumeValue');
+
+        // 監聽別人調整音量 (保持所有人的手機畫面同步)
+        db.ref('volume').on('value', (snapshot) => {
+            let vol = snapshot.val();
+            if (vol !== null) {
+                volumeSlider.value = vol;
+                volumeValue.innerText = vol + '%';
+            }
+        });
+
+        // 當我拖曳滑桿時，把音量傳上雲端
+        function changeVolume(val) {
+            volumeValue.innerText = val + '%';     // 先即時更新畫面的數字
+            db.ref('volume').set(parseInt(val));   // 將數字轉成整數丟上 Firebase
         }
     </script>
 </body>
