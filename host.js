@@ -19,13 +19,12 @@ const ADMIN_PASSWORD = "1234";
 // 2. 系統狀態與保底歌單
 // ==========================================
 let player, songQueue = [], isPlaying = false;
-let isPlayingFallback = false; // 紀錄是否正在播保底音樂
+let isPlayingFallback = false;
 
-// 保底歌單 (為了怕直播網址失效，我先換成三首普通的測試短片)
 const fallbackPlaylist = [
-    'M7lc1UVf-VE', // YouTube 開發者測試影片
-    'BaW_jenozKc', // 5秒倒數影片
-    'jNQXAC9IVRw'  // Me at the zoo (YT第一支影片)
+    'M7lc1UVf-VE',
+    'BaW_jenozKc',
+    'jNQXAC9IVRw' 
 ];
 
 // ==========================================
@@ -36,10 +35,9 @@ function onYouTubeIframeAPIReady() {
         height: '360', width: '640', videoId: 'BaW_jenozKc',
         events: {
             'onStateChange': (e) => { 
-                if (e.data === 0) playNextSong(); // 播完自動下一首
+                if (e.data === 0) playNextSong(); 
             },
             'onError': () => { 
-                // 遇到版權錯誤，等兩秒後自動跳過
                 setTimeout(playNextSong, 2000); 
             }
         }
@@ -52,30 +50,30 @@ function onYouTubeIframeAPIReady() {
 db.ref('queue').orderByChild('timestamp').on('value', (snapshot) => {
     songQueue = [];
     const listDiv = document.getElementById('queue-list');
-    listDiv.innerHTML = '';
+    if (listDiv) listDiv.innerHTML = ''; // 防護：確保 HTML 有這個區塊才執行
     
     snapshot.forEach((child) => {
         const data = child.val();
         songQueue.push({ key: child.key, ...data });
-        listDiv.innerHTML += `
-            <div class="queue-item">
-                <div style="flex-grow: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                    <strong>${data.nickname || '神秘人'}</strong>：${data.title}
-                </div>
-                <button class="remove-btn" onclick="removeSong('${child.key}')">移除</button>
-            </div>`;
+        if (listDiv) {
+            listDiv.innerHTML += `
+                <div class="queue-item">
+                    <div style="flex-grow: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        <strong>${data.nickname || '神秘人'}</strong>：${data.title}
+                    </div>
+                    <button class="remove-btn" onclick="removeSong('${child.key}')">移除</button>
+                </div>`;
+        }
     });
 
-    // 判斷清單空的時候要顯示什麼文字
-    if (songQueue.length === 0) {
+    if (songQueue.length === 0 && listDiv) {
         if (isPlayingFallback) {
-            listDiv.innerHTML = '<div class="queue-item" style="color:#1DB954; justify-content:center; border: 1px dashed #1DB954;">📻 派對電台放送中... 快來點首新歌吧！</div>';
+            listDiv.innerHTML = '<div class="queue-item" style="color:#1DB954; justify-content:center; border: 1px dashed #1DB954; font-weight:bold;">📻 派對電台放送中... 快來點首新歌吧！</div>';
         } else {
             listDiv.innerHTML = '<div class="queue-item" style="color:#aaa; justify-content:center;">目前沒歌，快點一首！</div>';
         }
     }
 
-    // 💡 核心魔法：如果正在播保底音樂，且突然有人點歌了，立刻切換！
     if (isPlayingFallback && songQueue.length > 0) {
         playNextSong();
     }
@@ -85,39 +83,41 @@ db.ref('queue').orderByChild('timestamp').on('value', (snapshot) => {
 // 5. 播放控制邏輯
 // ==========================================
 function startParty() {
-    // 按下啟動後，按鈕換成切歌按鈕
-    document.getElementById('startBtn').style.display = 'none';
-    document.getElementById('skipBtn').style.display = 'inline-block';
+    const startBtn = document.getElementById('startBtn');
+    const skipBtn = document.getElementById('skipBtn');
+    if (startBtn) startBtn.style.display = 'none';
+    if (skipBtn) skipBtn.style.display = 'inline-block';
     playNextSong();
 }
 
 function playNextSong() {
-    const listDiv = document.getElementById('queue-list'); // 取得顯示清單的區塊
+    const listDiv = document.getElementById('queue-list'); 
 
     if (songQueue.length > 0) {
-        // 情況 A：清單有歌，播放使用者的歌
         isPlayingFallback = false;
         const next = songQueue[0];
-        player.loadVideoById(next.videoId);
+        // 防護：確保 player 已經準備好才播歌
+        if (player && typeof player.loadVideoById === 'function') {
+            player.loadVideoById(next.videoId);
+        }
         isPlaying = true;
         db.ref('queue/' + next.key).remove();
     } else {
-        // 情況 B：清單沒歌，進入廣播模式
         isPlayingFallback = true;
         const randomVideo = fallbackPlaylist[Math.floor(Math.random() * fallbackPlaylist.length)];
-        player.loadVideoById(randomVideo);
+        if (player && typeof player.loadVideoById === 'function') {
+            player.loadVideoById(randomVideo);
+        }
         isPlaying = true;
 
-        // 💡 關鍵修復：手動更新畫面文字，不用等資料庫變動
         if (listDiv) {
             listDiv.innerHTML = '<div class="queue-item" style="color:#1DB954; justify-content:center; border: 1px dashed #1DB954; font-weight:bold;">📻 派對電台放送中... 快來點首新歌吧！</div>';
         }
     }
 }
 
-
 // ==========================================
-// 6. 自製密碼視窗邏輯 (絕不中斷音樂)
+// 6. 自製密碼視窗邏輯
 // ==========================================
 let pendingAction = null;
 
@@ -132,20 +132,30 @@ function removeSong(key) {
 }
 
 function openModal() {
-    document.getElementById('customModal').style.display = 'flex';
-    document.getElementById('adminPwd').value = '';
-    document.getElementById('errorMsg').style.display = 'none';
-    document.getElementById('adminPwd').focus();
+    const modal = document.getElementById('customModal');
+    const pwdInput = document.getElementById('adminPwd');
+    const errMsg = document.getElementById('errorMsg');
+    
+    if (modal) modal.style.display = 'flex';
+    if (pwdInput) {
+        pwdInput.value = '';
+        pwdInput.focus();
+    }
+    if (errMsg) errMsg.style.display = 'none';
 }
 
 function closeModal() {
-    document.getElementById('customModal').style.display = 'none';
+    const modal = document.getElementById('customModal');
+    if (modal) modal.style.display = 'none';
     pendingAction = null;
 }
 
 function submitPassword() {
-    const pwd = document.getElementById('adminPwd').value;
-    if (pwd === ADMIN_PASSWORD) {
+    const pwdInput = document.getElementById('adminPwd');
+    const errMsg = document.getElementById('errorMsg');
+    if (!pwdInput) return;
+    
+    if (pwdInput.value === ADMIN_PASSWORD) {
         closeModal();
         if (pendingAction === 'skip') {
             playNextSong();
@@ -153,11 +163,13 @@ function submitPassword() {
             db.ref('queue/' + pendingAction).remove();
         }
     } else {
-        document.getElementById('errorMsg').style.display = 'block';
+        if (errMsg) errMsg.style.display = 'block';
     }
 }
 
-// 支援 Enter 鍵送出密碼
-document.getElementById('adminPwd').addEventListener('keypress', function (e) {
-    if (e.key === 'Enter') submitPassword();
-});
+const adminPwdInput = document.getElementById('adminPwd');
+if (adminPwdInput) {
+    adminPwdInput.addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') submitPassword();
+    });
+}
