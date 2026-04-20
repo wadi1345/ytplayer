@@ -142,18 +142,39 @@
             resultsDiv.innerHTML = '<p style="text-align:center; color:#888;">搜尋中...</p>';
             
             const videoId = extractVideoID(input);
+            const currentKey = YOUTUBE_API_KEYS[currentKeyIndex]; // 拿出目前的鑰匙
+            
             const url = videoId 
-                ? `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${YOUTUBE_API_KEY}`
-                : `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=5&q=${input}&type=video&key=${YOUTUBE_API_KEY}`;
+                ? `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${currentKey}`
+                : `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=5&q=${input}&type=video&key=${currentKey}`;
 
-            fetch(url).then(res => res.json()).then(data => {
+            fetch(url).then(res => {
+                // 💡 偵測額度是否用完 (狀態碼 403)
+                if (!res.ok) {
+                    if (res.status === 403) {
+                        currentKeyIndex++; // 換下一把鑰匙
+                        if (currentKeyIndex < YOUTUBE_API_KEYS.length) {
+                            console.log(`第 ${currentKeyIndex} 把金鑰額度耗盡，自動切換至備用金鑰...`);
+                            searchYouTube(); // 重新觸發一次搜尋
+                            return null; // 停止原本的壞流程
+                        } else {
+                            throw new Error('quota_exceeded'); // 所有鑰匙都斷了
+                        }
+                    }
+                    throw new Error('network_error');
+                }
+                return res.json();
+            })
+            .then(data => {
+                if (!data) return; // 如果正在切換金鑰，就先跳出
+                
                 resultsDiv.innerHTML = '';
                 if(data.items && data.items.length > 0) {
                     data.items.forEach(item => {
                         const id = videoId || item.id.videoId;
                         if (!id) return;
                         const title = item.snippet.title;
-                        const safeTitle = title.replace(/'/g, "\\'");
+                        const safeTitle = title.replace(/'/g, "\\'").replace(/"/g, "&quot;"); // 防禦雙引號
                         resultsDiv.innerHTML += `
                             <div class="song-item">
                                 <div class="song-title-text">🎵 ${title}</div>
@@ -162,6 +183,16 @@
                     });
                 } else {
                     resultsDiv.innerHTML = '<p style="color:#b3b3b3;">找不到結果，請換個關鍵字。</p>';
+                }
+            })
+            .catch(err => {
+                // 💡 友善的錯誤提示
+                if (err.message === 'quota_exceeded') {
+                    resultsDiv.innerHTML = '<p style="color:#ff4b2b; text-align:center;">😱 哎呀！今天所有的搜尋額度都用完了！<br>請改用「貼上 YouTube 網址」的方式點歌喔！</p>';
+                    // 把索引歸零，明天重新從第一把開始試
+                    currentKeyIndex = 0; 
+                } else {
+                    resultsDiv.innerHTML = '<p style="color:#ff4b2b; text-align:center;">網路連線錯誤，請稍後再試。</p>';
                 }
             });
         }
