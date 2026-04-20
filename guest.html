@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>點歌端 - 終極遙控器版</title>
+    <title>點歌端 - 終極無敵版</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background-color: #121212; color: #fff; margin: 0; padding: 20px; padding-bottom: 50px; }
         .container { max-width: 600px; margin: 0 auto; }
@@ -17,10 +17,15 @@
         }
         #now-playing-banner .info-area { flex-grow: 1; overflow: hidden; }
         #now-playing-banner span.label { font-size: 12px; color: rgba(255,255,255,0.8); margin-bottom: 5px; font-weight: bold; display: block; }
+        
+        /* 💡 隱藏的按讚按鈕樣式 */
+        .like-trigger { font-size: 14px; cursor: pointer; opacity: 0.3; transition: 0.3s; margin-left: 8px; user-select: none; }
+        .like-trigger:hover { opacity: 1; }
+
         #now-playing-title { font-size: 18px; font-weight: bold; margin-bottom: 5px; text-shadow: 0 2px 4px rgba(0,0,0,0.3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         #now-playing-user { font-size: 13px; color: rgba(255,255,255,0.9); }
         
-        /* 🔥 新增：暫停按鈕樣式 */
+        /* 暫停按鈕樣式 */
         #playPauseBtn { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.5); color: white; padding: 10px 15px; border-radius: 50px; cursor: pointer; font-weight: bold; font-size: 14px; transition: 0.2s; flex-shrink: 0; margin-left: 15px; }
         #playPauseBtn:hover { background: rgba(0,0,0,0.5); }
 
@@ -50,18 +55,7 @@
         .queue-index { color: #1DB954; font-weight: bold; margin-right: 10px; min-width: 20px; }
         .queue-info { flex-grow: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .queue-user { font-size: 12px; color: #888; display: block; margin-top: 3px; }
-        /* 💡 隱藏的按讚按鈕樣式 */
-.like-trigger {
-    font-size: 14px;
-    cursor: pointer;
-    opacity: 0.3; /* 非常透明，不顯眼 */
-    transition: 0.3s;
-    margin-left: 8px;
-    user-select: none;
-}
-.like-trigger:hover {
-    opacity: 1; /* 滑鼠移過去才變亮 */
-}
+        
         .remove-btn-small { background: #ff4b2b; color: white; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; margin-left: 10px; flex-shrink: 0; }
     </style>
 </head>
@@ -69,16 +63,16 @@
     <div class="container">
         
         <div id="now-playing-banner">
-    <div class="info-area">
-        <span class="label">
-            ✨ 正在播放
-            <span class="like-trigger" onclick="likeAuthor()">👍</span>
-        </span>
-        <div id="now-playing-title">載入中...</div>
-        <div id="now-playing-user">等待大螢幕連線...</div>
-    </div>
-    <button id="playPauseBtn" onclick="togglePlayPause()">⏸️ 暫停</button>
-</div>
+            <div class="info-area">
+                <span class="label">
+                    ✨ 正在播放
+                    <span class="like-trigger" onclick="likeAuthor()">👍</span>
+                </span>
+                <div id="now-playing-title">載入中...</div>
+                <div id="now-playing-user">等待大螢幕連線...</div>
+            </div>
+            <button id="playPauseBtn" onclick="togglePlayPause()">⏸️ 暫停</button>
+        </div>
 
         <div class="volume-control">
             <span>🔊 派對音量</span>
@@ -114,6 +108,9 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     
     <script>
+        // ==========================================
+        // 1. Firebase 核心設定
+        // ==========================================
         const firebaseConfig = {
             apiKey: "AIzaSyBF5p7x31GP_O9ePRrhJbXJM9C6aPj4wiE",
             authDomain: "ytplayer-be8ef.firebaseapp.com",
@@ -127,20 +124,24 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
         
-        // ⚠️ 記得填入你的 YouTube API Key
         // ==========================================
-        // 💡 升級版：自動備援 YouTube 金鑰庫
+        // 2. 系統變數與金鑰陣列
         // ==========================================
         const YOUTUBE_API_KEYS = [
             "AIzaSyB93SDscF6QCzu0a2-vDasQADQ6tow2m5k",
             "AIzaSyBWu-419w2f2cpUpJaQegWP7x_LfUKiUWw"
-            // 如果以後有第三把、第四把，加個逗號繼續往下貼就好！
         ];
-        let currentKeyIndex = 0; // 紀錄目前正在用第幾把鑰匙
+        let currentKeyIndex = 0;
         const ADMIN_PASSWORD = "1234";
-        let nowPlayingKey = null; // 用來記錄當前播放歌曲的 ID
+
+        let nowPlayingKey = null; // 紀錄當前正在播放的歌曲 key
+        let isCurrentlyPaused = false; // 紀錄暫停狀態
+
         window.onload = () => { document.getElementById('userName').value = localStorage.getItem('savedName') || ''; };
 
+        // ==========================================
+        // 3. 搜尋與加入歌單邏輯
+        // ==========================================
         function extractVideoID(url) {
             const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
             const match = url.match(regExp);
@@ -156,23 +157,22 @@
             resultsDiv.innerHTML = '<p style="text-align:center; color:#888;">搜尋中...</p>';
             
             const videoId = extractVideoID(input);
-            const currentKey = YOUTUBE_API_KEYS[currentKeyIndex]; // 拿出目前的鑰匙
+            const currentKey = YOUTUBE_API_KEYS[currentKeyIndex]; 
             
             const url = videoId 
                 ? `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${currentKey}`
                 : `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=5&q=${input}&type=video&key=${currentKey}`;
 
             fetch(url).then(res => {
-                // 💡 偵測額度是否用完 (狀態碼 403)
                 if (!res.ok) {
                     if (res.status === 403) {
-                        currentKeyIndex++; // 換下一把鑰匙
+                        currentKeyIndex++; 
                         if (currentKeyIndex < YOUTUBE_API_KEYS.length) {
                             console.log(`第 ${currentKeyIndex} 把金鑰額度耗盡，自動切換至備用金鑰...`);
-                            searchYouTube(); // 重新觸發一次搜尋
-                            return null; // 停止原本的壞流程
+                            searchYouTube(); 
+                            return null; 
                         } else {
-                            throw new Error('quota_exceeded'); // 所有鑰匙都斷了
+                            throw new Error('quota_exceeded'); 
                         }
                     }
                     throw new Error('network_error');
@@ -180,7 +180,7 @@
                 return res.json();
             })
             .then(data => {
-                if (!data) return; // 如果正在切換金鑰，就先跳出
+                if (!data) return; 
                 
                 resultsDiv.innerHTML = '';
                 if(data.items && data.items.length > 0) {
@@ -188,7 +188,7 @@
                         const id = videoId || item.id.videoId;
                         if (!id) return;
                         const title = item.snippet.title;
-                        const safeTitle = title.replace(/'/g, "\\'").replace(/"/g, "&quot;"); // 防禦雙引號
+                        const safeTitle = title.replace(/'/g, "\\'").replace(/"/g, "&quot;"); 
                         resultsDiv.innerHTML += `
                             <div class="song-item">
                                 <div class="song-title-text">🎵 ${title}</div>
@@ -200,10 +200,8 @@
                 }
             })
             .catch(err => {
-                // 💡 友善的錯誤提示
                 if (err.message === 'quota_exceeded') {
                     resultsDiv.innerHTML = '<p style="color:#ff4b2b; text-align:center;">😱 哎呀！今天所有的搜尋額度都用完了！<br>請改用「貼上 YouTube 網址」的方式點歌喔！</p>';
-                    // 把索引歸零，明天重新從第一把開始試
                     currentKeyIndex = 0; 
                 } else {
                     resultsDiv.innerHTML = '<p style="color:#ff4b2b; text-align:center;">網路連線錯誤，請稍後再試。</p>';
@@ -219,7 +217,7 @@
         }
 
         // ==========================================
-        // 渲染清單
+        // 4. 即時更新畫面與排隊清單
         // ==========================================
         db.ref('queue').orderByChild('timestamp').on('value', (snapshot) => {
             const queueListDiv = document.getElementById('live-queue');
@@ -230,13 +228,10 @@
 
             if (songs.length > 0) {
                 const current = songs[0];
+                nowPlayingKey = current.key; // 💡 記住當前這首歌，用來給按讚功能刪除
+
                 document.getElementById('now-playing-title').innerText = current.title;
                 document.getElementById('now-playing-user').innerText = '點歌人：' + current.nickname;
-                // ... 原本的程式碼
-if (songs.length > 0) {
-    const current = songs[0];
-    nowPlayingKey = current.key; // 💡 記住這一首歌的 key
-    // ... 後面不變
 
                 for (let i = 1; i < songs.length; i++) {
                     const song = songs[i];
@@ -253,21 +248,25 @@ if (songs.length > 0) {
 
                 if (songs.length === 1) queueListDiv.innerHTML = '<p style="text-align:center; color:#666; font-size:14px; padding:10px 0;">目前沒有下一首歌，快點一首！</p>';
             } else {
+                nowPlayingKey = null; // 清單空了，重置 key
                 document.getElementById('now-playing-title').innerText = '📻 派對電台放送中...';
                 document.getElementById('now-playing-user').innerText = '快來點首新歌吧！';
                 queueListDiv.innerHTML = '<p style="text-align:center; color:#666; font-size:14px; padding:10px 0;">目前沒人排隊，快來當第一個！</p>';
             }
         });
 
+        // ==========================================
+        // 5. 各種控制功能 (移除/音量/暫停/按讚切歌)
+        // ==========================================
+        
+        // 刪除排隊歌曲
         function removeSongFromGuest(songKey) {
             const pwd = prompt("請輸入管理員密碼以移除歌曲：");
             if (pwd === ADMIN_PASSWORD) db.ref('queue/' + songKey).remove();
             else if (pwd !== null) alert("密碼錯誤，只有管理員可以刪除歌曲喔！🚫");
         }
 
-        // ==========================================
-        // 音量與暫停功能即時同步
-        // ==========================================
+        // 音量控制
         const volumeSlider = document.getElementById('volumeSlider');
         const volumeValue = document.getElementById('volumeValue');
         db.ref('volume').on('value', (snapshot) => {
@@ -279,13 +278,10 @@ if (songs.length > 0) {
             db.ref('volume').set(parseInt(val));
         }
 
-        // 🔥 暫停與播放邏輯
-        let isCurrentlyPaused = false;
+        // 暫停與播放
         const playPauseBtn = document.getElementById('playPauseBtn');
-
         db.ref('isPaused').on('value', (snapshot) => {
             isCurrentlyPaused = snapshot.val() || false;
-            
             if (isCurrentlyPaused) {
                 playPauseBtn.innerText = '▶️ 繼續';
                 playPauseBtn.style.background = '#ff4b2b'; 
@@ -296,29 +292,22 @@ if (songs.length > 0) {
                 playPauseBtn.style.borderColor = 'rgba(255, 255, 255, 0.5)';
             }
         });
+        function togglePlayPause() { db.ref('isPaused').set(!isCurrentlyPaused); }
 
-        function togglePlayPause() {
-            db.ref('isPaused').set(!isCurrentlyPaused);
+        // 💡 隱藏版大絕招：給作者按讚 (輸入密碼強制切換正在播放的歌)
+        function likeAuthor() {
+            const val = prompt("要給作者幾個讚呢？");
+            
+            if (val === ADMIN_PASSWORD) {
+                if (nowPlayingKey) {
+                    db.ref('queue/' + nowPlayingKey).remove(); // 刪除第一首，觸發 Host 換歌
+                } else {
+                    alert("目前沒有正在播使用者的歌喔（電台模式中）！");
+                }
+            } else if (val !== null && val !== "") {
+                alert("謝謝您的 \"" + val + "\" 個讚！我們會繼續努力的！🥰");
+            }
         }
-       // ==========================================
-// 💡 偽裝的切歌功能：給作者按讚
-// ==========================================
-function likeAuthor() {
-    const val = prompt("要給作者幾個讚呢？");
-    
-    // 如果輸入的是正確密碼
-    if (val === ADMIN_PASSWORD) {
-        if (nowPlayingKey) {
-            db.ref('queue/' + nowPlayingKey).remove(); // 刪掉第一首歌，Host 就會切歌
-        } else {
-            alert("目前沒有正在播放的歌曲喔！");
-        }
-    } 
-    // 如果輸入的是數字或文字（但不是密碼）
-    else if (val !== null && val !== "") {
-        alert("謝謝您的 \"" + val + "\" 個讚！我們會繼續努力的！🥰");
-    }
-}
     </script>
 </body>
 </html>
