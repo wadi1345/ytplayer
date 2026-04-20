@@ -20,8 +20,8 @@ const ADMIN_PASSWORD = "1234";
 // ==========================================
 let player, songQueue = [];
 let isPlayingFallback = false;
-let currentPlayingKey = null; // 紀錄當前正在播的歌
-let isStarted = false; // 紀錄大螢幕是否已啟動
+let currentPlayingKey = null; 
+let isStarted = false; 
 
 const fallbackPlaylist = [
     'GVv4kCa9jj8'  // 你的專屬電台
@@ -45,7 +45,7 @@ function onYouTubeIframeAPIReady() {
 }
 
 // ==========================================
-// 4. 監聽資料庫 (💡 採用你的完美邏輯)
+// 4. 監聽資料庫 (單一資料源)
 // ==========================================
 db.ref('queue').orderByChild('timestamp').on('value', (snapshot) => {
     songQueue = [];
@@ -53,46 +53,44 @@ db.ref('queue').orderByChild('timestamp').on('value', (snapshot) => {
         songQueue.push({ key: child.key, ...child.val() });
     });
     
-    renderHostUI(); // 更新畫面
+    renderHostUI(); 
     
     if (isStarted) {
-        evaluatePlayback(); // 如果大螢幕已經啟動，就檢查需不需要自動換歌
+        evaluatePlayback(); 
     }
 });
 
-// 負責決定現在該播什麼
 function evaluatePlayback() {
     if (songQueue.length > 0) {
         isPlayingFallback = false;
-        const topSong = songQueue[0]; // 💡 清單第 1 首歌永遠是正在播的歌
+        const topSong = songQueue[0]; 
         
         if (currentPlayingKey !== topSong.key) {
             currentPlayingKey = topSong.key;
             if (player && typeof player.loadVideoById === 'function') {
                 player.loadVideoById(topSong.videoId);
+                db.ref('isPaused').set(false); // 💡 新歌自動解除暫停
             }
         }
     } else {
-        // 清單空了，進入電台模式
         currentPlayingKey = null;
         if (!isPlayingFallback) {
             isPlayingFallback = true;
             const randomVideo = fallbackPlaylist[Math.floor(Math.random() * fallbackPlaylist.length)];
             if (player && typeof player.loadVideoById === 'function') {
                 player.loadVideoById(randomVideo);
+                db.ref('isPaused').set(false); // 💡 電台換歌自動解除暫停
             }
         }
     }
 }
 
-// 負責畫出清單
 function renderHostUI() {
     const listDiv = document.getElementById('queue-list');
     if (!listDiv) return;
     listDiv.innerHTML = '';
     
     if (songQueue.length > 0) {
-        // 從第 2 首歌開始畫排隊清單 (因為第 1 首正在播)
         for (let i = 1; i < songQueue.length; i++) {
             const data = songQueue[i];
             listDiv.innerHTML += `
@@ -130,13 +128,12 @@ function startParty() {
 
 function playNextSong() {
     if (songQueue.length > 0) {
-        // 播完後，直接把第 1 首歌刪除。Firebase 會自動觸發遞補！
         db.ref('queue/' + songQueue[0].key).remove();
     } else {
-        // 電台播完，再隨機換一首電台
         const randomVideo = fallbackPlaylist[Math.floor(Math.random() * fallbackPlaylist.length)];
         if (player && typeof player.loadVideoById === 'function') {
             player.loadVideoById(randomVideo);
+            db.ref('isPaused').set(false);
         }
     }
 }
@@ -198,20 +195,35 @@ if (adminPwdInput) {
         if (e.key === 'Enter') submitPassword();
     });
 }
+
 // ==========================================
-// 7. 🔥 新增：監聽雲端音量控制
+// 7. 音量接收器
 // ==========================================
 db.ref('volume').on('value', (snapshot) => {
     let vol = snapshot.val();
-    
-    // 如果資料庫還沒有音量資料，預設設為 100
     if (vol === null) {
         vol = 100;
         db.ref('volume').set(vol);
     }
-    
-    // 確保 YouTube 播放器已經載入完成才調整音量
     if (player && typeof player.setVolume === 'function') {
         player.setVolume(vol);
+    }
+});
+
+// ==========================================
+// 8. 🔥 新增：暫停/播放接收器
+// ==========================================
+db.ref('isPaused').on('value', (snapshot) => {
+    let paused = snapshot.val();
+    if (paused === null) {
+        paused = false;
+        db.ref('isPaused').set(false);
+    }
+    if (player && typeof player.pauseVideo === 'function' && typeof player.playVideo === 'function') {
+        if (paused) {
+            player.pauseVideo();
+        } else {
+            player.playVideo();
+        }
     }
 });
