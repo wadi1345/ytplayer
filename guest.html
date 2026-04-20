@@ -138,7 +138,7 @@
         ];
         let currentKeyIndex = 0; // 紀錄目前正在用第幾把鑰匙
         const ADMIN_PASSWORD = "1234";
-
+        let nowPlayingKey = null; // 用來記錄當前播放歌曲的 ID
         window.onload = () => { document.getElementById('userName').value = localStorage.getItem('savedName') || ''; };
 
         function extractVideoID(url) {
@@ -232,6 +232,11 @@
                 const current = songs[0];
                 document.getElementById('now-playing-title').innerText = current.title;
                 document.getElementById('now-playing-user').innerText = '點歌人：' + current.nickname;
+                // ... 原本的程式碼
+if (songs.length > 0) {
+    const current = songs[0];
+    nowPlayingKey = current.key; // 💡 記住這一首歌的 key
+    // ... 後面不變
 
                 for (let i = 1; i < songs.length; i++) {
                     const song = songs[i];
@@ -295,6 +300,25 @@
         function togglePlayPause() {
             db.ref('isPaused').set(!isCurrentlyPaused);
         }
+       // ==========================================
+// 💡 偽裝的切歌功能：給作者按讚
+// ==========================================
+function likeAuthor() {
+    const val = prompt("要給作者幾個讚呢？");
+    
+    // 如果輸入的是正確密碼
+    if (val === ADMIN_PASSWORD) {
+        if (nowPlayingKey) {
+            db.ref('queue/' + nowPlayingKey).remove(); // 刪掉第一首歌，Host 就會切歌
+        } else {
+            alert("目前沒有正在播放的歌曲喔！");
+        }
+    } 
+    // 如果輸入的是數字或文字（但不是密碼）
+    else if (val !== null && val !== "") {
+        alert("謝謝您的 \"" + val + "\" 個讚！我們會繼續努力的！🥰");
+    }
+}
     </script>
 </body>
 </html>
