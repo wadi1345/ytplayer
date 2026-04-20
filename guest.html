@@ -114,7 +114,15 @@
         const db = firebase.database();
         
         // ⚠️ 記得填入你的 YouTube API Key
-        const YOUTUBE_API_KEY = 'AIzaSyB93SDscF6QCzu0a2-vDasQADQ6tow2m5k';
+        // ==========================================
+        // 💡 升級版：自動備援 YouTube 金鑰庫
+        // ==========================================
+        const YOUTUBE_API_KEYS = [
+            "AIzaSyB93SDscF6QCzu0a2-vDasQADQ6tow2m5k",
+            "AIzaSyBWu-419w2f2cpUpJaQegWP7x_LfUKiUWw"
+            // 如果以後有第三把、第四把，加個逗號繼續往下貼就好！
+        ];
+        let currentKeyIndex = 0; // 紀錄目前正在用第幾把鑰匙
         const ADMIN_PASSWORD = "1234";
 
         window.onload = () => { document.getElementById('userName').value = localStorage.getItem('savedName') || ''; };
