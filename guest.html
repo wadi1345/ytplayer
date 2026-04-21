@@ -263,7 +263,7 @@
         function removeSongFromGuest(songKey) {
             const pwd = prompt("請輸入管理員密碼以移除歌曲：");
             if (pwd === ADMIN_PASSWORD) db.ref('queue/' + songKey).remove();
-            else if (pwd !== null) alert("密碼錯誤，只有管理員可以刪除歌曲喔！🚫");
+            else if (pwd !== null) alert("密碼錯誤，不可以亂刪除歌曲喔！🚫");
         }
 
         // 音量控制
@@ -296,7 +296,7 @@
 
         // 💡 隱藏版大絕招：給作者按讚 (輸入密碼強制切換正在播放的歌)
         function likeAuthor() {
-            const val = prompt("要給作者幾個讚呢？");
+            const val = prompt("請輸入要給大香腸幾個讚？");
             
             if (val === ADMIN_PASSWORD) {
                 if (nowPlayingKey) {
