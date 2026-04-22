@@ -189,16 +189,67 @@
             const playlistId = extractPlaylistID(input);
             const videoId = extractVideoID(input);
 
+            // 💡 防彈升級 1：攔截 YouTube 自動生成的 Mix 電台 (RD開頭)
+            if (playlistId && playlistId.startsWith('RD')) {
+                const confirmMsg = "⚠️ 偵測到 YouTube 自動生成的「電台合輯 (Mix)」！\n\n因為官方 API 限制，無法整包讀取這種自動清單。\n要幫您直接搜尋網址內的「這首單曲」嗎？";
+                
+                if (confirm(confirmMsg)) {
+                    // 使用者點擊確定，降級成單曲搜尋模式
+                    if (videoId) {
+                        const url = `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${currentKey}`;
+                        fetch(url).then(handleApiResponse).then(renderSearchResults).catch(handleApiError);
+                    } else {
+                        resultsDiv.innerHTML = '<p style="color:#ff4b2b; text-align:center;">無效的單曲網址，請重新搜尋。</p>';
+                    }
+                } else {
+                    resultsDiv.innerHTML = ''; // 取消就清空
+                }
+                return; // 終止後續動作
+            }
+
+            // 正常的 PL 播放清單
             if (playlistId) {
                 fetchPlaylist(playlistId, currentKey);
                 return;
             }
             
+            // 單曲或關鍵字搜尋
             const url = videoId 
                 ? `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${currentKey}`
                 : `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=5&q=${input}&type=video&key=${currentKey}`;
 
             fetch(url).then(handleApiResponse).then(renderSearchResults).catch(handleApiError);
+        }
+
+        // ==========================================
+        // 4. 處理播放清單 (Playlist) 與 完美的去重引擎
+        // ==========================================
+        function fetchPlaylist(playlistId, apiKey) {
+            const url = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=20&playlistId=${playlistId}&key=${apiKey}`;
+            
+            fetch(url).then(res => {
+                if (!res.ok) throw new Error('playlist_error');
+                return res.json();
+            }).then(data => {
+                if(data.items && data.items.length > 0) {
+                    pendingPlaylistItems = data.items.map(item => ({
+                        id: item.snippet.resourceId.videoId,
+                        title: item.snippet.title.replace(/'/g, "\\'").replace(/"/g, "&quot;")
+                    })).filter(item => item.title !== "Private video" && item.title !== "Deleted video" && item.id);
+                    
+                    if (pendingPlaylistItems.length > 0) {
+                        openPlaylistModal();
+                    } else {
+                        document.getElementById('results').innerHTML = '<p style="color:#b3b3b3;">清單內沒有可播放的公開影片。</p>';
+                    }
+                } else {
+                    document.getElementById('results').innerHTML = '<p style="color:#b3b3b3;">讀取不到清單，請確認該清單為公開。</p>';
+                }
+                document.getElementById('searchInput').value = ''; 
+            }).catch(err => {
+                // 💡 防彈升級 2：給出更白話的 400 錯誤提示
+                document.getElementById('results').innerHTML = '<p style="color:#ff4b2b; text-align:center;">❌ 讀取清單失敗！<br><span style="font-size: 14px; color: #b3b3b3;">請確認這是一般的「播放清單 (PL開頭)」。<br>自動生成的合輯 (Mix) 無法讀取喔！</span></p>';
+            });
         }
 
         // ==========================================
