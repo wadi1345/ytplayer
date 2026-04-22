@@ -284,53 +284,58 @@
         function closePlaylistModal() { document.getElementById('playlistModal').style.display = 'none'; }
         function toggleSelectAll() { const b = document.getElementById('selectAllCheckbox').checked; document.querySelectorAll('.song-checkbox').forEach(cb => cb.checked = b); }
 
-        // ==========================================
-        // 💡 完美的排隊清單渲染引擎 (再也不會憑空消失)
+       // ==========================================
+        // 💡 完美的排隊清單渲染引擎 (附帶強制報警器)
         // ==========================================
         db.ref('queue').orderByChild('timestamp').on('value', (s) => {
-            currentQueue = [];
-            const q = document.getElementById('live-queue'); 
-            
-            s.forEach(c => currentQueue.push({key: c.key, ...c.val()}));
-            
-            if (currentQueue.length > 0) {
-                // 1. 更新正在播放
-                const cur = currentQueue[0]; 
-                nowPlayingKey = cur.key;
-                document.getElementById('now-playing-title').innerText = cur.title;
-                document.getElementById('now-playing-user').innerText = '點歌人：' + cur.nickname;
+            try {
+                currentQueue = [];
+                const q = document.getElementById('live-queue'); 
                 
-                // 2. 建立排隊 HTML 緩衝區，保證一次渲染
-                let queueHTML = '';
-                for (let i = 1; i < currentQueue.length; i++) {
-                    const sn = currentQueue[i];
-                    queueHTML += `
-                        <div class="queue-item">
-                            <span class="queue-index">${i}</span>
-                            <div class="queue-info">
-                                <span style="color:#fff;">${sn.title}</span>
-                                <span class="queue-user">點歌人：${sn.nickname}</span>
-                            </div>
-                            <button class="remove-btn-small" onclick="removeSongFromGuest('${sn.key}')">移除</button>
-                        </div>`;
-                }
+                s.forEach(c => currentQueue.push({key: c.key, ...c.val()}));
                 
-                // 3. 處理「只有一首歌 (沒有下一首)」的防呆狀態
-                if (currentQueue.length === 1) {
-                    queueHTML = '<p style="text-align:center; color:#666; font-size:14px; padding:10px 0;">目前沒有下一首歌，快來點一首！</p>';
-                }
+                // 💡 可以在 F12 控制台偷看資料有沒有順利抓下來
+                console.log("目前資料庫裡的排隊清單：", currentQueue);
                 
-                // 4. 正式寫入畫面
-                q.innerHTML = queueHTML;
+                if (currentQueue.length > 0) {
+                    const cur = currentQueue[0]; 
+                    nowPlayingKey = cur.key;
+                    // 加入 || '未知' 防呆，避免沒抓到標題時當機
+                    document.getElementById('now-playing-title').innerText = cur.title || '未知歌曲';
+                    document.getElementById('now-playing-user').innerText = '點歌人：' + (cur.nickname || '辦公室 DJ');
+                    
+                    let queueHTML = '';
+                    for (let i = 1; i < currentQueue.length; i++) {
+                        const sn = currentQueue[i];
+                        queueHTML += `
+                            <div class="queue-item">
+                                <span class="queue-index">${i}</span>
+                                <div class="queue-info">
+                                    <span style="color:#fff;">${sn.title || '未知標題'}</span>
+                                    <span class="queue-user">點歌人：${sn.nickname || '辦公室 DJ'}</span>
+                                </div>
+                                <button class="remove-btn-small" onclick="removeSongFromGuest('${sn.key}')">移除</button>
+                            </div>`;
+                    }
+                    
+                    if (currentQueue.length === 1) {
+                        queueHTML = '<p style="text-align:center; color:#666; font-size:14px; padding:10px 0;">目前沒有下一首歌，快來點一首！</p>';
+                    }
+                    
+                    q.innerHTML = queueHTML;
 
-            } else {
-                nowPlayingKey = null;
-                document.getElementById('now-playing-title').innerText = '📻 派對電台放送中...';
-                document.getElementById('now-playing-user').innerText = '快點歌吧！';
-                q.innerHTML = '<p style="text-align:center; color:#666; font-size:14px; padding:10px 0;">目前沒人排隊，快來當第一個！</p>';
+                } else {
+                    nowPlayingKey = null;
+                    document.getElementById('now-playing-title').innerText = '📻 派對電台放送中...';
+                    document.getElementById('now-playing-user').innerText = '快點歌吧！';
+                    q.innerHTML = '<p style="text-align:center; color:#666; font-size:14px; padding:10px 0;">目前沒人排隊，快來當第一個！</p>';
+                }
+            } catch (error) {
+                // 🚨 如果有任何隱形錯誤，直接彈出視窗警告！
+                alert("抓到蟲了！畫圖時發生錯誤：\n" + error.message);
+                console.error("詳細錯誤：", error);
             }
         });
-
         // 控制功能
         function removeSongFromGuest(k) { const p = prompt("請輸入密碼："); if(p === ADMIN_PASSWORD) db.ref('queue/'+k).remove(); }
         function changeVolume(v) { document.getElementById('volumeValue').innerText = v+'%'; db.ref('volume').set(parseInt(v)); }
