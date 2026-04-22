@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>點歌端 - 終極穩定版</title>
+    <title>點歌端 - 辦公室無敵黃金版</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background-color: #121212; color: #fff; margin: 0; padding: 20px; padding-bottom: 50px; }
         .container { max-width: 600px; margin: 0 auto; }
@@ -39,12 +39,15 @@
         .song-title-text { flex-grow: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; margin-right: 10px; }
         .add-btn { width: 70px; height: 35px; flex-shrink: 0; background: transparent; border: 1px solid #1DB954; color: #1DB954; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 13px; }
 
-        /* 🔥 新增：橘色警告框樣式 */
+        /* 橘色警告框樣式 */
         .warning-box { background: rgba(255, 174, 66, 0.1); border: 1px dashed #ffae42; color: #ffae42; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 13px; text-align: center; line-height: 1.5; }
 
         /* 排隊清單樣式 */
         #live-queue { background: #181818; padding: 15px; border-radius: 12px; margin-top: 10px; border: 1px solid #2a2a2a; }
         .queue-item { padding: 12px 0; border-bottom: 1px solid #2a2a2a; font-size: 14px; display: flex; align-items: center; justify-content: space-between; }
+        .queue-item:last-child { border-bottom: none; }
+        .queue-index { color: #1DB954; font-weight: bold; margin-right: 10px; min-width: 20px; }
+        .queue-info { flex-grow: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .queue-user { font-size: 12px; color: #888; display: block; margin-top: 3px; }
         .remove-btn-small { background: #ff4b2b; color: white; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; margin-left: 10px; flex-shrink: 0; }
 
@@ -108,7 +111,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     
     <script>
-        // Firebase 設定 (使用你的專屬金鑰)
+        // Firebase 設定 
         const firebaseConfig = {
             apiKey: "AIzaSyBF5p7x31GP_O9ePRrhJbXJM9C6aPj4wiE",
             authDomain: "ytplayer-be8ef.firebaseapp.com",
@@ -122,7 +125,7 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
         
-        // YouTube API 金鑰庫 (已修補第一把的減號)
+        // YouTube API 金鑰庫 
         const YOUTUBE_API_KEYS = [
             "AIzaSyB93SDscF6QCzu0a2-vDasQADQ6tow2m5k",
             "AIzaSyBWu-419w2f2cpUpJaQegWP7x_LfUKiUWw"
@@ -149,9 +152,9 @@
         }
 
         // ==========================================
-        // 核心搜尋大腦
+        // 核心搜尋與解析大腦
         // ==========================================
-       function searchYouTube() {
+        function searchYouTube() {
             const input = document.getElementById('searchInput').value.trim();
             if (!input) return alert('請輸入內容！');
             const resultsDiv = document.getElementById('results');
@@ -161,7 +164,7 @@
             const playlistId = extractPlaylistID(input);
             const videoId = extractVideoID(input);
 
-            // 💡 拆除攔截器：只要有清單 ID (不管是 PL 還是 RD)，通通丟給 API 處理！
+            // 💡 如果有 RD 電台或 PL 播放清單，通通去讀取！
             if (playlistId) {
                 fetchPlaylist(playlistId, currentKey);
                 return;
@@ -191,7 +194,15 @@
                     document.getElementById('results').innerHTML = '<p style="color:#b3b3b3;">清單內容為空或不公開。</p>';
                 }
             }).catch(() => {
-                document.getElementById('results').innerHTML = '<p style="color:#ff4b2b; text-align:center;">❌ 讀取清單失敗！<br><span style="font-size: 13px; color:#888;">這可能是 YouTube 自動生成的合輯，無法讀取。</span></p>';
+                // 如果 RD 電台讀取失敗，溫馨降級成單曲
+                const videoId = extractVideoID(document.getElementById('searchInput').value.trim());
+                if(videoId) {
+                    const warning = `<div class="warning-box">⚠️ 偵測到受保護的自動合輯 (Mix)<br>已為您切換為「單曲模式」。</div>`;
+                    const url2 = `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${apiKey}`;
+                    fetch(url2).then(handleApiResponse).then(d => renderSearchResults(d, warning)).catch(handleApiError);
+                } else {
+                    document.getElementById('results').innerHTML = '<p style="color:#ff4b2b; text-align:center;">❌ 讀取失敗，且找不到單曲。</p>';
+                }
             });
         }
 
@@ -214,8 +225,11 @@
             }
         }
 
+        // ==========================================
+        // 點歌防重複引擎
+        // ==========================================
         function addToQueue(id, title) {
-            const name = document.getElementById('userName').value || '神秘同事';
+            const name = document.getElementById('userName').value || '辦公室 DJ';
             localStorage.setItem('savedName', name);
             if (currentQueue.some(s => s.videoId === id)) {
                 alert('⚠️ 這首歌已經在排隊清單中囉！');
@@ -227,13 +241,13 @@
         }
 
         function batchAddPlaylist() {
-            const name = document.getElementById('userName').value || '神秘同事';
+            const name = document.getElementById('userName').value || '辦公室 DJ';
             localStorage.setItem('savedName', name);
             const checkboxes = document.querySelectorAll('.song-checkbox:checked');
             const existingIds = new Set(currentQueue.map(s => s.videoId));
             let added = 0, skipped = 0;
             const now = Date.now();
-            checkboxes.forEach((cb, i) => {
+            checkboxes.forEach((cb) => {
                 const song = pendingPlaylistItems[cb.value];
                 if (existingIds.has(song.id)) skipped++;
                 else {
@@ -247,7 +261,7 @@
         }
 
         // ==========================================
-        // 基礎設施 (API 錯誤、Modal、同步)
+        // 基礎設施 (API 錯誤、Modal)
         // ==========================================
         function handleApiResponse(res) {
             if (!res.ok) {
@@ -271,26 +285,26 @@
         function toggleSelectAll() { const b = document.getElementById('selectAllCheckbox').checked; document.querySelectorAll('.song-checkbox').forEach(cb => cb.checked = b); }
 
         // ==========================================
-        // 💡 完美的排隊清單同步邏輯 (修復空白 Bug)
+        // 💡 完美的排隊清單渲染引擎 (再也不會憑空消失)
         // ==========================================
         db.ref('queue').orderByChild('timestamp').on('value', (s) => {
             currentQueue = [];
             const q = document.getElementById('live-queue'); 
-            q.innerHTML = ''; // 先清空舊畫面
             
             s.forEach(c => currentQueue.push({key: c.key, ...c.val()}));
             
             if (currentQueue.length > 0) {
-                // 1. 處理正在播放 (第一首歌)
+                // 1. 更新正在播放
                 const cur = currentQueue[0]; 
                 nowPlayingKey = cur.key;
                 document.getElementById('now-playing-title').innerText = cur.title;
                 document.getElementById('now-playing-user').innerText = '點歌人：' + cur.nickname;
                 
-                // 2. 處理排隊清單 (第二首開始)
+                // 2. 建立排隊 HTML 緩衝區，保證一次渲染
+                let queueHTML = '';
                 for (let i = 1; i < currentQueue.length; i++) {
                     const sn = currentQueue[i];
-                    q.innerHTML += `
+                    queueHTML += `
                         <div class="queue-item">
                             <span class="queue-index">${i}</span>
                             <div class="queue-info">
@@ -301,13 +315,15 @@
                         </div>`;
                 }
                 
-                // 💡 3. 被我弄丟的防呆機制：如果只有一首歌，顯示提示！
+                // 3. 處理「只有一首歌 (沒有下一首)」的防呆狀態
                 if (currentQueue.length === 1) {
-                    q.innerHTML = '<p style="text-align:center; color:#666; font-size:14px; padding:10px 0;">目前沒有下一首歌，快來點一首！</p>';
+                    queueHTML = '<p style="text-align:center; color:#666; font-size:14px; padding:10px 0;">目前沒有下一首歌，快來點一首！</p>';
                 }
+                
+                // 4. 正式寫入畫面
+                q.innerHTML = queueHTML;
 
             } else {
-                // 如果連一首歌都沒有 (電台模式)
                 nowPlayingKey = null;
                 document.getElementById('now-playing-title').innerText = '📻 派對電台放送中...';
                 document.getElementById('now-playing-user').innerText = '快點歌吧！';
@@ -315,7 +331,8 @@
             }
         });
 
-        function removeSongFromGuest(k) { const p = prompt("密碼："); if(p === ADMIN_PASSWORD) db.ref('queue/'+k).remove(); }
+        // 控制功能
+        function removeSongFromGuest(k) { const p = prompt("請輸入密碼："); if(p === ADMIN_PASSWORD) db.ref('queue/'+k).remove(); }
         function changeVolume(v) { document.getElementById('volumeValue').innerText = v+'%'; db.ref('volume').set(parseInt(v)); }
         db.ref('volume').on('value', s => { if(s.val()!==null) { document.getElementById('volumeSlider').value = s.val(); document.getElementById('volumeValue').innerText = s.val()+'%'; }});
         db.ref('isPaused').on('value', s => { 
