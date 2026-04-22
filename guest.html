@@ -3,98 +3,76 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>點歌端</title>
+    <title>點歌端 - 最終除魔版</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background-color: #121212; color: #fff; margin: 0; padding: 20px; padding-bottom: 50px; }
         .container { max-width: 600px; margin: 0 auto; }
-        h2 { color: #1DB954; margin-bottom: 20px; margin-top: 0; }
-        h3 { color: #b3b3b3; font-size: 16px; margin-top: 30px; border-left: 4px solid #1DB954; padding-left: 10px; }
+        h2 { color: #1DB954; margin-bottom: 20px; }
         
-        #now-playing-banner { background: linear-gradient(135deg, #1DB954, #0b5c25); padding: 15px 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(29, 185, 84, 0.4); display: flex; flex-direction: row; justify-content: space-between; align-items: center; }
-        #now-playing-banner .info-area { flex-grow: 1; overflow: hidden; }
-        #now-playing-banner span.label { font-size: 12px; color: rgba(255,255,255,0.8); margin-bottom: 5px; font-weight: bold; display: block; }
-        .like-trigger { font-size: 14px; cursor: pointer; opacity: 0.3; transition: 0.3s; margin-left: 8px; user-select: none; }
-        .like-trigger:hover { opacity: 1; }
-        #now-playing-title { font-size: 18px; font-weight: bold; margin-bottom: 5px; text-shadow: 0 2px 4px rgba(0,0,0,0.3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        #now-playing-user { font-size: 13px; color: rgba(255,255,255,0.9); }
+        /* ✨ 正在播放橫幅 */
+        #now-playing-banner { background: linear-gradient(135deg, #1DB954, #0b5c25); padding: 15px 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(29,185,84,0.4); display: flex; flex-direction: row; justify-content: space-between; align-items: center; }
+        #now-playing-title { font-size: 18px; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         
-        #playPauseBtn { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.5); color: white; padding: 10px 15px; border-radius: 50px; cursor: pointer; font-weight: bold; font-size: 14px; transition: 0.2s; flex-shrink: 0; margin-left: 15px; }
-        
-        .volume-control { display: flex; align-items: center; justify-content: space-between; background: #282828; padding: 15px 20px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
-        .volume-control span { font-size: 14px; color: #b3b3b3; margin-right: 15px; white-space: nowrap; font-weight: bold; }
-        .volume-slider { flex-grow: 1; -webkit-appearance: none; background: #555; height: 6px; border-radius: 5px; outline: none; transition: 0.2s; }
-        .volume-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #1DB954; cursor: pointer; }
+        /* 🔊 音量與按鈕 */
+        .volume-control { display: flex; align-items: center; justify-content: space-between; background: #282828; padding: 15px 20px; border-radius: 12px; margin-bottom: 25px; }
+        .volume-slider { flex-grow: 1; -webkit-appearance: none; background: #555; height: 6px; border-radius: 5px; }
+        .volume-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #1DB954; cursor: pointer; }
 
-        .input-group { background: #282828; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
-        label { display: block; font-size: 14px; color: #b3b3b3; margin-bottom: 8px; }
-        input[type="text"] { width: 100%; padding: 12px; box-sizing: border-box; margin-bottom: 15px; background: #3e3e3e; color: white; border: none; border-radius: 8px; font-size: 16px; }
-        .search-btn { width: 100%; padding: 14px; background-color: #1DB954; color: white; border: none; border-radius: 50px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .input-group { background: #282828; padding: 20px; border-radius: 12px; margin-bottom: 20px; }
+        input[type="text"] { width: 100%; padding: 12px; box-sizing: border-box; margin-bottom: 15px; background: #3e3e3e; color: white; border: none; border-radius: 8px; }
+        .search-btn { width: 100%; padding: 14px; background-color: #1DB954; color: white; border: none; border-radius: 50px; font-weight: bold; cursor: pointer; }
 
-        .song-item { background: #181818; padding: 15px; border-radius: 10px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #333; }
-        .song-title-text { flex-grow: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; margin-right: 10px; }
-        .add-btn { width: 70px; height: 35px; flex-shrink: 0; background: transparent; border: 1px solid #1DB954; color: #1DB954; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 13px; }
+        /* 排隊清單 */
+        #live-queue { background: #181818; padding: 15px; border-radius: 12px; border: 1px solid #2a2a2a; min-height: 50px; }
+        .queue-item { padding: 12px 0; border-bottom: 1px solid #2a2a2a; display: flex; align-items: center; justify-content: space-between; }
+        .queue-info { flex-grow: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+        .remove-btn-small { background: #ff4b2b; color: white; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; margin-left: 10px; }
 
-        .warning-box { background: rgba(255, 174, 66, 0.1); border: 1px dashed #ffae42; color: #ffae42; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 13px; text-align: center; line-height: 1.5; }
+        /* 偵錯區域：如果清單消失，這裡會顯示原因 */
+        #debug-info { margin-top: 20px; font-size: 10px; color: #555; word-break: break-all; }
 
-        #live-queue { background: #181818; padding: 15px; border-radius: 12px; margin-top: 10px; border: 1px solid #2a2a2a; }
-        .queue-item { padding: 12px 0; border-bottom: 1px solid #2a2a2a; font-size: 14px; display: flex; align-items: center; justify-content: space-between; }
-        .queue-item:last-child { border-bottom: none; }
-        .queue-index { color: #1DB954; font-weight: bold; margin-right: 10px; min-width: 20px; }
-        .queue-info { flex-grow: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .queue-user { font-size: 12px; color: #888; display: block; margin-top: 3px; }
-        .remove-btn-small { background: #ff4b2b; color: white; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; margin-left: 10px; flex-shrink: 0; }
-
+        /* Modal */
         .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 1000; }
         .modal-content { background: #282828; width: 90%; max-width: 500px; max-height: 80vh; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; }
         .playlist-items { flex-grow: 1; overflow-y: auto; background: #181818; border-radius: 8px; padding: 10px; margin-bottom: 15px; }
-        .playlist-item { display: flex; align-items: center; padding: 8px 0; border-bottom: 1px solid #2a2a2a; }
-        .playlist-item label { font-size: 13px; color: #ccc; cursor: pointer; flex-grow: 1; margin-left: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .modal-actions { display: flex; gap: 10px; }
-        .modal-btn { flex: 1; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
-        .btn-cancel { background: #444; color: white; }
-        .btn-confirm { background: #1DB954; color: white; }
     </style>
 </head>
 <body>
     <div class="container">
-        
         <div id="now-playing-banner">
-            <div class="info-area">
-                <span class="label">✨ 正在播放 <span class="like-trigger" onclick="likeAuthor()">👍</span></span>
-                <div id="now-playing-title">載入中...</div>
-                <div id="now-playing-user">等待大螢幕連線...</div>
+            <div style="overflow: hidden;">
+                <span style="font-size: 12px; opacity: 0.8;">✨ 正在播放</span>
+                <div id="now-playing-title">等待中...</div>
             </div>
-            <button id="playPauseBtn" onclick="togglePlayPause()">⏸️ 暫停</button>
+            <button id="playPauseBtn" onclick="togglePlayPause()" style="background:rgba(0,0,0,0.3); color:white; border:1px solid #fff; padding:8px 12px; border-radius:20px; cursor:pointer;">⏸️ 暫停</button>
         </div>
 
         <div class="volume-control">
-            <span>🔊 派對音量</span>
+            <span style="font-size:14px; margin-right:10px;">🔊</span>
             <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="100" oninput="changeVolume(this.value)">
-            <span id="volumeValue" style="margin-left: 15px; color:#1DB954;">100%</span>
         </div>
 
         <div class="input-group">
-            <label>你的稱呼</label>
-            <input type="text" id="userName" placeholder="輸入暱稱...">
-            <label>搜尋歌曲或貼上網址/清單</label>
-            <input type="text" id="searchInput" placeholder="輸入歌名或 YouTube 網址...">
-            <button class="search-btn" onclick="searchYouTube()">🔍 搜尋 / 讀取內容</button>
+            <input type="text" id="userName" placeholder="你的暱稱...">
+            <input type="text" id="searchInput" placeholder="搜尋歌名或貼上 YouTube 網址/清單...">
+            <button class="search-btn" onclick="searchYouTube()">🔍 點歌 / 匯入清單</button>
         </div>
 
         <div id="results"></div>
 
         <h3>🔥 目前排隊中...</h3>
-        <div id="live-queue">讀取中...</div>
+        <div id="live-queue">連線中...</div>
+        
+        <div id="debug-info"></div>
     </div>
 
     <div id="playlistModal" class="modal-overlay" style="display: none;">
         <div class="modal-content">
-            <h3 style="color:#1DB954; margin-top:0;">📋 播放清單預覽 (前 20 首)</h3>
-            <div style="margin-bottom:10px;"><input type="checkbox" id="selectAllCheckbox" checked onchange="toggleSelectAll()"> <label for="selectAllCheckbox">全選</label></div>
+            <h3 style="color:#1DB954;">📋 預覽清單 (前 20 首)</h3>
             <div class="playlist-items" id="playlistItemsContainer"></div>
-            <div class="modal-actions">
-                <button class="modal-btn btn-cancel" onclick="closePlaylistModal()">取消</button>
-                <button class="modal-btn btn-confirm" onclick="batchAddPlaylist()">過濾並批次加入</button>
+            <div style="display:flex; gap:10px;">
+                <button onclick="closePlaylistModal()" style="flex:1; padding:12px; background:#444; border:none; color:white; border-radius:8px;">取消</button>
+                <button onclick="batchAddPlaylist()" style="flex:1; padding:12px; background:#1DB954; border:none; color:white; border-radius:8px; font-weight:bold;">全部加入</button>
             </div>
         </div>
     </div>
@@ -103,7 +81,6 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     
     <script>
-        // 💡 找回你真正的金鑰
         const firebaseConfig = {
             apiKey: "AIzaSyBF5p7x31GP_O9ePRrhJbXJM9C6aPj4wiE",
             authDomain: "ytplayer-be8ef.firebaseapp.com",
@@ -117,228 +94,132 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
         
-        const YOUTUBE_API_KEYS = [
-            "AIzaSyB93SDscF6QCzu0a2-vDasQADQ6tow2m5k",
-            "AIzaSyBWu-419w2f2cpUpJaQegWP7x_LfUKiUWw"
-        ];
+        const YOUTUBE_API_KEYS = ["AIzaSyB93SDscF6QCzu0a2-vDasQADQ6tow2m5k", "AIzaSyBWu-419w2f2cpUpJaQegWP7x_LfUKiUWw"];
         let currentKeyIndex = 0;
-        const ADMIN_PASSWORD = "1234";
-
-        let nowPlayingKey = null; 
         let currentQueue = [];
         let pendingPlaylistItems = [];
 
         window.onload = () => { document.getElementById('userName').value = localStorage.getItem('savedName') || ''; };
 
-        function extractVideoID(url) {
-            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-            const match = url.match(regExp);
-            return (match && match[2].length === 11) ? match[2] : null;
-        }
-
-        function extractPlaylistID(url) {
-            const reg = /[?&]list=([^#\&\?]+)/;
-            const match = url.match(reg);
-            return match && match[1] ? match[1] : null;
-        }
-
+        // 搜尋邏輯
         function searchYouTube() {
             const input = document.getElementById('searchInput').value.trim();
-            if (!input) return alert('請輸入內容！');
+            if (!input) return;
             const resultsDiv = document.getElementById('results');
-            resultsDiv.innerHTML = '<p style="text-align:center; color:#888;">處理中...</p>';
+            resultsDiv.innerHTML = '搜尋中...';
             
-            const currentKey = YOUTUBE_API_KEYS[currentKeyIndex]; 
-            const playlistId = extractPlaylistID(input);
-            const videoId = extractVideoID(input);
+            const listId = (input.match(/[?&]list=([^#\&\?]+)/) || [])[1];
+            const vId = (input.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/) || [])[2];
 
-            if (playlistId) {
-                fetchPlaylist(playlistId, currentKey);
-                return;
-            }
-            
-            const url = videoId 
-                ? `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${currentKey}`
-                : `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=5&q=${input}&type=video&key=${currentKey}`;
-
-            fetch(url).then(handleApiResponse).then(data => renderSearchResults(data)).catch(handleApiError);
-        }
-
-        function fetchPlaylist(playlistId, apiKey) {
-            const url = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=20&playlistId=${playlistId}&key=${apiKey}`;
-            fetch(url).then(res => {
-                if (!res.ok) throw new Error('playlist_error');
-                return res.json();
-            }).then(data => {
-                if(data.items && data.items.length > 0) {
-                    pendingPlaylistItems = data.items.map(item => ({
-                        id: item.snippet.resourceId.videoId,
-                        title: item.snippet.title.replace(/'/g, "\\'").replace(/"/g, "&quot;")
-                    })).filter(item => item.id && item.title !== "Private video");
-                    openPlaylistModal();
-                } else {
-                    document.getElementById('results').innerHTML = '<p style="color:#b3b3b3;">清單內容為空或不公開。</p>';
-                }
-            }).catch(() => {
-                const videoId = extractVideoID(document.getElementById('searchInput').value.trim());
-                if(videoId) {
-                    const warning = `<div class="warning-box">⚠️ 偵測到受保護的自動合輯 (Mix)<br>已為您切換為「單曲模式」。</div>`;
-                    const url2 = `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${apiKey}`;
-                    fetch(url2).then(handleApiResponse).then(d => renderSearchResults(d, warning)).catch(handleApiError);
-                } else {
-                    document.getElementById('results').innerHTML = '<p style="color:#ff4b2b; text-align:center;">❌ 讀取失敗，且找不到單曲。</p>';
-                }
-            });
-        }
-
-        function renderSearchResults(data, warning = '') {
-            if (!data) return; 
-            const resultsDiv = document.getElementById('results');
-            resultsDiv.innerHTML = warning; 
-            if(data.items && data.items.length > 0) {
-                data.items.forEach(item => {
-                    const id = item.id.videoId || item.id;
-                    if (!id || typeof id !== 'string') return;
-                    resultsDiv.innerHTML += `
-                        <div class="song-item">
-                            <div class="song-title-text">🎵 ${item.snippet.title}</div>
-                            <button class="add-btn" onclick="addToQueue('${id}', '${item.snippet.title.replace(/'/g, "\\'").replace(/"/g, "&quot;")}')">加入</button>
-                        </div>`;
-                });
+            if (listId) {
+                fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=20&playlistId=${listId}&key=${YOUTUBE_API_KEYS[currentKeyIndex]}`)
+                .then(res => res.json()).then(data => {
+                    pendingPlaylistItems = data.items.map(it => ({ id: it.snippet.resourceId.videoId, title: it.snippet.title }));
+                    const container = document.getElementById('playlistItemsContainer');
+                    container.innerHTML = pendingPlaylistItems.map(it => `<div style="padding:5px; font-size:12px; border-bottom:1px solid #333;">🎵 ${it.title}</div>`).join('');
+                    document.getElementById('playlistModal').style.display = 'flex';
+                }).catch(() => { /* 降級搜尋單曲 */ if(vId) searchSingle(vId); });
+            } else if (vId) {
+                searchSingle(vId);
             } else {
-                resultsDiv.innerHTML += '<p style="color:#b3b3b3; text-align:center;">找不到結果。</p>';
+                fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=5&q=${encodeURIComponent(input)}&type=video&key=${YOUTUBE_API_KEYS[currentKeyIndex]}`)
+                .then(res => res.json()).then(renderResults);
             }
         }
 
-        // ==========================================
-        // 💡 寫入「最外層 (Root)」的防重複引擎
-        // ==========================================
+        function searchSingle(id) {
+            fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${id}&key=${YOUTUBE_API_KEYS[currentKeyIndex]}`)
+            .then(res => res.json()).then(renderResults);
+        }
+
+        function renderResults(data) {
+            const div = document.getElementById('results');
+            div.innerHTML = (data.items || []).map(it => {
+                const id = it.id.videoId || it.id;
+                const title = it.snippet.title.replace(/'/g, "");
+                return `<div class="song-item"><span>🎵 ${title}</span><button class="add-btn" onclick="addToQueue('${id}', '${title}')">加入</button></div>`;
+            }).join('');
+        }
+
         function addToQueue(id, title) {
             const name = document.getElementById('userName').value || '辦公室 DJ';
             localStorage.setItem('savedName', name);
-            if (currentQueue.some(s => s.videoId === id)) {
-                alert('⚠️ 這首歌已經在排隊清單中囉！');
-                return;
-            }
             db.ref().push({ videoId: id, title: title, nickname: name, timestamp: Date.now() });
-            document.getElementById('results').innerHTML = '<p style="color:#1DB954; text-align:center;">✅ 已成功加入！</p>';
+            document.getElementById('results').innerHTML = '✅ 已加入！';
             setTimeout(() => document.getElementById('results').innerHTML = '', 2000);
         }
 
         function batchAddPlaylist() {
             const name = document.getElementById('userName').value || '辦公室 DJ';
-            localStorage.setItem('savedName', name);
-            const checkboxes = document.querySelectorAll('.song-checkbox:checked');
-            const existingIds = new Set(currentQueue.map(s => s.videoId));
-            let added = 0, skipped = 0;
             const now = Date.now();
-            checkboxes.forEach((cb) => {
-                const song = pendingPlaylistItems[cb.value];
-                if (existingIds.has(song.id)) skipped++;
-                else {
-                    db.ref().push({ videoId: song.id, title: song.title, nickname: name, timestamp: now + added });
-                    existingIds.add(song.id);
-                    added++;
-                }
+            pendingPlaylistItems.forEach((it, i) => {
+                db.ref().push({ videoId: it.id, title: it.title, nickname: name, timestamp: now + i });
             });
             closePlaylistModal();
-            document.getElementById('results').innerHTML = `<p style="color:#1DB954; text-align:center;">✅ 成功加入 ${added} 首！${skipped > 0 ? `<br><small>(略過 ${skipped} 首重複)</small>` : ''}</p>`;
         }
 
-        function handleApiResponse(res) {
-            if (!res.ok) {
-                if (res.status === 403) {
-                    currentKeyIndex++; 
-                    if (currentKeyIndex < YOUTUBE_API_KEYS.length) { searchYouTube(); return null; }
-                    else throw new Error('quota_exceeded');
-                }
-                throw new Error('error');
-            }
-            return res.json();
-        }
-        function handleApiError(e) { document.getElementById('results').innerHTML = `<p style="color:#ff4b2b; text-align:center;">${e.message === 'quota_exceeded' ? '😱 額度用光啦！請改貼網址。' : '網路出錯，請重試。'}</p>`; }
-
-        function openPlaylistModal() {
-            const c = document.getElementById('playlistItemsContainer'); c.innerHTML = '';
-            pendingPlaylistItems.forEach((it, i) => { c.innerHTML += `<div class="playlist-item"><input type="checkbox" id="p_${i}" class="song-checkbox" value="${i}" checked><label for="p_${i}">${it.title}</label></div>`; });
-            document.getElementById('playlistModal').style.display = 'flex';
-        }
         function closePlaylistModal() { document.getElementById('playlistModal').style.display = 'none'; }
-        function toggleSelectAll() { const b = document.getElementById('selectAllCheckbox').checked; document.querySelectorAll('.song-checkbox').forEach(cb => cb.checked = b); }
 
-       // ==========================================
-        // 💡 智慧排序渲染引擎 (解決新舊歌插隊問題)
         // ==========================================
-        db.ref().on('value', (s) => {
-            try {
-                let rawList = [];
-                s.forEach(c => {
-                    const val = c.val();
-                    if (val && typeof val === 'object' && val.videoId) {
-                        rawList.push({key: c.key, ...val});
+        // 💡 終極地毯式搜尋：不管在哪裡，只要是歌就抓出來
+        // ==========================================
+        db.ref().on('value', (snapshot) => {
+            const rawData = snapshot.val();
+            const queueDiv = document.getElementById('live-queue');
+            const debugDiv = document.getElementById('debug-info');
+            
+            let songs = [];
+
+            if (rawData) {
+                // 1. 檢查最外層
+                Object.keys(rawData).forEach(key => {
+                    const item = rawData[key];
+                    if (item && item.videoId) {
+                        songs.push({ key, ...item });
                     }
                 });
 
-                // 💡 關鍵：自定義排序邏輯
-                // 1. 如果都沒有 timestamp，維持 Firebase 預設順序
-                // 2. 如果其中一個有，另一個沒有，讓沒有標籤的(舊歌)排前面
-                // 3. 如果都有，則比數值大小 (舊的在前)
-                currentQueue = rawList.sort((a, b) => {
-                    const timeA = a.timestamp || 0;
-                    const timeB = b.timestamp || 0;
-                    return timeA - timeB;
-                });
-
-                const q = document.getElementById('live-queue'); 
-                
-                if (currentQueue.length > 0) {
-                    // 更新正在播放
-                    const cur = currentQueue[0]; 
-                    nowPlayingKey = cur.key;
-                    document.getElementById('now-playing-title').innerText = cur.title || '播放中...';
-                    document.getElementById('now-playing-user').innerText = '點歌人：' + (cur.nickname || '神秘同事');
-                    
-                    let queueHTML = '';
-                    for (let i = 1; i < currentQueue.length; i++) {
-                        const sn = currentQueue[i];
-                        queueHTML += `
-                            <div class="queue-item">
-                                <span class="queue-index">${i}</span>
-                                <div class="queue-info">
-                                    <span style="color:#fff;">${sn.title}</span>
-                                    <span class="queue-user">點歌人：${sn.nickname || '舊系統歌曲'}</span>
-                                </div>
-                                <button class="remove-btn-small" onclick="removeSongFromGuest('${sn.key}')">移除</button>
-                            </div>`;
-                    }
-                    
-                    if (currentQueue.length === 1) {
-                        queueHTML = '<p style="text-align:center; color:#666; font-size:14px; padding:10px 0;">目前沒有下一首歌，快來點一首！</p>';
-                    }
-                    q.innerHTML = queueHTML;
-
-                } else {
-                    nowPlayingKey = null;
-                    document.getElementById('now-playing-title').innerText = '📻 派對電台放送中...';
-                    document.getElementById('now-playing-user').innerText = '快點歌吧！';
-                    q.innerHTML = '<p style="text-align:center; color:#666; font-size:14px; padding:10px 0;">目前沒人排隊。</p>';
+                // 2. 檢查是否有個叫 queue 的資料夾 (預防萬一)
+                if (rawData.queue) {
+                    Object.keys(rawData.queue).forEach(key => {
+                        const item = rawData.queue[key];
+                        if (item && item.videoId) {
+                            songs.push({ key, ...item });
+                        }
+                    });
                 }
-            } catch (e) {
-                console.error("渲染錯誤：", e);
             }
+
+            // 💡 排序：時間戳小的在前面，沒時間戳的視為舊歌排最前
+            songs.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+            currentQueue = songs;
+
+            if (songs.length > 0) {
+                document.getElementById('now-playing-title').innerText = songs[0].title;
+                let html = '';
+                for (let i = 1; i < songs.length; i++) {
+                    html += `<div class="queue-item"><div class="queue-info"><span class="queue-index">${i}</span> ${songs[i].title}</div><button class="remove-btn-small" onclick="removeSong('${songs[i].key}')">移除</button></div>`;
+                }
+                queueDiv.innerHTML = html || '<p style="text-align:center; color:#666;">沒有下一首歌。</p>';
+            } else {
+                document.getElementById('now-playing-title').innerText = '📻 廣播中...';
+                queueDiv.innerHTML = '目前沒人點歌。';
+            }
+            
+            // 偵錯用：如果還是沒畫面，這裡會顯示到底抓到了什麼
+            debugDiv.innerText = `偵測到物件數：${Object.keys(rawData || {}).length} | 識別為歌曲數：${songs.length}`;
         });
-        // ==========================================
-        // 移除功能也修正回最外層
-        // ==========================================
-        function removeSongFromGuest(k) { const p = prompt("請輸入密碼："); if(p === ADMIN_PASSWORD) db.ref(k).remove(); }
-        function changeVolume(v) { document.getElementById('volumeValue').innerText = v+'%'; db.ref('volume').set(parseInt(v)); }
-        db.ref('volume').on('value', s => { if(s.val()!==null) { document.getElementById('volumeSlider').value = s.val(); document.getElementById('volumeValue').innerText = s.val()+'%'; }});
-        db.ref('isPaused').on('value', s => { 
-            const p = s.val() || false; const btn = document.getElementById('playPauseBtn');
-            btn.innerText = p ? '▶️ 繼續' : '⏸️ 暫停'; btn.style.background = p ? '#ff4b2b' : 'rgba(0,0,0,0.3)';
-        });
+
+        function removeSong(key) { 
+            const pwd = prompt("密碼："); 
+            if(pwd === "1234") {
+                db.ref(key).remove(); 
+                db.ref('queue/' + key).remove(); // 同時嘗試刪除兩個地方
+            }
+        }
         function togglePlayPause() { db.ref('isPaused').once('value', s => db.ref('isPaused').set(!s.val())); }
-        function likeAuthor() { const v = prompt("要給作者幾個讚？"); if(v === ADMIN_PASSWORD && nowPlayingKey) db.ref(nowPlayingKey).remove(); else if(v) alert(`謝謝您的 "${v}" 個讚！🥰`); }
+        function changeVolume(v) { db.ref('volume').set(parseInt(v)); }
+        db.ref('isPaused').on('value', s => { document.getElementById('playPauseBtn').innerText = s.val() ? '▶️ 繼續' : '⏸️ 暫停'; });
     </script>
 </body>
 </html>
