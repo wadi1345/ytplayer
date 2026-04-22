@@ -45,18 +45,59 @@ function onYouTubeIframeAPIReady() {
 }
 
 // ==========================================
-// 4. 監聽資料庫 (單一資料源)
+// 🚀 Host 端：全頻率同步監聽器 (對準 Root)
 // ==========================================
-db.ref('queue').orderByChild('timestamp').on('value', (snapshot) => {
-    songQueue = [];
-    snapshot.forEach((child) => {
-        songQueue.push({ key: child.key, ...child.val() });
+db.ref('/').on('value', (snapshot) => {
+    const data = snapshot.val() || {};
+    let songList = [];
+
+    // 1. 地毯式搜尋：找出所有包含 videoId 的物件 (不論在哪個層級)
+    Object.keys(data).forEach(key => {
+        const item = data[key];
+        // 判定為歌曲的條件：必須有 videoId
+        if (item && typeof item === 'object' && item.videoId) {
+            songList.push({ key: key, ...item });
+        }
     });
-    
-    renderHostUI(); 
-    
-    if (isStarted) {
-        evaluatePlayback(); 
+
+    // 2. 嚴格排序：確保舊歌 (無 timestamp) 排前面，新歌按點播時間排
+    songList.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+
+    // 3. 播放邏輯控制
+    if (songList.length > 0) {
+        const topSong = songList[0];
+        
+        // 💡 檢查：如果這首「第一名」跟目前正在播的不一樣，才換歌
+        // 這裡的 currentVideoId 是你原本 Host 端用來記錄目前播放 ID 的全域變數
+        if (typeof currentVideoId !== 'undefined' && currentVideoId !== topSong.videoId) {
+            console.log("偵測到新歌，準備播放:", topSong.title);
+            currentVideoId = topSong.videoId;
+            
+            // 這裡呼叫你原本 YouTube API 的載入函式 (例如 player.loadVideoById)
+            if (typeof player !== 'undefined' && player.loadVideoById) {
+                player.loadVideoById(topSong.videoId);
+            }
+        }
+    } else {
+        // 如果沒歌了，可以執行原本的「進入電台」或「清空畫面」邏輯
+        console.log("目前資料庫已空，進入電台模式。");
+    }
+});
+
+// ==========================================
+// 🔊 音量與暫停同步 (這部分通常在 Root 下，不需改動 Ref)
+// ==========================================
+db.ref('volume').on('value', s => {
+    const vol = s.val();
+    if (vol !== null && typeof player !== 'undefined' && player.setVolume) {
+        player.setVolume(vol);
+    }
+});
+
+db.ref('isPaused').on('value', s => {
+    const isPaused = s.val();
+    if (typeof player !== 'undefined') {
+        isPaused ? player.pauseVideo() : player.playVideo();
     }
 });
 
