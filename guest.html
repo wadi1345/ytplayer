@@ -166,8 +166,10 @@
             const name = document.getElementById('userName').value || '匿名同事';
             const now = Date.now();
             const existingIds = new Set(currentQueue.map(s => s.videoId));
+            
             pendingItems.forEach((it, i) => {
                 if (!existingIds.has(it.id)) {
+                    // 💡 加一個微小的 i (毫秒)，確保批次寫入時 timestamp 絕對不會重複
                     db.ref().push({ videoId: it.id, title: it.title, nickname: name, timestamp: now + i });
                 }
             });
@@ -177,31 +179,31 @@
         function closePlaylistModal() { document.getElementById('playlistModal').style.display = 'none'; }
 
       // ==========================================
-        // 💡 終極排序校準渲染引擎
+        // 🚀 終極三層排序渲染引擎 (修復批次匯入順序)
         // ==========================================
         db.ref().on('value', (snapshot) => {
             const data = snapshot.val() || {};
             let songs = [];
             
-            // 1. 抓取所有帶有 videoId 的歌曲
+            // 1. 地毯式抓取所有歌曲
             Object.keys(data).forEach(k => {
                 if (data[k] && data[k].videoId) {
                     songs.push({ key: k, ...data[k] });
                 }
             });
 
-            // 2. 雙重保險排序邏輯
+            // 2. 執行三層保險排序
             songs.sort((a, b) => {
-                const timeA = a.timestamp;
-                const timeB = b.timestamp;
+                const timeA = a.timestamp || 0;
+                const timeB = b.timestamp || 0;
 
-                // 情況 A：兩者都有時間戳，直接比大小
-                if (timeA !== undefined && timeB !== undefined) {
+                // 第一層：如果時間戳不一樣，按時間排 (舊歌 0 會排最前)
+                if (timeA !== timeB) {
                     return timeA - timeB;
                 }
                 
-                // 情況 B：如果其中一個沒有時間戳 (舊歌)，或者兩個都沒有
-                // 我們直接比對 Firebase 的 Key 字串順序 (這是 Firebase 內建的時間排序)
+                // 第二層：如果時間戳一模一樣 (批次匯入發生)，則回歸 Firebase Key 的物理順序
+                // Firebase Key 的設計本身就包含了時間權重，足以分辨先後
                 if (a.key < b.key) return -1;
                 if (a.key > b.key) return 1;
                 return 0;
@@ -209,15 +211,14 @@
 
             currentQueue = songs;
 
+            // --- 以下為 UI 渲染，保持高質感與點歌人資訊 ---
             const qDiv = document.getElementById('live-queue');
             if (songs.length > 0) {
-                // 更新正在播放 (排序後的第一首)
                 const cur = songs[0];
                 document.getElementById('now-playing-title').innerText = cur.title || '未知歌曲';
                 document.getElementById('now-playing-user').innerText = `點歌人：${cur.nickname || '舊系統'}`;
                 
                 let html = '';
-                // 從第二首開始畫清單
                 for (let i = 1; i < songs.length; i++) {
                     const s = songs[i];
                     html += `
@@ -227,17 +228,18 @@
                                 <span class="q-title">${s.title}</span>
                                 <span class="q-user">👤 ${s.nickname || '神秘同事'}</span>
                             </div>
-                            <button class="btn-del" onclick="removeSong('${s.key}')">🗑️</button>
+                            <div class="q-actions">
+                                <button class="btn-del" onclick="removeSong('${s.key}')">🗑️</button>
+                            </div>
                         </div>`;
                 }
-                qDiv.innerHTML = html || '<p style="text-align:center; color:#444; font-size:12px; padding:10px;">沒有下一首歌了</p>';
+                qDiv.innerHTML = html || '<p style="text-align:center; color:#444; font-size:12px; padding:15px;">目前沒有下一首歌了</p>';
             } else {
                 document.getElementById('now-playing-title').innerText = '📻 廣播中...';
                 document.getElementById('now-playing-user').innerText = '點歌人：系統';
-                qDiv.innerHTML = '<p style="text-align:center; color:#444; font-size:12px; padding:10px;">快來點首新歌！</p>';
+                qDiv.innerHTML = '<p style="text-align:center; color:#444; font-size:12px; padding:15px;">快來點首新歌！</p>';
             }
         });
-
         function removeSong(key) { if(prompt("密碼：") === "1234") db.ref(key).remove(); }
         function togglePlayPause() { db.ref('isPaused').once('value', s => db.ref('isPaused').set(!s.val())); }
         function changeVolume(v) { db.ref('volume').set(parseInt(v)); }
