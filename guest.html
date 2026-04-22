@@ -106,7 +106,7 @@
 
     <div id="playlistModal" class="modal-overlay" style="display: none;">
         <div class="modal-content">
-            <h3>📋 播放清單預覽 (最多 10 首)</h3>
+            <h3>📋 播放清單預覽 (最多 20 首)</h3>
             <div class="select-all-row">
                 <input type="checkbox" id="selectAllCheckbox" checked onchange="toggleSelectAll()">
                 <label for="selectAllCheckbox" style="color:white; margin:0; cursor:pointer;">全選</label>
@@ -201,7 +201,7 @@
         // ==========================================
         function fetchPlaylist(playlistId, apiKey) {
             // 用 playlistItems API 讀取前 10 首歌，超級省點數
-            const url = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=10&playlistId=${playlistId}&key=${apiKey}`;
+            const url = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=20&playlistId=${playlistId}&key=${apiKey}`;
             
             fetch(url).then(res => {
                 if (!res.ok) throw new Error('playlist_error');
