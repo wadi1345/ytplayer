@@ -255,36 +255,51 @@
             checkboxes.forEach(cb => cb.checked = isChecked);
         }
 
-        // 💡 批次寫入 Firebase (加上 Timestamp 微調確保順序)
-        function batchAddPlaylist() {
-            const name = document.getElementById('userName').value || '辦公室 DJ';
-            localStorage.setItem('savedName', name);
-            
-            const checkboxes = document.querySelectorAll('.song-checkbox:checked');
-            if (checkboxes.length === 0) return alert('請至少勾選一首歌！');
+       function batchAddPlaylist() {
+    const name = document.getElementById('userName').value || '辦公室 DJ';
+    localStorage.setItem('savedName', name);
+    
+    const checkboxes = document.querySelectorAll('.song-checkbox:checked');
+    if (checkboxes.length === 0) return alert('請至少勾選一首歌！');
 
-            let addedCount = 0;
-            const baseTimestamp = Date.now();
+    // 💡 1. 獲取目前排隊中所有歌的影片 ID (建立一個對照表)
+    const existingIds = new Set(songQueue.map(song => song.videoId));
+    
+    let addedCount = 0;
+    let skippedCount = 0;
+    const baseTimestamp = Date.now();
 
-            checkboxes.forEach((cb, index) => {
-                const itemIndex = cb.value;
-                const song = pendingPlaylistItems[itemIndex];
-                
-                // baseTimestamp + index 確保大螢幕讀取時順序絕對正確
-                db.ref('queue').push({ 
-                    videoId: song.id, 
-                    title: song.title, 
-                    nickname: name, 
-                    timestamp: baseTimestamp + index 
-                });
-                addedCount++;
+    checkboxes.forEach((cb) => {
+        const itemIndex = cb.value;
+        const song = pendingPlaylistItems[itemIndex];
+        
+        // 💡 2. 檢查這首歌是否已經在排隊了
+        if (existingIds.has(song.id)) {
+            skippedCount++; // 如果重複了，就跳過並計數
+        } else {
+            // 💡 3. 如果是新歌，才加入 Firebase，並把 ID 加進臨時對照表（防止這批清單內自撞）
+            db.ref('queue').push({ 
+                videoId: song.id, 
+                title: song.title, 
+                nickname: name, 
+                timestamp: baseTimestamp + addedCount 
             });
-
-            closePlaylistModal();
-            document.getElementById('results').innerHTML = `<p style="color:#1DB954; text-align:center;">✅ 成功批次加入 ${addedCount} 首歌！</p>`;
-            setTimeout(() => document.getElementById('results').innerHTML = '', 3000);
+            existingIds.add(song.id); 
+            addedCount++;
         }
+    });
 
+    closePlaylistModal();
+
+    // 💡 4. 給使用者更詳細的回饋
+    let feedback = `✅ 成功加入 ${addedCount} 首歌！`;
+    if (skippedCount > 0) {
+        feedback += ` (已自動略過 ${skippedCount} 首重複歌曲)`;
+    }
+    
+    document.getElementById('results').innerHTML = `<p style="color:#1DB954; text-align:center;">${feedback}</p>`;
+    setTimeout(() => document.getElementById('results').innerHTML = '', 4000);
+}
         // ==========================================
         // 5. 單曲搜尋 API 處理模組
         // ==========================================
