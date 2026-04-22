@@ -3,83 +3,102 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>辦公室點歌 - 高質感 Pro 版</title>
+    <title>辦公室點歌 - Spotify Pro</title>
     <style>
-        :root { --spotify-green: #1DB954; --bg-black: #121212; --card-gray: #181818; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg-black); color: #fff; margin: 0; padding: 20px; padding-bottom: 60px; }
-        .container { max-width: 600px; margin: 0 auto; }
+        :root { --spotify-green: #1DB954; --bg-black: #121212; --card-gray: #181818; --text-gray: #b3b3b3; }
         
-        /* 正在播放卡片 */
-        #now-playing-card { background: linear-gradient(135deg, #2a2a2a, #000); border-radius: 16px; padding: 20px; margin-bottom: 25px; border: 1px solid #333; position: relative; }
-        #now-playing-title { font-size: 19px; font-weight: bold; color: var(--spotify-green); margin-bottom: 5px; display: inline-block; max-width: 85%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .fake-like { font-size: 16px; cursor: pointer; opacity: 0.3; margin-left: 8px; vertical-align: middle; }
-        .playing-info { font-size: 13px; color: #b3b3b3; margin-bottom: 15px; }
+        /* 🎨 終極捲軸美化器 */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--spotify-green); }
+
+        body { font-family: 'Segoe UI', -apple-system, sans-serif; background: var(--bg-black); color: #fff; margin: 0; padding: 20px; padding-bottom: 80px; overflow-x: hidden; }
+        .container { max-width: 500px; margin: 0 auto; }
+        
+        /* ✨ 正在播放橫幅 */
+        #now-playing-card { background: linear-gradient(135deg, #2a2a2a, #000); border-radius: 20px; padding: 20px; margin-bottom: 25px; border: 1px solid #333; position: relative; box-shadow: 0 15px 35px rgba(0,0,0,0.5); }
+        #now-playing-title { font-size: 20px; font-weight: 800; color: var(--spotify-green); margin-bottom: 4px; display: inline-block; max-width: 85%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; letter-spacing: -0.5px; }
+        .fake-like { font-size: 16px; cursor: pointer; opacity: 0.2; margin-left: 8px; vertical-align: middle; transition: 0.3s; }
+        .fake-like:hover { opacity: 1; color: var(--spotify-green); }
+        .playing-info { font-size: 12px; color: var(--text-gray); margin-bottom: 15px; font-weight: 500; }
 
         /* 🔊 控制條 */
-        .control-strip { display: flex; align-items: center; gap: 12px; background: rgba(255,255,255,0.05); padding: 10px 15px; border-radius: 50px; }
+        .control-strip { display: flex; align-items: center; gap: 12px; background: rgba(255,255,255,0.07); padding: 8px 15px; border-radius: 50px; }
         .vol-slider { flex-grow: 1; -webkit-appearance: none; background: #444; height: 4px; border-radius: 2px; outline: none; }
-        .vol-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #fff; cursor: pointer; }
+        .vol-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #fff; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
 
         /* 點歌輸入區 */
-        .search-box { background: var(--card-gray); padding: 20px; border-radius: 16px; margin-bottom: 25px; border: 1px solid #2a2a2a; }
-        input[type="text"] { width: 100%; padding: 12px; margin-bottom: 12px; background: #2a2a2a; color: white; border: 1px solid #3d3d3d; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
-        .btn-search { width: 100%; padding: 14px; background: var(--spotify-green); color: #000; border: none; border-radius: 50px; font-weight: bold; font-size: 16px; cursor: pointer; }
+        .search-box { background: var(--card-gray); padding: 20px; border-radius: 20px; margin-bottom: 25px; border: 1px solid #2a2a2a; }
+        input[type="text"] { width: 100%; padding: 14px; margin-bottom: 12px; background: #2a2a2a; color: white; border: 1px solid #3d3d3d; border-radius: 12px; box-sizing: border-box; font-size: 15px; transition: 0.3s; }
+        input[type="text"]:focus { border-color: var(--spotify-green); background: #333; outline: none; }
+        .btn-search { width: 100%; padding: 15px; background: var(--spotify-green); color: #000; border: none; border-radius: 50px; font-weight: 900; font-size: 16px; cursor: pointer; transform: scale(1); transition: 0.1s; }
+        .btn-search:active { transform: scale(0.98); opacity: 0.9; }
 
         /* 搜尋結果 */
-        .res-item { background: #222; margin-top: 8px; padding: 10px 15px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #333; }
-        .res-title { font-size: 13px; max-width: 70%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .res-item { background: #222; margin-top: 10px; padding: 12px 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #333; animation: slideIn 0.3s ease; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .res-title { font-size: 13px; max-width: 70%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #eee; }
 
         /* 排隊清單 */
-        .queue-item { background: var(--card-gray); padding: 12px 15px; border-radius: 10px; display: flex; align-items: center; margin-bottom: 8px; border: 1px solid #222; }
-        .q-idx { color: var(--spotify-green); font-weight: bold; width: 25px; font-size: 14px; }
+        .queue-item { background: var(--card-gray); padding: 14px 18px; border-radius: 15px; display: flex; align-items: center; margin-bottom: 10px; border: 1px solid #222; transition: 0.2s; }
+        .queue-item:hover { background: #222; }
+        .q-idx { color: var(--spotify-green); font-weight: 900; width: 30px; font-size: 14px; }
         .q-info { flex-grow: 1; overflow: hidden; }
-        .q-title { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
-        .q-user { font-size: 11px; color: #888; }
-        .btn-del { background: none; border: none; color: #555; cursor: pointer; font-size: 14px; padding: 5px; }
+        .q-title { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; margin-bottom: 2px; }
+        .q-user { font-size: 11px; color: var(--text-gray); letter-spacing: 0.3px; }
+        .btn-del { background: none; border: none; color: #444; cursor: pointer; font-size: 16px; padding: 5px; transition: 0.2s; }
+        .btn-del:hover { color: #ff4b2b; }
 
-        /* 📋 播放清單 Modal */
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center; z-index: 2000; padding: 20px; }
-        .modal-body { background: var(--card-gray); width: 100%; max-width: 450px; border-radius: 20px; padding: 25px; border: 1px solid #333; box-shadow: 0 20px 40px rgba(0,0,0,0.6); }
-        .pl-list { max-height: 300px; overflow-y: auto; background: #000; border-radius: 12px; padding: 10px; margin: 15px 0; }
-        .pl-item { display: flex; align-items: center; padding: 8px 5px; border-bottom: 1px solid #222; gap: 10px; }
-        .pl-item label { font-size: 12px; color: #ccc; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+        /* 📋 Modal 美化 */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: flex; justify-content: center; align-items: center; z-index: 2000; padding: 20px; backdrop-filter: blur(5px); }
+        .modal-body { background: var(--card-gray); width: 100%; max-width: 400px; border-radius: 24px; padding: 25px; border: 1px solid #333; box-shadow: 0 30px 60px rgba(0,0,0,0.8); }
+        .pl-list { max-height: 300px; overflow-y: auto; background: #000; border-radius: 15px; padding: 10px; margin: 20px 0; border: 1px solid #222; }
+        .pl-item { display: flex; align-items: center; padding: 10px 5px; border-bottom: 1px solid #111; gap: 12px; }
+        .pl-item label { font-size: 13px; color: #ccc; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+        .pl-chk { width: 18px; height: 18px; accent-color: var(--spotify-green); cursor: pointer; }
+
+        h3 { color: #fff; font-size: 16px; margin: 30px 0 15px 0; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
     </style>
 </head>
 <body>
     <div class="container">
         <div id="now-playing-card">
             <div>
-                <div id="now-playing-title">📻 載入中...</div>
+                <div id="now-playing-title">📻 點歌系統已就緒</div>
                 <span class="fake-like" onclick="disguisedSkip()">👍</span>
             </div>
             <div class="playing-info" id="now-playing-user">點歌人：系統</div>
             
             <div class="control-strip">
-                <button onclick="togglePlayPause()" id="playPauseBtn" style="background:none; border:none; color:white; cursor:pointer; font-size:16px;">⏸️</button>
+                <button onclick="togglePlayPause()" id="playPauseBtn" style="background:none; border:none; color:white; cursor:pointer; font-size:18px;">⏸️</button>
                 <input type="range" class="vol-slider" id="volumeSlider" min="0" max="100" oninput="changeVolume(this.value)">
-                <span id="vol-label" style="font-size:12px; min-width:25px; text-align:right;">100</span>
+                <span id="vol-label" style="font-size:12px; min-width:30px; text-align:right; font-family: monospace;">100</span>
             </div>
         </div>
 
         <div class="search-box">
             <input type="text" id="userName" placeholder="👤 你的稱呼">
-            <input type="text" id="searchInput" placeholder="🔍 搜尋歌名、網址或 20 首清單">
+            <input type="text" id="searchInput" placeholder="🔍 輸入歌名或貼上網址/清單">
             <button class="btn-search" onclick="searchYouTube()">即刻點歌</button>
             <div id="results"></div>
         </div>
 
-        <h3 style="color:#888; font-size:15px; margin: 25px 0 10px 0; border-left: 3px solid var(--spotify-green); padding-left: 10px;">🔥 待播清單</h3>
+        <h3>🔥 下一首播放</h3>
         <div id="live-queue">同步中...</div>
     </div>
 
     <div id="playlistModal" class="modal-overlay" style="display: none;">
         <div class="modal-body">
-            <h3 style="color:var(--spotify-green); margin-top:0;">📋 挑選匯入歌曲 (前 20 首)</h3>
-            <div style="font-size: 12px; color: #888;"><input type="checkbox" id="selAll" checked onchange="toggleAll()"> <label for="selAll">全選 / 全不選</label></div>
+            <h3 style="color:var(--spotify-green); margin-top:0;">📋 批次點歌 (前 20 首)</h3>
+            <div style="font-size: 12px; color: var(--text-gray); display: flex; align-items: center; gap: 5px;">
+                <input type="checkbox" id="selAll" checked onchange="toggleAll()" style="accent-color: var(--spotify-green);"> 
+                <label for="selAll">全選 / 全不選</label>
+            </div>
             <div class="pl-list" id="plItems"></div>
-            <div style="display:flex; gap:10px;">
-                <button onclick="closeModal()" style="flex:1; padding:12px; background:#333; border:none; color:white; border-radius:50px; font-weight:bold;">取消</button>
-                <button onclick="batchAdd()" style="flex:1; padding:12px; background:var(--spotify-green); color:black; border-radius:50px; font-weight:bold;">確認加入</button>
+            <div style="display:flex; gap:12px;">
+                <button onclick="closeModal()" style="flex:1; padding:14px; background:#333; border:none; color:white; border-radius:50px; font-weight:bold; cursor:pointer;">取消</button>
+                <button onclick="batchAdd()" style="flex:1; padding:14px; background:var(--spotify-green); color:black; border-radius:50px; font-weight:bold; cursor:pointer;">確認匯入</button>
             </div>
         </div>
     </div>
@@ -132,7 +151,7 @@
         function render(data) {
             document.getElementById('results').innerHTML = (data.items || []).map(it => {
                 const id = it.id.videoId || it.id, t = it.snippet.title.replace(/'/g, "");
-                return `<div class="res-item"><span class="res-title">🎵 ${t}</span><button onclick="addToQueue('${id}', '${t}')" style="background:var(--spotify-green); border:none; padding:6px 12px; border-radius:6px; font-weight:bold; cursor:pointer;">點播</button></div>`;
+                return `<div class="res-item"><span class="res-title">🎵 ${t}</span><button onclick="addToQueue('${id}', '${t}')" style="background:var(--spotify-green); border:none; padding:8px 15px; border-radius:8px; font-weight:bold; cursor:pointer; font-size:12px;">加入</button></div>`;
             }).join('');
         }
 
@@ -162,7 +181,6 @@
         function toggleAll() { const s = document.getElementById('selAll').checked; document.querySelectorAll('.pl-chk').forEach(c => c.checked = s); }
         function closeModal() { document.getElementById('playlistModal').style.display = 'none'; }
 
-        // 💡 監聽 Root 渲染
         db.ref().on('value', (s) => {
             const data = s.val() || {};
             let list = [];
@@ -178,15 +196,15 @@
                 for (let i = 1; i < list.length; i++) {
                     h += `<div class="queue-item"><div class="q-idx">${i}</div><div class="q-info"><span class="q-title">${list[i].title}</span><span class="q-user">👤 ${list[i].nickname}</span></div><button class="btn-del" onclick="removeSong('${list[i].key}')">🗑️</button></div>`;
                 }
-                qDiv.innerHTML = h || '<p style="text-align:center; color:#444; font-size:12px;">後面沒歌了，快點一首！</p>';
+                qDiv.innerHTML = h || '<p style="text-align:center; color:#444; font-size:12px; padding:20px;">下一首沒歌了，快點一首！</p>';
             } else {
-                document.getElementById('now-playing-title').innerText = '📻 派對電台播放中...';
-                qDiv.innerHTML = '<p style="text-align:center; color:#444; font-size:12px;">目前沒人點歌喔！</p>';
+                document.getElementById('now-playing-title').innerText = '📻 派對電台放送中';
+                qDiv.innerHTML = '<p style="text-align:center; color:#444; font-size:12px; padding:20px;">目前沒人點歌喔！</p>';
             }
         });
 
         function removeSong(k) { if(prompt("密碼：") === "1234") db.ref(k).remove(); }
-        function disguisedSkip() { if(prompt("給個讚？") === "1234" && currentQueue.length > 0) db.ref(currentQueue[0].key).remove(); }
+        function disguisedSkip() { if(prompt("給根香腸？") === "1234" && currentQueue.length > 0) db.ref(currentQueue[0].key).remove(); }
         function togglePlayPause() { db.ref('isPaused').once('value', s => db.ref('isPaused').set(!s.val())); }
         function changeVolume(v) { db.ref('volume').set(parseInt(v)); }
         db.ref('volume').on('value', s => { if(s.val()!==null) { document.getElementById('volumeSlider').value = s.val(); document.getElementById('vol-label').innerText = s.val(); }});
