@@ -270,23 +270,48 @@
         function closePlaylistModal() { document.getElementById('playlistModal').style.display = 'none'; }
         function toggleSelectAll() { const b = document.getElementById('selectAllCheckbox').checked; document.querySelectorAll('.song-checkbox').forEach(cb => cb.checked = b); }
 
+        // ==========================================
+        // 💡 完美的排隊清單同步邏輯 (修復空白 Bug)
+        // ==========================================
         db.ref('queue').orderByChild('timestamp').on('value', (s) => {
             currentQueue = [];
-            const q = document.getElementById('live-queue'); q.innerHTML = '';
+            const q = document.getElementById('live-queue'); 
+            q.innerHTML = ''; // 先清空舊畫面
+            
             s.forEach(c => currentQueue.push({key: c.key, ...c.val()}));
+            
             if (currentQueue.length > 0) {
-                const cur = currentQueue[0]; nowPlayingKey = cur.key;
+                // 1. 處理正在播放 (第一首歌)
+                const cur = currentQueue[0]; 
+                nowPlayingKey = cur.key;
                 document.getElementById('now-playing-title').innerText = cur.title;
                 document.getElementById('now-playing-user').innerText = '點歌人：' + cur.nickname;
+                
+                // 2. 處理排隊清單 (第二首開始)
                 for (let i = 1; i < currentQueue.length; i++) {
                     const sn = currentQueue[i];
-                    q.innerHTML += `<div class="queue-item"><span class="queue-index">${i}</span><div class="queue-info"><span style="color:#fff;">${sn.title}</span><span class="queue-user">點歌人：${sn.nickname}</span></div><button class="remove-btn-small" onclick="removeSongFromGuest('${sn.key}')">移除</button></div>`;
+                    q.innerHTML += `
+                        <div class="queue-item">
+                            <span class="queue-index">${i}</span>
+                            <div class="queue-info">
+                                <span style="color:#fff;">${sn.title}</span>
+                                <span class="queue-user">點歌人：${sn.nickname}</span>
+                            </div>
+                            <button class="remove-btn-small" onclick="removeSongFromGuest('${sn.key}')">移除</button>
+                        </div>`;
                 }
+                
+                // 💡 3. 被我弄丟的防呆機制：如果只有一首歌，顯示提示！
+                if (currentQueue.length === 1) {
+                    q.innerHTML = '<p style="text-align:center; color:#666; font-size:14px; padding:10px 0;">目前沒有下一首歌，快來點一首！</p>';
+                }
+
             } else {
+                // 如果連一首歌都沒有 (電台模式)
                 nowPlayingKey = null;
                 document.getElementById('now-playing-title').innerText = '📻 派對電台放送中...';
                 document.getElementById('now-playing-user').innerText = '快點歌吧！';
-                q.innerHTML = '<p style="text-align:center; color:#666;">目前沒人點歌。</p>';
+                q.innerHTML = '<p style="text-align:center; color:#666; font-size:14px; padding:10px 0;">目前沒人排隊，快來當第一個！</p>';
             }
         });
 
