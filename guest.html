@@ -3,41 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>辦公室點歌 </title>
+    <title>辦公室點歌 - 穩定最終版</title>
     <style>
         :root { --spotify-green: #1DB954; --bg-black: #121212; --card-gray: #181818; }
         body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg-black); color: #fff; margin: 0; padding: 20px; padding-bottom: 60px; }
         .container { max-width: 600px; margin: 0 auto; }
-        
-        /* 正在播放卡片 */
         #now-playing-card { background: linear-gradient(135deg, #2a2a2a, #000); border-radius: 16px; padding: 20px; margin-bottom: 25px; border: 1px solid #333; position: relative; }
-        #now-playing-title { font-size: 20px; font-weight: bold; color: var(--spotify-green); margin-bottom: 5px; display: inline-block; max-width: 85%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        
-        /* 💡 偽裝的按讚按鈕 (放在標題旁邊) */
-        .fake-like { font-size: 16px; cursor: pointer; opacity: 0.4; margin-left: 8px; vertical-align: middle; transition: 0.3s; }
-        .fake-like:hover { opacity: 1; }
-
+        #now-playing-title { font-size: 19px; font-weight: bold; color: var(--spotify-green); margin-bottom: 5px; display: inline-block; max-width: 80%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .fake-like { font-size: 18px; cursor: pointer; opacity: 0.5; margin-left: 10px; vertical-align: middle; }
         .playing-info { font-size: 13px; color: #b3b3b3; margin-bottom: 15px; }
-
-        /* 控制區 */
         .control-strip { display: flex; align-items: center; gap: 12px; background: rgba(255,255,255,0.05); padding: 10px 15px; border-radius: 50px; }
         .vol-slider { flex-grow: 1; -webkit-appearance: none; background: #444; height: 4px; border-radius: 2px; }
         .vol-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #fff; }
-
-        /* 點歌區 */
         .search-box { background: var(--card-gray); padding: 20px; border-radius: 16px; margin-bottom: 25px; border: 1px solid #2a2a2a; }
         input[type="text"] { width: 100%; padding: 12px; margin-bottom: 12px; background: #2a2a2a; color: white; border: 1px solid #3d3d3d; border-radius: 8px; box-sizing: border-box; }
         .btn-search { width: 100%; padding: 14px; background: var(--spotify-green); color: #000; border: none; border-radius: 50px; font-weight: bold; cursor: pointer; }
-
-        /* 排隊清單 */
         .queue-item { background: var(--card-gray); padding: 12px 15px; border-radius: 10px; display: flex; align-items: center; margin-bottom: 8px; border: 1px solid #222; }
         .q-index { color: var(--spotify-green); font-weight: bold; width: 25px; font-size: 14px; }
         .q-content { flex-grow: 1; overflow: hidden; }
         .q-title { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
         .q-user { font-size: 11px; color: #888; }
-        .btn-del { background: none; border: none; color: #555; cursor: pointer; font-size: 12px; }
-
-        /* Modal */
+        .btn-del { background: none; border: none; color: #444; cursor: pointer; font-size: 14px; }
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 2000; }
         .modal-body { background: var(--card-gray); width: 90%; max-width: 400px; border-radius: 20px; padding: 20px; }
     </style>
@@ -46,11 +32,10 @@
     <div class="container">
         <div id="now-playing-card">
             <div>
-                <div id="now-playing-title">📻 準備中...</div>
+                <div id="now-playing-title">📻 載入中...</div>
                 <span class="fake-like" onclick="disguisedSkip()">👍</span>
             </div>
             <div class="playing-info" id="now-playing-user">點歌人：系統</div>
-            
             <div class="control-strip">
                 <button onclick="togglePlayPause()" id="playPauseBtn" style="background:none; border:none; color:white; cursor:pointer; font-size:16px;">⏸️</button>
                 <input type="range" class="vol-slider" id="volumeSlider" min="0" max="100" oninput="changeVolume(this.value)">
@@ -60,18 +45,18 @@
 
         <div class="search-box">
             <input type="text" id="userName" placeholder="👤 你的稱呼">
-            <input type="text" id="searchInput" placeholder="🔍 歌名、網址或 20 首清單">
+            <input type="text" id="searchInput" placeholder="🔍 搜尋歌名、網址或清單">
             <button class="btn-search" onclick="searchYouTube()">點歌</button>
-            <div id="results"></div>
+            <div id="results" style="margin-top:10px;"></div>
         </div>
 
-        <h3 style="color:#b3b3b3; font-size:16px;">🔥 待播清單</h3>
-        <div id="live-queue">載入中...</div>
+        <h3 style="color:#b3b3b3; font-size:16px; margin-bottom:10px;">🔥 待播清單</h3>
+        <div id="live-queue">連線中...</div>
     </div>
 
     <div id="playlistModal" class="modal-overlay" style="display: none;">
         <div class="modal-body">
-            <h3 style="color:var(--spotify-green); margin-top:0;">📋 匯入清單 (20首)</h3>
+            <h3 style="color:var(--spotify-green); margin-top:0;">📋 匯入 20 首歌曲</h3>
             <div id="playlistItemsContainer" style="max-height:250px; overflow-y:auto; margin:15px 0; background:#000; border-radius:10px; padding:10px;"></div>
             <div style="display:flex; gap:10px;">
                 <button onclick="closePlaylistModal()" style="flex:1; padding:12px; background:#333; border:none; color:white; border-radius:50px;">取消</button>
@@ -82,7 +67,6 @@
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    
     <script>
         const firebaseConfig = {
             apiKey: "AIzaSyBF5p7x31GP_O9ePRrhJbXJM9C6aPj4wiE",
@@ -103,43 +87,31 @@
 
         window.onload = () => { document.getElementById('userName').value = localStorage.getItem('savedName') || ''; };
 
-        // 💡 偽裝切歌功能
         function disguisedSkip() {
             const val = prompt("給這首歌幾個讚？");
-            if (val === "1234") {
-                if (currentQueue.length > 0) {
-                    db.ref(currentQueue[0].key).remove();
-                }
-            } else if (val) {
-                alert("謝謝你給了 " + val + " 個讚！❤️");
-            }
+            if (val === "1234" && currentQueue.length > 0) db.ref(currentQueue[0].key).remove();
+            else if (val) alert("謝謝你給了 " + val + " 個讚！❤️");
         }
 
-        // 搜尋邏輯
         function searchYouTube() {
             const input = document.getElementById('searchInput').value.trim();
             if (!input) return;
             const listId = (input.match(/[?&]list=([^#\&\?]+)/) || [])[1];
             const vId = (input.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/) || [])[2];
+            const key = YOUTUBE_API_KEYS[currentKeyIndex];
 
             if (listId) {
-                fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=20&playlistId=${listId}&key=${YOUTUBE_API_KEYS[currentKeyIndex]}`)
+                fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=20&playlistId=${listId}&key=${key}`)
                 .then(res => res.json()).then(data => {
                     pendingItems = data.items.map(it => ({ id: it.snippet.resourceId.videoId, title: it.snippet.title }));
-                    document.getElementById('playlistItemsContainer').innerHTML = pendingItems.map(it => `<div style="padding:5px; font-size:12px; color:#ccc;">🎵 ${it.title}</div>`).join('');
+                    document.getElementById('playlistItemsContainer').innerHTML = pendingItems.map(it => `<div style="padding:5px; font-size:11px; color:#ccc; border-bottom:1px solid #222;">🎵 ${it.title}</div>`).join('');
                     document.getElementById('playlistModal').style.display = 'flex';
                 });
             } else if (vId) {
-                searchSingle(vId);
+                fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${vId}&key=${key}`).then(res => res.json()).then(renderResults);
             } else {
-                fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=5&q=${encodeURIComponent(input)}&type=video&key=${YOUTUBE_API_KEYS[currentKeyIndex]}`)
-                .then(res => res.json()).then(renderResults);
+                fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=5&q=${encodeURIComponent(input)}&type=video&key=${key}`).then(res => res.json()).then(renderResults);
             }
-        }
-
-        function searchSingle(id) {
-            fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${id}&key=${YOUTUBE_API_KEYS[currentKeyIndex]}`)
-            .then(res => res.json()).then(renderResults);
         }
 
         function renderResults(data) {
@@ -156,7 +128,6 @@
         function addToQueue(id, title) {
             const name = document.getElementById('userName').value || '匿名同事';
             localStorage.setItem('savedName', name);
-            if (currentQueue.some(s => s.videoId === id)) return alert('這首歌已經在排隊囉！');
             db.ref().push({ videoId: id, title: title, nickname: name, timestamp: Date.now() });
             document.getElementById('results').innerHTML = '';
             document.getElementById('searchInput').value = '';
@@ -165,85 +136,50 @@
         function batchAddPlaylist() {
             const name = document.getElementById('userName').value || '匿名同事';
             const now = Date.now();
-            const existingIds = new Set(currentQueue.map(s => s.videoId));
-            
             pendingItems.forEach((it, i) => {
-                if (!existingIds.has(it.id)) {
-                    // 💡 加一個微小的 i (毫秒)，確保批次寫入時 timestamp 絕對不會重複
-                    db.ref().push({ videoId: it.id, title: it.title, nickname: name, timestamp: now + i });
-                }
+                db.ref().push({ videoId: it.id, title: it.title, nickname: name, timestamp: now + i });
             });
             closePlaylistModal();
         }
 
         function closePlaylistModal() { document.getElementById('playlistModal').style.display = 'none'; }
 
-      // ==========================================
-        // 🚀 終極三層排序渲染引擎 (修復批次匯入順序)
-        // ==========================================
+        // 💡 穩定版渲染引擎
         db.ref().on('value', (snapshot) => {
             const data = snapshot.val() || {};
             let songs = [];
-            
-            // 1. 地毯式抓取所有歌曲
             Object.keys(data).forEach(k => {
-                if (data[k] && data[k].videoId) {
-                    songs.push({ key: k, ...data[k] });
-                }
+                if (data[k] && data[k].videoId) songs.push({ key: k, ...data[k] });
             });
-
-            // 2. 執行三層保險排序
+            // 雙重排序：舊 Key 優先，新點的看 timestamp
             songs.sort((a, b) => {
-                const timeA = a.timestamp || 0;
-                const timeB = b.timestamp || 0;
-
-                // 第一層：如果時間戳不一樣，按時間排 (舊歌 0 會排最前)
-                if (timeA !== timeB) {
-                    return timeA - timeB;
-                }
-                
-                // 第二層：如果時間戳一模一樣 (批次匯入發生)，則回歸 Firebase Key 的物理順序
-                // Firebase Key 的設計本身就包含了時間權重，足以分辨先後
-                if (a.key < b.key) return -1;
-                if (a.key > b.key) return 1;
-                return 0;
+                const ta = a.timestamp || 0;
+                const tb = b.timestamp || 0;
+                if (ta !== tb) return ta - tb;
+                return a.key < b.key ? -1 : 1;
             });
-
             currentQueue = songs;
 
-            // --- 以下為 UI 渲染，保持高質感與點歌人資訊 ---
             const qDiv = document.getElementById('live-queue');
             if (songs.length > 0) {
                 const cur = songs[0];
-                document.getElementById('now-playing-title').innerText = cur.title || '未知歌曲';
+                document.getElementById('now-playing-title').innerText = cur.title;
                 document.getElementById('now-playing-user').innerText = `點歌人：${cur.nickname || '舊系統'}`;
                 
                 let html = '';
                 for (let i = 1; i < songs.length; i++) {
-                    const s = songs[i];
-                    html += `
-                        <div class="queue-item">
-                            <div class="q-index">${i}</div>
-                            <div class="q-content">
-                                <span class="q-title">${s.title}</span>
-                                <span class="q-user">👤 ${s.nickname || '神秘同事'}</span>
-                            </div>
-                            <div class="q-actions">
-                                <button class="btn-del" onclick="removeSong('${s.key}')">🗑️</button>
-                            </div>
-                        </div>`;
+                    html += `<div class="queue-item"><div class="q-index">${i}</div><div class="q-content"><span class="q-title">${songs[i].title}</span><span class="q-user">👤 ${songs[i].nickname || '神秘同事'}</span></div><button class="btn-del" onclick="removeSong('${songs[i].key}')">🗑️</button></div>`;
                 }
-                qDiv.innerHTML = html || '<p style="text-align:center; color:#444; font-size:12px; padding:15px;">目前沒有下一首歌了</p>';
+                qDiv.innerHTML = html || '<p style="text-align:center; color:#444; font-size:12px;">清單到底了</p>';
             } else {
                 document.getElementById('now-playing-title').innerText = '📻 廣播中...';
-                document.getElementById('now-playing-user').innerText = '點歌人：系統';
-                qDiv.innerHTML = '<p style="text-align:center; color:#444; font-size:12px; padding:15px;">快來點首新歌！</p>';
+                qDiv.innerHTML = '<p style="text-align:center; color:#444; font-size:12px;">目前沒歌，快點一首！</p>';
             }
         });
+
         function removeSong(key) { if(prompt("密碼：") === "1234") db.ref(key).remove(); }
         function togglePlayPause() { db.ref('isPaused').once('value', s => db.ref('isPaused').set(!s.val())); }
         function changeVolume(v) { db.ref('volume').set(parseInt(v)); }
-
         db.ref('volume').on('value', s => { if(s.val()!==null) { document.getElementById('volumeSlider').value = s.val(); document.getElementById('vol-label').innerText = s.val(); }});
         db.ref('isPaused').on('value', s => { document.getElementById('playPauseBtn').innerText = s.val() ? '▶️' : '⏸️'; });
     </script>
