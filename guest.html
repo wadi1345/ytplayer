@@ -3,29 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>辦公室點歌 - 穩定最終版</title>
+    <title>辦公室點歌 - 高質感 Pro 版</title>
     <style>
         :root { --spotify-green: #1DB954; --bg-black: #121212; --card-gray: #181818; }
-        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg-black); color: #fff; margin: 0; padding: 20px; padding-bottom: 60px; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg-black); color: #fff; margin: 0; padding: 20px; padding-bottom: 60px; }
         .container { max-width: 600px; margin: 0 auto; }
+        
+        /* 正在播放卡片 */
         #now-playing-card { background: linear-gradient(135deg, #2a2a2a, #000); border-radius: 16px; padding: 20px; margin-bottom: 25px; border: 1px solid #333; position: relative; }
-        #now-playing-title { font-size: 19px; font-weight: bold; color: var(--spotify-green); margin-bottom: 5px; display: inline-block; max-width: 80%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .fake-like { font-size: 18px; cursor: pointer; opacity: 0.5; margin-left: 10px; vertical-align: middle; }
+        #now-playing-title { font-size: 19px; font-weight: bold; color: var(--spotify-green); margin-bottom: 5px; display: inline-block; max-width: 85%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .fake-like { font-size: 16px; cursor: pointer; opacity: 0.3; margin-left: 8px; vertical-align: middle; }
         .playing-info { font-size: 13px; color: #b3b3b3; margin-bottom: 15px; }
+
+        /* 🔊 控制條 */
         .control-strip { display: flex; align-items: center; gap: 12px; background: rgba(255,255,255,0.05); padding: 10px 15px; border-radius: 50px; }
-        .vol-slider { flex-grow: 1; -webkit-appearance: none; background: #444; height: 4px; border-radius: 2px; }
-        .vol-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #fff; }
+        .vol-slider { flex-grow: 1; -webkit-appearance: none; background: #444; height: 4px; border-radius: 2px; outline: none; }
+        .vol-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #fff; cursor: pointer; }
+
+        /* 點歌輸入區 */
         .search-box { background: var(--card-gray); padding: 20px; border-radius: 16px; margin-bottom: 25px; border: 1px solid #2a2a2a; }
-        input[type="text"] { width: 100%; padding: 12px; margin-bottom: 12px; background: #2a2a2a; color: white; border: 1px solid #3d3d3d; border-radius: 8px; box-sizing: border-box; }
-        .btn-search { width: 100%; padding: 14px; background: var(--spotify-green); color: #000; border: none; border-radius: 50px; font-weight: bold; cursor: pointer; }
+        input[type="text"] { width: 100%; padding: 12px; margin-bottom: 12px; background: #2a2a2a; color: white; border: 1px solid #3d3d3d; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+        .btn-search { width: 100%; padding: 14px; background: var(--spotify-green); color: #000; border: none; border-radius: 50px; font-weight: bold; font-size: 16px; cursor: pointer; }
+
+        /* 搜尋結果 */
+        .res-item { background: #222; margin-top: 8px; padding: 10px 15px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #333; }
+        .res-title { font-size: 13px; max-width: 70%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        /* 排隊清單 */
         .queue-item { background: var(--card-gray); padding: 12px 15px; border-radius: 10px; display: flex; align-items: center; margin-bottom: 8px; border: 1px solid #222; }
-        .q-index { color: var(--spotify-green); font-weight: bold; width: 25px; font-size: 14px; }
-        .q-content { flex-grow: 1; overflow: hidden; }
+        .q-idx { color: var(--spotify-green); font-weight: bold; width: 25px; font-size: 14px; }
+        .q-info { flex-grow: 1; overflow: hidden; }
         .q-title { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
         .q-user { font-size: 11px; color: #888; }
-        .btn-del { background: none; border: none; color: #444; cursor: pointer; font-size: 14px; }
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 2000; }
-        .modal-body { background: var(--card-gray); width: 90%; max-width: 400px; border-radius: 20px; padding: 20px; }
+        .btn-del { background: none; border: none; color: #555; cursor: pointer; font-size: 14px; padding: 5px; }
+
+        /* 📋 播放清單 Modal */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center; z-index: 2000; padding: 20px; }
+        .modal-body { background: var(--card-gray); width: 100%; max-width: 450px; border-radius: 20px; padding: 25px; border: 1px solid #333; box-shadow: 0 20px 40px rgba(0,0,0,0.6); }
+        .pl-list { max-height: 300px; overflow-y: auto; background: #000; border-radius: 12px; padding: 10px; margin: 15px 0; }
+        .pl-item { display: flex; align-items: center; padding: 8px 5px; border-bottom: 1px solid #222; gap: 10px; }
+        .pl-item label { font-size: 12px; color: #ccc; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -36,31 +53,33 @@
                 <span class="fake-like" onclick="disguisedSkip()">👍</span>
             </div>
             <div class="playing-info" id="now-playing-user">點歌人：系統</div>
+            
             <div class="control-strip">
                 <button onclick="togglePlayPause()" id="playPauseBtn" style="background:none; border:none; color:white; cursor:pointer; font-size:16px;">⏸️</button>
                 <input type="range" class="vol-slider" id="volumeSlider" min="0" max="100" oninput="changeVolume(this.value)">
-                <span id="vol-label" style="font-size:12px; min-width:25px;">100</span>
+                <span id="vol-label" style="font-size:12px; min-width:25px; text-align:right;">100</span>
             </div>
         </div>
 
         <div class="search-box">
             <input type="text" id="userName" placeholder="👤 你的稱呼">
-            <input type="text" id="searchInput" placeholder="🔍 搜尋歌名、網址或清單">
-            <button class="btn-search" onclick="searchYouTube()">點歌</button>
-            <div id="results" style="margin-top:10px;"></div>
+            <input type="text" id="searchInput" placeholder="🔍 搜尋歌名、網址或 20 首清單">
+            <button class="btn-search" onclick="searchYouTube()">即刻點歌</button>
+            <div id="results"></div>
         </div>
 
-        <h3 style="color:#b3b3b3; font-size:16px; margin-bottom:10px;">🔥 待播清單</h3>
-        <div id="live-queue">連線中...</div>
+        <h3 style="color:#888; font-size:15px; margin: 25px 0 10px 0; border-left: 3px solid var(--spotify-green); padding-left: 10px;">🔥 待播清單</h3>
+        <div id="live-queue">同步中...</div>
     </div>
 
     <div id="playlistModal" class="modal-overlay" style="display: none;">
         <div class="modal-body">
-            <h3 style="color:var(--spotify-green); margin-top:0;">📋 匯入 20 首歌曲</h3>
-            <div id="playlistItemsContainer" style="max-height:250px; overflow-y:auto; margin:15px 0; background:#000; border-radius:10px; padding:10px;"></div>
+            <h3 style="color:var(--spotify-green); margin-top:0;">📋 挑選匯入歌曲 (前 20 首)</h3>
+            <div style="font-size: 12px; color: #888;"><input type="checkbox" id="selAll" checked onchange="toggleAll()"> <label for="selAll">全選 / 全不選</label></div>
+            <div class="pl-list" id="plItems"></div>
             <div style="display:flex; gap:10px;">
-                <button onclick="closePlaylistModal()" style="flex:1; padding:12px; background:#333; border:none; color:white; border-radius:50px;">取消</button>
-                <button onclick="batchAddPlaylist()" style="flex:1; padding:12px; background:var(--spotify-green); color:black; border-radius:50px; font-weight:bold;">全部加入</button>
+                <button onclick="closeModal()" style="flex:1; padding:12px; background:#333; border:none; color:white; border-radius:50px; font-weight:bold;">取消</button>
+                <button onclick="batchAdd()" style="flex:1; padding:12px; background:var(--spotify-green); color:black; border-radius:50px; font-weight:bold;">確認加入</button>
             </div>
         </div>
     </div>
@@ -80,104 +99,94 @@
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
-        const YOUTUBE_API_KEYS = ["AIzaSyB93SDscF6QCzu0a2-vDasQADQ6tow2m5k", "AIzaSyBWu-419w2f2cpUpJaQegWP7x_LfUKiUWw"];
-        let currentKeyIndex = 0;
-        let currentQueue = [];
-        let pendingItems = [];
+        const YT_KEY = "AIzaSyB93SDscF6QCzu0a2-vDasQADQ6tow2m5k";
+        let currentQueue = [], tempPlaylist = [];
 
-        window.onload = () => { document.getElementById('userName').value = localStorage.getItem('savedName') || ''; };
-
-        function disguisedSkip() {
-            const val = prompt("給這首歌幾個讚？");
-            if (val === "1234" && currentQueue.length > 0) db.ref(currentQueue[0].key).remove();
-            else if (val) alert("謝謝你給了 " + val + " 個讚！❤️");
-        }
+        window.onload = () => { document.getElementById('userName').value = localStorage.getItem('savedNickname') || ''; };
 
         function searchYouTube() {
             const input = document.getElementById('searchInput').value.trim();
             if (!input) return;
-            const listId = (input.match(/[?&]list=([^#\&\?]+)/) || [])[1];
-            const vId = (input.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/) || [])[2];
-            const key = YOUTUBE_API_KEYS[currentKeyIndex];
+            const lid = (input.match(/[?&]list=([^#\&\?]+)/) || [])[1];
+            const vid = (input.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/) || [])[2];
 
-            if (listId) {
-                fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=20&playlistId=${listId}&key=${key}`)
-                .then(res => res.json()).then(data => {
-                    pendingItems = data.items.map(it => ({ id: it.snippet.resourceId.videoId, title: it.snippet.title }));
-                    document.getElementById('playlistItemsContainer').innerHTML = pendingItems.map(it => `<div style="padding:5px; font-size:11px; color:#ccc; border-bottom:1px solid #222;">🎵 ${it.title}</div>`).join('');
+            if (lid) {
+                fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=20&playlistId=${lid}&key=${YT_KEY}`)
+                .then(r => r.json()).then(data => {
+                    tempPlaylist = data.items.map(it => ({ id: it.snippet.resourceId.videoId, title: it.snippet.title }));
+                    document.getElementById('plItems').innerHTML = tempPlaylist.map((it, i) => `
+                        <div class="pl-item">
+                            <input type="checkbox" id="chk_${i}" class="pl-chk" value="${i}" checked>
+                            <label for="chk_${i}">${it.title}</label>
+                        </div>
+                    `).join('');
                     document.getElementById('playlistModal').style.display = 'flex';
                 });
-            } else if (vId) {
-                fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${vId}&key=${key}`).then(res => res.json()).then(renderResults);
+            } else if (vid) {
+                fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${vid}&key=${YT_KEY}`).then(r => r.json()).then(render);
             } else {
-                fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=5&q=${encodeURIComponent(input)}&type=video&key=${key}`).then(res => res.json()).then(renderResults);
+                fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=5&q=${encodeURIComponent(input)}&type=video&key=${YT_KEY}`).then(r => r.json()).then(render);
             }
         }
 
-        function renderResults(data) {
+        function render(data) {
             document.getElementById('results').innerHTML = (data.items || []).map(it => {
-                const id = it.id.videoId || it.id;
-                const title = it.snippet.title.replace(/'/g, "");
-                return `<div style="background:#222; margin-top:5px; padding:10px; border-radius:8px; display:flex; justify-content:space-between; align-items:center;">
-                    <span style="font-size:12px; max-width:75%; overflow:hidden;">${title}</span>
-                    <button onclick="addToQueue('${id}', '${title}')" style="background:var(--spotify-green); border:none; padding:5px 10px; border-radius:5px; font-size:12px; cursor:pointer;">點播</button>
-                </div>`;
+                const id = it.id.videoId || it.id, t = it.snippet.title.replace(/'/g, "");
+                return `<div class="res-item"><span class="res-title">🎵 ${t}</span><button onclick="addToQueue('${id}', '${t}')" style="background:var(--spotify-green); border:none; padding:6px 12px; border-radius:6px; font-weight:bold; cursor:pointer;">點播</button></div>`;
             }).join('');
         }
 
         function addToQueue(id, title) {
-            const name = document.getElementById('userName').value || '匿名同事';
-            localStorage.setItem('savedName', name);
+            const name = document.getElementById('userName').value || '神祕路人';
+            localStorage.setItem('savedNickname', name);
+            if (currentQueue.some(s => s.videoId === id)) return alert('這首歌已經在排隊囉！');
             db.ref().push({ videoId: id, title: title, nickname: name, timestamp: Date.now() });
             document.getElementById('results').innerHTML = '';
             document.getElementById('searchInput').value = '';
         }
 
-        function batchAddPlaylist() {
-            const name = document.getElementById('userName').value || '匿名同事';
+        function batchAdd() {
+            const name = document.getElementById('userName').value || '神祕路人';
+            const chks = document.querySelectorAll('.pl-chk:checked');
             const now = Date.now();
-            pendingItems.forEach((it, i) => {
-                db.ref().push({ videoId: it.id, title: it.title, nickname: name, timestamp: now + i });
+            chks.forEach((chk, i) => {
+                const item = tempPlaylist[chk.value];
+                if (!currentQueue.some(s => s.videoId === item.id)) {
+                    db.ref().push({ videoId: item.id, title: item.title, nickname: name, timestamp: now + i });
+                }
             });
-            closePlaylistModal();
+            closeModal();
+            document.getElementById('searchInput').value = '';
         }
 
-        function closePlaylistModal() { document.getElementById('playlistModal').style.display = 'none'; }
+        function toggleAll() { const s = document.getElementById('selAll').checked; document.querySelectorAll('.pl-chk').forEach(c => c.checked = s); }
+        function closeModal() { document.getElementById('playlistModal').style.display = 'none'; }
 
-        // 💡 穩定版渲染引擎
-        db.ref().on('value', (snapshot) => {
-            const data = snapshot.val() || {};
-            let songs = [];
-            Object.keys(data).forEach(k => {
-                if (data[k] && data[k].videoId) songs.push({ key: k, ...data[k] });
-            });
-            // 雙重排序：舊 Key 優先，新點的看 timestamp
-            songs.sort((a, b) => {
-                const ta = a.timestamp || 0;
-                const tb = b.timestamp || 0;
-                if (ta !== tb) return ta - tb;
-                return a.key < b.key ? -1 : 1;
-            });
-            currentQueue = songs;
+        // 💡 監聽 Root 渲染
+        db.ref().on('value', (s) => {
+            const data = s.val() || {};
+            let list = [];
+            Object.keys(data).forEach(k => { if (data[k] && data[k].videoId) list.push({ key: k, ...data[k] }); });
+            list.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+            currentQueue = list;
 
             const qDiv = document.getElementById('live-queue');
-            if (songs.length > 0) {
-                const cur = songs[0];
-                document.getElementById('now-playing-title').innerText = cur.title;
-                document.getElementById('now-playing-user').innerText = `點歌人：${cur.nickname || '舊系統'}`;
-                
-                let html = '';
-                for (let i = 1; i < songs.length; i++) {
-                    html += `<div class="queue-item"><div class="q-index">${i}</div><div class="q-content"><span class="q-title">${songs[i].title}</span><span class="q-user">👤 ${songs[i].nickname || '神秘同事'}</span></div><button class="btn-del" onclick="removeSong('${songs[i].key}')">🗑️</button></div>`;
+            if (list.length > 0) {
+                document.getElementById('now-playing-title').innerText = list[0].title;
+                document.getElementById('now-playing-user').innerText = `點歌人：${list[0].nickname || '舊系統'}`;
+                let h = '';
+                for (let i = 1; i < list.length; i++) {
+                    h += `<div class="queue-item"><div class="q-idx">${i}</div><div class="q-info"><span class="q-title">${list[i].title}</span><span class="q-user">👤 ${list[i].nickname}</span></div><button class="btn-del" onclick="removeSong('${list[i].key}')">🗑️</button></div>`;
                 }
-                qDiv.innerHTML = html || '<p style="text-align:center; color:#444; font-size:12px;">清單到底了</p>';
+                qDiv.innerHTML = h || '<p style="text-align:center; color:#444; font-size:12px;">後面沒歌了，快點一首！</p>';
             } else {
-                document.getElementById('now-playing-title').innerText = '📻 廣播中...';
-                qDiv.innerHTML = '<p style="text-align:center; color:#444; font-size:12px;">目前沒歌，快點一首！</p>';
+                document.getElementById('now-playing-title').innerText = '📻 派對電台播放中...';
+                qDiv.innerHTML = '<p style="text-align:center; color:#444; font-size:12px;">目前沒人點歌喔！</p>';
             }
         });
 
-        function removeSong(key) { if(prompt("密碼：") === "1234") db.ref(key).remove(); }
+        function removeSong(k) { if(prompt("密碼：") === "1234") db.ref(k).remove(); }
+        function disguisedSkip() { if(prompt("給個讚？") === "1234" && currentQueue.length > 0) db.ref(currentQueue[0].key).remove(); }
         function togglePlayPause() { db.ref('isPaused').once('value', s => db.ref('isPaused').set(!s.val())); }
         function changeVolume(v) { db.ref('volume').set(parseInt(v)); }
         db.ref('volume').on('value', s => { if(s.val()!==null) { document.getElementById('volumeSlider').value = s.val(); document.getElementById('vol-label').innerText = s.val(); }});
