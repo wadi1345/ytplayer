@@ -266,55 +266,67 @@
         function closePlaylistModal() { document.getElementById('playlistModal').style.display = 'none'; }
         function toggleSelectAll() { const b = document.getElementById('selectAllCheckbox').checked; document.querySelectorAll('.song-checkbox').forEach(cb => cb.checked = b); }
 
+       // ==========================================
+        // 💡 智慧排序渲染引擎 (解決新舊歌插隊問題)
         // ==========================================
-        // 💡 監聽最外層 (Root) 並開啟神級過濾器
-        // ==========================================
-        db.ref().orderByChild('timestamp').on('value', (s) => {
-            currentQueue = [];
-            const q = document.getElementById('live-queue'); 
-            
-            s.forEach(c => {
-                const val = c.val();
-                // 💡 神級過濾器：只抓有 videoId 的「歌曲」，忽略音量(volume)或暫停狀態！
-                if (val && typeof val === 'object' && val.videoId) {
-                    currentQueue.push({key: c.key, ...val});
-                }
-            });
-            
-            if (currentQueue.length > 0) {
-                const cur = currentQueue[0]; 
-                nowPlayingKey = cur.key;
-                document.getElementById('now-playing-title').innerText = cur.title;
-                document.getElementById('now-playing-user').innerText = '點歌人：' + cur.nickname;
-                
-                let queueHTML = '';
-                for (let i = 1; i < currentQueue.length; i++) {
-                    const sn = currentQueue[i];
-                    queueHTML += `
-                        <div class="queue-item">
-                            <span class="queue-index">${i}</span>
-                            <div class="queue-info">
-                                <span style="color:#fff;">${sn.title}</span>
-                                <span class="queue-user">點歌人：${sn.nickname}</span>
-                            </div>
-                            <button class="remove-btn-small" onclick="removeSongFromGuest('${sn.key}')">移除</button>
-                        </div>`;
-                }
-                
-                if (currentQueue.length === 1) {
-                    queueHTML = '<p style="text-align:center; color:#666; font-size:14px; padding:10px 0;">目前沒有下一首歌，快來點一首！</p>';
-                }
-                
-                q.innerHTML = queueHTML;
+        db.ref().on('value', (s) => {
+            try {
+                let rawList = [];
+                s.forEach(c => {
+                    const val = c.val();
+                    if (val && typeof val === 'object' && val.videoId) {
+                        rawList.push({key: c.key, ...val});
+                    }
+                });
 
-            } else {
-                nowPlayingKey = null;
-                document.getElementById('now-playing-title').innerText = '📻 派對電台放送中...';
-                document.getElementById('now-playing-user').innerText = '快點歌吧！';
-                q.innerHTML = '<p style="text-align:center; color:#666; font-size:14px; padding:10px 0;">目前沒人排隊，快來當第一個！</p>';
+                // 💡 關鍵：自定義排序邏輯
+                // 1. 如果都沒有 timestamp，維持 Firebase 預設順序
+                // 2. 如果其中一個有，另一個沒有，讓沒有標籤的(舊歌)排前面
+                // 3. 如果都有，則比數值大小 (舊的在前)
+                currentQueue = rawList.sort((a, b) => {
+                    const timeA = a.timestamp || 0;
+                    const timeB = b.timestamp || 0;
+                    return timeA - timeB;
+                });
+
+                const q = document.getElementById('live-queue'); 
+                
+                if (currentQueue.length > 0) {
+                    // 更新正在播放
+                    const cur = currentQueue[0]; 
+                    nowPlayingKey = cur.key;
+                    document.getElementById('now-playing-title').innerText = cur.title || '播放中...';
+                    document.getElementById('now-playing-user').innerText = '點歌人：' + (cur.nickname || '神秘同事');
+                    
+                    let queueHTML = '';
+                    for (let i = 1; i < currentQueue.length; i++) {
+                        const sn = currentQueue[i];
+                        queueHTML += `
+                            <div class="queue-item">
+                                <span class="queue-index">${i}</span>
+                                <div class="queue-info">
+                                    <span style="color:#fff;">${sn.title}</span>
+                                    <span class="queue-user">點歌人：${sn.nickname || '舊系統歌曲'}</span>
+                                </div>
+                                <button class="remove-btn-small" onclick="removeSongFromGuest('${sn.key}')">移除</button>
+                            </div>`;
+                    }
+                    
+                    if (currentQueue.length === 1) {
+                        queueHTML = '<p style="text-align:center; color:#666; font-size:14px; padding:10px 0;">目前沒有下一首歌，快來點一首！</p>';
+                    }
+                    q.innerHTML = queueHTML;
+
+                } else {
+                    nowPlayingKey = null;
+                    document.getElementById('now-playing-title').innerText = '📻 派對電台放送中...';
+                    document.getElementById('now-playing-user').innerText = '快點歌吧！';
+                    q.innerHTML = '<p style="text-align:center; color:#666; font-size:14px; padding:10px 0;">目前沒人排隊。</p>';
+                }
+            } catch (e) {
+                console.error("渲染錯誤：", e);
             }
         });
-
         // ==========================================
         // 移除功能也修正回最外層
         // ==========================================
