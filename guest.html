@@ -189,22 +189,21 @@
             const playlistId = extractPlaylistID(input);
             const videoId = extractVideoID(input);
 
-            // 💡 防彈升級 1：攔截 YouTube 自動生成的 Mix 電台 (RD開頭)
+            // 💡 防彈升級：遇到 RD 電台，不彈窗！直接抓單曲並附帶溫馨提示
             if (playlistId && playlistId.startsWith('RD')) {
-                const confirmMsg = "⚠️ 偵測到 YouTube 自動生成的「電台合輯 (Mix)」！\n\n因為官方 API 限制，無法整包讀取這種自動清單。\n要幫您直接搜尋網址內的「這首單曲」嗎？";
-                
-                if (confirm(confirmMsg)) {
-                    // 使用者點擊確定，降級成單曲搜尋模式
-                    if (videoId) {
-                        const url = `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${currentKey}`;
-                        fetch(url).then(handleApiResponse).then(renderSearchResults).catch(handleApiError);
-                    } else {
-                        resultsDiv.innerHTML = '<p style="color:#ff4b2b; text-align:center;">無效的單曲網址，請重新搜尋。</p>';
-                    }
+                if (videoId) {
+                    // 設計一個精美的橘色警告框，等等會塞在搜尋結果最上方
+                    const warningHTML = `
+                        <div style="background: rgba(255, 174, 66, 0.1); border: 1px dashed #ffae42; color: #ffae42; padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 13px; text-align: center;">
+                            ⚠️ 偵測到 YouTube 自動合輯 (Mix)<br>因官方限制無法整包讀取，已為您切換為「單曲模式」。
+                        </div>`;
+                    
+                    const url = `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${currentKey}`;
+                    fetch(url).then(handleApiResponse).then(data => renderSearchResults(data, warningHTML)).catch(handleApiError);
                 } else {
-                    resultsDiv.innerHTML = ''; // 取消就清空
+                    resultsDiv.innerHTML = '<p style="color:#ff4b2b; text-align:center;">無效的網址，請重新搜尋。</p>';
                 }
-                return; // 終止後續動作
+                return; 
             }
 
             // 正常的 PL 播放清單
@@ -218,9 +217,36 @@
                 ? `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${currentKey}`
                 : `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=5&q=${input}&type=video&key=${currentKey}`;
 
-            fetch(url).then(handleApiResponse).then(renderSearchResults).catch(handleApiError);
+            // 一般搜尋不用傳入警告訊息
+            fetch(url).then(handleApiResponse).then(data => renderSearchResults(data)).catch(handleApiError);
         }
 
+        // ==========================================
+        // 💡 修改：讓渲染結果的函式可以接收並顯示警告訊息
+        // ==========================================
+        function renderSearchResults(data, warningMsg = '') {
+            if (!data) return; 
+            const resultsDiv = document.getElementById('results');
+            
+            // 如果有警告訊息，就先把它塞進去，沒有的話就是空的
+            resultsDiv.innerHTML = warningMsg; 
+            
+            if(data.items && data.items.length > 0) {
+                data.items.forEach(item => {
+                    const id = item.id.videoId || item.id;
+                    if (!id || typeof id !== 'string') return;
+                    const title = item.snippet.title;
+                    const safeTitle = title.replace(/'/g, "\\'").replace(/"/g, "&quot;"); 
+                    resultsDiv.innerHTML += `
+                        <div class="song-item">
+                            <div class="song-title-text">🎵 ${title}</div>
+                            <button class="add-btn" onclick="addToQueue('${id}', '${safeTitle}')">加入</button>
+                        </div>`;
+                });
+            } else {
+                resultsDiv.innerHTML += '<p style="color:#b3b3b3;">找不到結果，請換個關鍵字。</p>';
+            }
+        }
         // ==========================================
         // 4. 處理播放清單 (Playlist) 與 完美的去重引擎
         // ==========================================
