@@ -176,24 +176,48 @@
 
         function closePlaylistModal() { document.getElementById('playlistModal').style.display = 'none'; }
 
-        // 監聽最外層資料
+      // ==========================================
+        // 💡 終極排序校準渲染引擎
+        // ==========================================
         db.ref().on('value', (snapshot) => {
             const data = snapshot.val() || {};
             let songs = [];
+            
+            // 1. 抓取所有帶有 videoId 的歌曲
             Object.keys(data).forEach(k => {
-                if (data[k] && data[k].videoId) songs.push({ key: k, ...data[k] });
+                if (data[k] && data[k].videoId) {
+                    songs.push({ key: k, ...data[k] });
+                }
             });
-            // 排序：確保順序對 (舊歌在前)
-            songs.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+
+            // 2. 雙重保險排序邏輯
+            songs.sort((a, b) => {
+                const timeA = a.timestamp;
+                const timeB = b.timestamp;
+
+                // 情況 A：兩者都有時間戳，直接比大小
+                if (timeA !== undefined && timeB !== undefined) {
+                    return timeA - timeB;
+                }
+                
+                // 情況 B：如果其中一個沒有時間戳 (舊歌)，或者兩個都沒有
+                // 我們直接比對 Firebase 的 Key 字串順序 (這是 Firebase 內建的時間排序)
+                if (a.key < b.key) return -1;
+                if (a.key > b.key) return 1;
+                return 0;
+            });
+
             currentQueue = songs;
 
             const qDiv = document.getElementById('live-queue');
             if (songs.length > 0) {
+                // 更新正在播放 (排序後的第一首)
                 const cur = songs[0];
-                document.getElementById('now-playing-title').innerText = cur.title;
+                document.getElementById('now-playing-title').innerText = cur.title || '未知歌曲';
                 document.getElementById('now-playing-user').innerText = `點歌人：${cur.nickname || '舊系統'}`;
                 
                 let html = '';
+                // 從第二首開始畫清單
                 for (let i = 1; i < songs.length; i++) {
                     const s = songs[i];
                     html += `
@@ -206,11 +230,11 @@
                             <button class="btn-del" onclick="removeSong('${s.key}')">🗑️</button>
                         </div>`;
                 }
-                qDiv.innerHTML = html || '<p style="text-align:center; color:#444; font-size:12px;">沒有下一首歌了</p>';
+                qDiv.innerHTML = html || '<p style="text-align:center; color:#444; font-size:12px; padding:10px;">沒有下一首歌了</p>';
             } else {
                 document.getElementById('now-playing-title').innerText = '📻 廣播中...';
                 document.getElementById('now-playing-user').innerText = '點歌人：系統';
-                qDiv.innerHTML = '<p style="text-align:center; color:#444; font-size:12px;">快來點首新歌！</p>';
+                qDiv.innerHTML = '<p style="text-align:center; color:#444; font-size:12px; padding:10px;">快來點首新歌！</p>';
             }
         });
 
