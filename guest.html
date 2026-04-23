@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>辦公室點歌 - 雙軌旗艦版</title>
+    <title>辦公室點歌 - 雙軌旗艦版 (權限控制)</title>
     <style>
         :root { --spotify-green: #1DB954; --bg-black: #121212; --card-gray: #181818; --text-gray: #b3b3b3; }
         ::-webkit-scrollbar { width: 6px; }
@@ -45,6 +45,9 @@
         .q-info { flex-grow: 1; overflow: hidden; }
         .q-title { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
         .q-user { font-size: 11px; color: var(--text-gray); }
+        
+        .btn-del { background: none; border: none; cursor: pointer; font-size: 15px; padding: 5px; opacity: 0.5; transition: 0.3s; }
+        .btn-del:hover { opacity: 1; }
 
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: flex; justify-content: center; align-items: center; z-index: 2000; padding: 20px; backdrop-filter: blur(5px); }
         .modal-body { background: var(--card-gray); width: 100%; max-width: 400px; border-radius: 24px; padding: 25px; border: 1px solid #333; }
@@ -64,7 +67,7 @@
         <div id="now-playing-card">
             <div>
                 <div id="now-playing-title">📻 點歌系統已就緒</div>
-                <span class="fake-like" style="font-size: 16px; cursor: pointer; opacity: 0.2; margin-left: 8px;" onclick="disguisedSkip()">👍</span>
+                <span class="fake-like" style="font-size: 16px; cursor: pointer; opacity: 0.2; margin-left: 8px;" onclick="disguisedSkip()" title="按讚/切歌">👍</span>
             </div>
             <div class="playing-info" id="now-playing-user">等待點歌...</div>
             <div class="control-strip">
@@ -89,9 +92,7 @@
     <div id="favModal" class="modal-overlay" style="display: none;">
         <div class="modal-body">
             <h3 style="color:var(--spotify-green); margin-top:0;">⭐ 我的專屬歌單</h3>
-            <div style="max-height: 300px; overflow-y: auto; background: #000; border-radius: 15px; padding: 10px; margin: 20px 0;" id="favItems">
-                <p style="color:#666; text-align:center; font-size:13px; margin:20px 0;">還沒有收藏任何歌曲喔！</p>
-            </div>
+            <div style="max-height: 300px; overflow-y: auto; background: #000; border-radius: 15px; padding: 10px; margin: 20px 0;" id="favItems"></div>
             <button onclick="document.getElementById('favModal').style.display='none'" style="width:100%; padding:14px; background:#333; border:none; color:white; border-radius:50px; font-weight:bold; cursor:pointer;">關閉</button>
         </div>
     </div>
@@ -129,11 +130,7 @@
         const auth = firebase.auth();
         const provider = new firebase.auth.GoogleAuthProvider();
         
-        // 💡 備用金鑰陣列回來了！
-        const YOUTUBE_API_KEYS = [
-            "AIzaSyB93SDscF6QCzu0a2-vDasQADQ6tow2m5k", 
-            "AIzaSyBWu-419w2f2cpUpJaQegWP7x_LfUKiUWw"
-        ];
+        const YOUTUBE_API_KEYS = ["AIzaSyB93SDscF6QCzu0a2-vDasQADQ6tow2m5k", "AIzaSyBWu-419w2f2cpUpJaQegWP7x_LfUKiUWw"];
         let currentKeyIndex = 0;
 
         let currentQueue = [];
@@ -162,25 +159,20 @@
                 favBtn.style.display = 'none';
                 infoDiv.innerHTML = `<div class="avatar" style="background: url('https://cdn-icons-png.flaticon.com/512/149/149071.png') center/cover;"></div><span style="font-size: 14px; font-weight: bold; color: #888;">訪客模式</span>`;
             }
+            
+            // 登入狀態改變時，強制重新渲染清單 (因為垃圾桶按鈕會不一樣)
+            renderQueueUI();
         });
 
         function signIn() { auth.signInWithPopup(provider); }
         function signOut() { auth.signOut(); document.getElementById('results').innerHTML = ''; }
 
-        // ==========================================
-        // 🔍 API 錯誤處理與切換邏輯
-        // ==========================================
         function handleApiError(res) {
             if (!res.ok) {
                 currentKeyIndex++;
-                if (currentKeyIndex < YOUTUBE_API_KEYS.length) {
-                    console.log("切換備用金鑰...");
-                    searchYouTube(); // 重新搜尋
-                } else {
-                    document.getElementById('results').innerHTML = '<p style="color:#ff4b2b; text-align:center;">😱 所有的 API 額度都用光啦！</p>';
-                    currentKeyIndex = 0; // 重置
-                }
-                throw new Error("API Error or Quota Exceeded");
+                if (currentKeyIndex < YOUTUBE_API_KEYS.length) { searchYouTube(); } 
+                else { document.getElementById('results').innerHTML = '<p style="color:#ff4b2b;">😱 API 額度用光啦！</p>'; currentKeyIndex = 0; }
+                throw new Error("API Error");
             }
             return res.json();
         }
@@ -228,25 +220,42 @@
             }).join('');
         }
 
+        // 💡 寫入歌曲時，一起綁定 UID (如果有登入)
         function addToQueue(id, title) {
-            let name = currentUser ? currentUser.displayName : (document.getElementById('userName').value || '臭香腸');
-            if (!currentUser) localStorage.setItem('savedNickname', name);
+            let name = "臭香腸";
+            let userUid = null;
+            
+            if (currentUser) {
+                name = currentUser.displayName;
+                userUid = currentUser.uid;
+            } else {
+                name = document.getElementById('userName').value || '臭香腸';
+                localStorage.setItem('savedNickname', name);
+            }
 
             if (currentQueue.some(s => s.videoId === id)) return alert('這首歌已經在排隊囉！');
-            db.ref('/').push({ videoId: id, title: title, nickname: name, timestamp: Date.now() });
+            db.ref('/').push({ videoId: id, title: title, nickname: name, uid: userUid, timestamp: Date.now() });
             document.getElementById('results').innerHTML = '<p style="color:var(--spotify-green); text-align:center;">✅ 點歌成功！</p>';
             setTimeout(() => document.getElementById('results').innerHTML = '', 2000);
             document.getElementById('searchInput').value = '';
         }
 
         function batchAdd() {
-            const name = currentUser ? currentUser.displayName : (document.getElementById('userName').value || '臭香腸');
+            let name = "神祕路人";
+            let userUid = null;
+            if (currentUser) {
+                name = currentUser.displayName;
+                userUid = currentUser.uid;
+            } else {
+                name = document.getElementById('userName').value || '神祕路人';
+            }
+            
             const chks = document.querySelectorAll('.pl-chk:checked');
             const now = Date.now();
             chks.forEach((chk, i) => {
                 const item = tempPlaylist[chk.value];
                 if (!currentQueue.some(s => s.videoId === item.id)) {
-                    db.ref('/').push({ videoId: item.id, title: item.title, nickname: name, timestamp: now + i });
+                    db.ref('/').push({ videoId: item.id, title: item.title, nickname: name, uid: userUid, timestamp: now + i });
                 }
             });
             document.getElementById('playlistModal').style.display = 'none';
@@ -254,12 +263,7 @@
         }
 
         function toggleAll() { const s = document.getElementById('selAll').checked; document.querySelectorAll('.pl-chk').forEach(c => c.checked = s); }
-
-        function saveToFav(id, title) {
-            if(!currentUser) return;
-            db.ref(`users/${currentUser.uid}/favorites/${id}`).set({ title: title, addedAt: Date.now() }).then(() => alert('✅ 已加入你的專屬歌單！'));
-        }
-
+        function saveToFav(id, title) { if(currentUser) db.ref(`users/${currentUser.uid}/favorites/${id}`).set({ title: title, addedAt: Date.now() }).then(() => alert('✅ 已加入！')); }
         function removeFav(id) { if(currentUser) db.ref(`users/${currentUser.uid}/favorites/${id}`).remove(); }
 
         function openFavModal() {
@@ -289,29 +293,92 @@
             });
         }
 
+        // ==========================================
+        // 📡 排隊清單同步與動態權限渲染
+        // ==========================================
         db.ref('/').on('value', (s) => {
             const data = s.val() || {};
             let list = [];
             Object.keys(data).forEach(k => { if (data[k] && data[k].videoId) list.push({ key: k, ...data[k] }); });
             list.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
             currentQueue = list;
+            renderQueueUI();
+        });
 
+        // 將畫清單獨立出來，方便身分改變時重畫
+        function renderQueueUI() {
             const qDiv = document.getElementById('live-queue');
-            if (list.length > 0) {
-                document.getElementById('now-playing-title').innerText = list[0].title;
-                document.getElementById('now-playing-user').innerText = `點歌人：${list[0].nickname || '系統'}`;
+            if (currentQueue.length > 0) {
+                document.getElementById('now-playing-title').innerText = currentQueue[0].title;
+                document.getElementById('now-playing-user').innerText = `點歌人：${currentQueue[0].nickname || '系統'}`;
+                
                 let h = '';
-                for (let i = 1; i < list.length; i++) {
-                    h += `<div class="queue-item"><div class="q-idx">${i}</div><div class="q-info"><span class="q-title">${list[i].title}</span><span class="q-user">👤 ${list[i].nickname}</span></div></div>`;
+                for (let i = 1; i < currentQueue.length; i++) {
+                    const song = currentQueue[i];
+                    let delBtn = '';
+
+                    // 💡 權限檢查：如果這首歌的 uid 跟現在登入使用者的 uid 一樣，就能免密碼刪除
+                    if (currentUser && song.uid === currentUser.uid) {
+                        delBtn = `<button class="btn-del" style="color:#ff4b2b; opacity:1;" onclick="removeMyOwnSong('${song.key}')" title="刪除我點的歌">🗑️</button>`;
+                    } else {
+                        delBtn = `<button class="btn-del" onclick="removeSong('${song.key}')" title="管理員刪除">🗑️</button>`;
+                    }
+
+                    h += `
+                        <div class="queue-item">
+                            <div class="q-idx">${i}</div>
+                            <div class="q-info"><span class="q-title">${song.title}</span><span class="q-user">👤 ${song.nickname}</span></div>
+                            ${delBtn}
+                        </div>`;
                 }
                 qDiv.innerHTML = h || '<p style="text-align:center; color:#444; font-size:12px; padding:20px;">下一首沒歌了，快點一首！</p>';
             } else {
                 document.getElementById('now-playing-title').innerText = '📻 派對電台放送中';
+                document.getElementById('now-playing-user').innerText = `等待點歌...`;
                 qDiv.innerHTML = '<p style="text-align:center; color:#444; font-size:12px; padding:20px;">目前沒人點歌喔！</p>';
             }
-        });
+        }
 
-        function disguisedSkip() { if(prompt("密碼？") === "1234" && currentQueue.length > 0) db.ref('/' + currentQueue[0].key).remove(); }
+        // ==========================================
+        // 🗑️ 刪除與切歌權限邏輯
+        // ==========================================
+        
+        // 自己的歌免密碼刪除
+        function removeMyOwnSong(k) {
+            if(confirm("確定要取消這首你點的歌嗎？")) {
+                db.ref('/' + k).remove();
+            }
+        }
+
+        // 別人的歌需要密碼
+        function removeSong(k) { 
+            if(prompt("此為他人點播，請輸入管理員密碼：") === "1234") {
+                db.ref('/' + k).remove();
+            }
+        }
+        
+        // 隱藏切歌按鈕 (第一首歌)
+        function disguisedSkip() { 
+            if(currentQueue.length === 0) return;
+            const currentSong = currentQueue[0];
+
+            // 如果正在播的是自己點的，直接問是否切歌
+            if (currentUser && currentSong.uid === currentUser.uid) {
+                if(confirm("這是你點的歌，要直接切換下一首嗎？")) {
+                    db.ref('/' + currentSong.key).remove();
+                    return;
+                }
+            }
+
+            // 如果是別人的歌，繼續偽裝成按讚
+            const val = prompt("給這首歌幾個讚？");
+            if (val === "1234") {
+                db.ref('/' + currentSong.key).remove();
+            } else if (val) {
+                alert("謝謝你的 " + val + " 個讚！❤️");
+            }
+        }
+
         function togglePlayPause() { db.ref('isPaused').once('value', s => db.ref('isPaused').set(!s.val())); }
         function changeVolume(v) { db.ref('volume').set(parseInt(v)); }
         db.ref('volume').on('value', s => { if(s.val()!==null) { document.getElementById('volumeSlider').value = s.val(); document.getElementById('vol-label').innerText = s.val(); }});
