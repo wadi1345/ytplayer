@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>辦公室點歌 - 雙軌旗艦版 (權限控制)</title>
+    <title>辦公室點歌 - 雙軌旗艦版 (星星連動版)</title>
     <style>
         :root { --spotify-green: #1DB954; --bg-black: #121212; --card-gray: #181818; --text-gray: #b3b3b3; }
         ::-webkit-scrollbar { width: 6px; }
@@ -34,21 +34,24 @@
         
         #my-fav-btn { width: 100%; padding: 12px; background: #333; color: #fff; border: 1px solid #555; border-radius: 50px; font-weight: bold; cursor: pointer; display: none; }
 
+        /* 項目樣式 */
         .res-item { background: #222; margin-top: 10px; padding: 12px 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #333; }
         .res-title { font-size: 13px; max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .res-actions { display: flex; gap: 8px; }
-        .btn-fav { background: none; border: none; font-size: 16px; cursor: pointer; opacity: 0.5; padding: 0; }
-        .btn-fav:hover { opacity: 1; }
-
+        .res-actions { display: flex; gap: 8px; align-items: center; }
+        
         .queue-item { background: var(--card-gray); padding: 14px 18px; border-radius: 15px; display: flex; align-items: center; margin-bottom: 10px; border: 1px solid #222; }
         .q-idx { color: var(--spotify-green); font-weight: 900; width: 30px; font-size: 14px; }
         .q-info { flex-grow: 1; overflow: hidden; }
         .q-title { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
         .q-user { font-size: 11px; color: var(--text-gray); }
         
-        .btn-del { background: none; border: none; cursor: pointer; font-size: 15px; padding: 5px; opacity: 0.5; transition: 0.3s; }
+        /* 💡 按鈕美化 */
+        .btn-fav { background: none; border: none; font-size: 18px; cursor: pointer; padding: 0 5px; transition: 0.2s; color: #888; }
+        .btn-fav:hover { transform: scale(1.1); }
+        .btn-del { background: none; border: none; cursor: pointer; font-size: 15px; padding: 5px; opacity: 0.5; transition: 0.3s; color: #444; }
         .btn-del:hover { opacity: 1; }
 
+        /* Modal */
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: flex; justify-content: center; align-items: center; z-index: 2000; padding: 20px; backdrop-filter: blur(5px); }
         .modal-body { background: var(--card-gray); width: 100%; max-width: 400px; border-radius: 24px; padding: 25px; border: 1px solid #333; }
     </style>
@@ -67,7 +70,7 @@
         <div id="now-playing-card">
             <div>
                 <div id="now-playing-title">📻 點歌系統已就緒</div>
-                <span class="fake-like" style="font-size: 16px; cursor: pointer; opacity: 0.2; margin-left: 8px;" onclick="disguisedSkip()" title="按讚/切歌">👍</span>
+                <span class="fake-like" style="font-size: 16px; cursor: pointer; opacity: 0.2; margin-left: 8px;" onclick="disguisedSkip()" title="切歌">👍</span>
             </div>
             <div class="playing-info" id="now-playing-user">等待點歌...</div>
             <div class="control-strip">
@@ -78,7 +81,7 @@
         </div>
 
         <div class="search-box">
-            <input type="text" id="userName" placeholder="👤 輸入你的稱呼 (登入可隱藏此欄)">
+            <input type="text" id="userName" placeholder="👤 輸入你的稱呼 (登入可隱藏)">
             <input type="text" id="searchInput" placeholder="🔍 輸入歌名或貼上 YT 網址">
             <button class="btn-search" onclick="searchYouTube()">即刻點歌</button>
             <button id="my-fav-btn" onclick="openFavModal()">📂 開啟我的私人歌單</button>
@@ -136,7 +139,13 @@
         let currentQueue = [];
         let tempPlaylist = [];
         let currentUser = null; 
+        
+        // 💡 建立全域收藏清單，解決空白問題
+        let myFavorites = {}; 
 
+        // ==========================================
+        // 🛡️ 身分與即時連動
+        // ==========================================
         auth.onAuthStateChanged(user => {
             currentUser = user;
             const uNameInput = document.getElementById('userName');
@@ -151,7 +160,18 @@
                 logoutBtn.style.display = 'inline-block';
                 favBtn.style.display = 'block';
                 infoDiv.innerHTML = `<img src="${user.photoURL}" class="avatar" referrerpolicy="no-referrer"><span style="font-size: 14px; font-weight: bold; color: #fff;">${user.displayName}</span>`;
+                
+                // 💡 即時監聽使用者的專屬歌單
+                db.ref(`users/${user.uid}/favorites`).on('value', snapshot => {
+                    myFavorites = snapshot.val() || {};
+                    updateAllStarButtons(); // 自動把畫面上的星星變色
+                    if (document.getElementById('favModal').style.display === 'flex') {
+                        renderFavModal(); // 如果抽屜開著就即時刷新
+                    }
+                });
             } else {
+                if (currentUser) db.ref(`users/${currentUser.uid}/favorites`).off(); // 登出時關閉監聽
+                myFavorites = {};
                 uNameInput.style.display = 'block';
                 uNameInput.value = localStorage.getItem('savedNickname') || '';
                 loginBtn.style.display = 'inline-block';
@@ -159,19 +179,20 @@
                 favBtn.style.display = 'none';
                 infoDiv.innerHTML = `<div class="avatar" style="background: url('https://cdn-icons-png.flaticon.com/512/149/149071.png') center/cover;"></div><span style="font-size: 14px; font-weight: bold; color: #888;">訪客模式</span>`;
             }
-            
-            // 登入狀態改變時，強制重新渲染清單 (因為垃圾桶按鈕會不一樣)
             renderQueueUI();
         });
 
         function signIn() { auth.signInWithPopup(provider); }
         function signOut() { auth.signOut(); document.getElementById('results').innerHTML = ''; }
 
+        // ==========================================
+        // 🔍 API 搜尋
+        // ==========================================
         function handleApiError(res) {
             if (!res.ok) {
                 currentKeyIndex++;
                 if (currentKeyIndex < YOUTUBE_API_KEYS.length) { searchYouTube(); } 
-                else { document.getElementById('results').innerHTML = '<p style="color:#ff4b2b;">😱 API 額度用光啦！</p>'; currentKeyIndex = 0; }
+                else { document.getElementById('results').innerHTML = '<p style="color:#ff4b2b;">😱 API 額度用盡</p>'; currentKeyIndex = 0; }
                 throw new Error("API Error");
             }
             return res.json();
@@ -208,47 +229,37 @@
         function render(data) {
             document.getElementById('results').innerHTML = (data.items || []).map(it => {
                 const id = it.id.videoId || it.id, t = it.snippet.title.replace(/'/g, "\\'").replace(/"/g, "&quot;");
-                const favHtml = currentUser ? `<button class="btn-fav" title="加入我的最愛" onclick="saveToFav('${id}', '${t}')">☆</button>` : '';
+                // 💡 加入星號按鈕並綁定 data-vid
+                const favHtml = currentUser ? `<button class="btn-fav star-btn" data-vid="${id}" title="加入/移除收藏" onclick="toggleFav('${id}', '${t}')">☆</button>` : '';
                 return `
                     <div class="res-item">
                         <span class="res-title">🎵 ${it.snippet.title}</span>
                         <div class="res-actions">
                             ${favHtml}
-                            <button onclick="addToQueue('${id}', '${t}')" style="background:var(--spotify-green); border:none; padding:8px 15px; border-radius:8px; font-weight:bold; cursor:pointer; font-size:12px;">加入</button>
+                            <button onclick="addToQueue('${id}', '${t}')" style="background:var(--spotify-green); border:none; padding:8px 15px; border-radius:8px; font-weight:bold; cursor:pointer; font-size:12px; color:black;">點播</button>
                         </div>
                     </div>`;
             }).join('');
+            updateAllStarButtons(); // 確保剛生出來的星星顏色正確
         }
 
-        // 💡 寫入歌曲時，一起綁定 UID (如果有登入)
         function addToQueue(id, title) {
-            let name = "臭香腸";
-            let userUid = null;
-            
-            if (currentUser) {
-                name = currentUser.displayName;
-                userUid = currentUser.uid;
-            } else {
-                name = document.getElementById('userName').value || '臭香腸';
-                localStorage.setItem('savedNickname', name);
-            }
+            let name = currentUser ? currentUser.displayName : (document.getElementById('userName').value || '臭香腸');
+            let userUid = currentUser ? currentUser.uid : null;
+            if (!currentUser) localStorage.setItem('savedNickname', name);
 
             if (currentQueue.some(s => s.videoId === id)) return alert('這首歌已經在排隊囉！');
             db.ref('/').push({ videoId: id, title: title, nickname: name, uid: userUid, timestamp: Date.now() });
+            
+            // 點播後畫面反饋
             document.getElementById('results').innerHTML = '<p style="color:var(--spotify-green); text-align:center;">✅ 點歌成功！</p>';
-            setTimeout(() => document.getElementById('results').innerHTML = '', 2000);
+            setTimeout(() => document.getElementById('results').innerHTML = '', 1500);
             document.getElementById('searchInput').value = '';
         }
 
         function batchAdd() {
-            let name = "神祕路人";
-            let userUid = null;
-            if (currentUser) {
-                name = currentUser.displayName;
-                userUid = currentUser.uid;
-            } else {
-                name = document.getElementById('userName').value || '神祕路人';
-            }
+            let name = currentUser ? currentUser.displayName : (document.getElementById('userName').value || '臭香腸');
+            let userUid = currentUser ? currentUser.uid : null;
             
             const chks = document.querySelectorAll('.pl-chk:checked');
             const now = Date.now();
@@ -261,40 +272,71 @@
             document.getElementById('playlistModal').style.display = 'none';
             document.getElementById('searchInput').value = '';
         }
-
         function toggleAll() { const s = document.getElementById('selAll').checked; document.querySelectorAll('.pl-chk').forEach(c => c.checked = s); }
-        function saveToFav(id, title) { if(currentUser) db.ref(`users/${currentUser.uid}/favorites/${id}`).set({ title: title, addedAt: Date.now() }).then(() => alert('✅ 已加入！')); }
-        function removeFav(id) { if(currentUser) db.ref(`users/${currentUser.uid}/favorites/${id}`).remove(); }
 
-        function openFavModal() {
+        // ==========================================
+        // ⭐ 收藏星星核心邏輯 (無彈窗，即時變色)
+        // ==========================================
+        function toggleFav(id, title) {
             if(!currentUser) return;
-            const modal = document.getElementById('favModal');
-            const container = document.getElementById('favItems');
-            modal.style.display = 'flex';
-            container.innerHTML = '<p style="color:#666; text-align:center;">讀取中...</p>';
+            const ref = db.ref(`users/${currentUser.uid}/favorites/${id}`);
+            if (myFavorites[id]) {
+                ref.remove(); // 已經收藏過了，就移除
+            } else {
+                ref.set({ title: title, addedAt: Date.now() }); // 沒收藏過，就加入
+            }
+            // Firebase 監聽器會自動捕捉變化並呼叫 updateAllStarButtons()
+        }
 
-            db.ref(`users/${currentUser.uid}/favorites`).once('value', snapshot => {
-                const favs = snapshot.val();
-                if (!favs) { container.innerHTML = '<p style="color:#666; text-align:center;">還沒有收藏任何歌曲喔！</p>'; return; }
-                let html = '';
-                Object.keys(favs).forEach(id => {
-                    const song = favs[id];
-                    html += `
-                        <div class="res-item" style="border:none; padding:10px 5px;">
-                            <span class="res-title" style="color:#ccc;">⭐ ${song.title}</span>
-                            <div class="res-actions">
-                                <button class="btn-fav" onclick="removeFav('${id}')" style="font-size:12px; color:#ff4b2b;">刪除</button>
-                                <button onclick="addToQueue('${id}', '${song.title.replace(/'/g, "\\'")}')" style="background:var(--spotify-green); border:none; padding:6px 10px; border-radius:6px; font-weight:bold; cursor:pointer; font-size:11px;">點播</button>
-                            </div>
-                        </div>`;
-                });
-                container.innerHTML = html;
-                db.ref(`users/${currentUser.uid}/favorites`).on('child_removed', () => { if (modal.style.display === 'flex') openFavModal(); });
+        // 把畫面上所有的星星統一變色
+        function updateAllStarButtons() {
+            document.querySelectorAll('.star-btn').forEach(btn => {
+                const vid = btn.getAttribute('data-vid');
+                if (myFavorites[vid]) {
+                    btn.style.color = 'var(--spotify-green)';
+                    btn.innerText = '★';
+                } else {
+                    btn.style.color = '#888';
+                    btn.innerText = '☆';
+                }
             });
         }
 
         // ==========================================
-        // 📡 排隊清單同步與動態權限渲染
+        // 📂 我的專屬歌單抽屜
+        // ==========================================
+        function openFavModal() {
+            if(!currentUser) return;
+            document.getElementById('favModal').style.display = 'flex';
+            renderFavModal();
+        }
+
+        function renderFavModal() {
+            const container = document.getElementById('favItems');
+            if (Object.keys(myFavorites).length === 0) { 
+                container.innerHTML = '<p style="color:#666; text-align:center; font-size:13px; margin:30px 0;">還沒有收藏任何歌曲喔！</p>'; 
+                return; 
+            }
+            
+            let html = '';
+            // 照加入時間排序 (新的在上面)
+            const sortedFavs = Object.keys(myFavorites).map(id => ({ id, ...myFavorites[id] })).sort((a, b) => b.addedAt - a.addedAt);
+            
+            sortedFavs.forEach(song => {
+                html += `
+                    <div class="res-item" style="border:none; padding:10px 5px; margin-top:5px;">
+                        <span class="res-title" style="color:#ccc;">⭐ ${song.title}</span>
+                        <div class="res-actions">
+                            <button onclick="toggleFav('${song.id}', '')" style="background:none; border:none; font-size:12px; color:#ff4b2b; cursor:pointer;">移除</button>
+                            <button onclick="addToQueue('${song.id}', '${song.title.replace(/'/g, "\\'")}')" style="background:var(--spotify-green); border:none; padding:6px 12px; border-radius:6px; font-weight:bold; cursor:pointer; font-size:11px; color:black;">點播</button>
+                        </div>
+                    </div>`;
+            });
+            container.innerHTML = html;
+        }
+
+        // ==========================================
+        // 📡 待播清單 (支援星星偷歌)
         // ==========================================
         db.ref('/').on('value', (s) => {
             const data = s.val() || {};
@@ -305,7 +347,6 @@
             renderQueueUI();
         });
 
-        // 將畫清單獨立出來，方便身分改變時重畫
         function renderQueueUI() {
             const qDiv = document.getElementById('live-queue');
             if (currentQueue.length > 0) {
@@ -315,23 +356,29 @@
                 let h = '';
                 for (let i = 1; i < currentQueue.length; i++) {
                     const song = currentQueue[i];
-                    let delBtn = '';
+                    
+                    // 🗑️ 刪除權限
+                    let delBtn = (currentUser && song.uid === currentUser.uid)
+                        ? `<button class="btn-del" style="color:#ff4b2b; opacity:1;" onclick="removeMyOwnSong('${song.key}')" title="刪除我點的歌">🗑️</button>`
+                        : `<button class="btn-del" onclick="removeSong('${song.key}')" title="管理員刪除">🗑️</button>`;
 
-                    // 💡 權限檢查：如果這首歌的 uid 跟現在登入使用者的 uid 一樣，就能免密碼刪除
-                    if (currentUser && song.uid === currentUser.uid) {
-                        delBtn = `<button class="btn-del" style="color:#ff4b2b; opacity:1;" onclick="removeMyOwnSong('${song.key}')" title="刪除我點的歌">🗑️</button>`;
-                    } else {
-                        delBtn = `<button class="btn-del" onclick="removeSong('${song.key}')" title="管理員刪除">🗑️</button>`;
-                    }
+                    // ⭐ 排隊區的星星按鈕 (可偷歌)
+                    let favBtn = currentUser 
+                        ? `<button class="btn-fav star-btn" data-vid="${song.videoId}" title="加入/移除收藏" onclick="toggleFav('${song.videoId}', '${song.title.replace(/'/g, "\\'")}')">☆</button>` 
+                        : '';
 
                     h += `
                         <div class="queue-item">
                             <div class="q-idx">${i}</div>
                             <div class="q-info"><span class="q-title">${song.title}</span><span class="q-user">👤 ${song.nickname}</span></div>
-                            ${delBtn}
+                            <div class="res-actions">
+                                ${favBtn}
+                                ${delBtn}
+                            </div>
                         </div>`;
                 }
                 qDiv.innerHTML = h || '<p style="text-align:center; color:#444; font-size:12px; padding:20px;">下一首沒歌了，快點一首！</p>';
+                updateAllStarButtons(); // 畫完清單馬上把星星變色
             } else {
                 document.getElementById('now-playing-title').innerText = '📻 派對電台放送中';
                 document.getElementById('now-playing-user').innerText = `等待點歌...`;
@@ -339,44 +386,18 @@
             }
         }
 
-        // ==========================================
-        // 🗑️ 刪除與切歌權限邏輯
-        // ==========================================
-        
-        // 自己的歌免密碼刪除
-        function removeMyOwnSong(k) {
-            if(confirm("確定要取消這首你點的歌嗎？")) {
-                db.ref('/' + k).remove();
-            }
-        }
-
-        // 別人的歌需要密碼
-        function removeSong(k) { 
-            if(prompt("此為他人點播，請輸入管理員密碼：") === "1234") {
-                db.ref('/' + k).remove();
-            }
-        }
-        
-        // 隱藏切歌按鈕 (第一首歌)
+        // 刪除與切歌邏輯
+        function removeMyOwnSong(k) { if(confirm("確定要取消這首歌嗎？")) db.ref('/' + k).remove(); }
+        function removeSong(k) { if(prompt("此為他人點播，請輸入管理員密碼：") === "1234") db.ref('/' + k).remove(); }
         function disguisedSkip() { 
             if(currentQueue.length === 0) return;
             const currentSong = currentQueue[0];
-
-            // 如果正在播的是自己點的，直接問是否切歌
             if (currentUser && currentSong.uid === currentUser.uid) {
-                if(confirm("這是你點的歌，要直接切換下一首嗎？")) {
-                    db.ref('/' + currentSong.key).remove();
-                    return;
-                }
+                if(confirm("這是你點的歌，要直接切換下一首嗎？")) return db.ref('/' + currentSong.key).remove();
             }
-
-            // 如果是別人的歌，繼續偽裝成按讚
             const val = prompt("給這首歌幾個讚？");
-            if (val === "1234") {
-                db.ref('/' + currentSong.key).remove();
-            } else if (val) {
-                alert("謝謝你的 " + val + " 個讚！❤️");
-            }
+            if (val === "1234") db.ref('/' + currentSong.key).remove();
+            else if (val) alert("謝謝你的 " + val + " 個讚！❤️");
         }
 
         function togglePlayPause() { db.ref('isPaused').once('value', s => db.ref('isPaused').set(!s.val())); }
