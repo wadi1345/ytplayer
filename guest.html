@@ -101,9 +101,12 @@
         </div>
 
         <div id="now-playing-card">
-            <div>
-                <div id="now-playing-title">📻 系統準備中...</div>
-                <span class="fake-like" onclick="disguisedSkip()" title="切歌">👍</span>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+                <div id="now-playing-title" style="flex-grow: 1; margin-bottom: 0;">📻 系統準備中...</div>
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <span id="now-playing-fav"></span>
+                    <span class="fake-like" onclick="disguisedSkip()" title="切歌" style="margin-left: 0;">👍</span>
+                </div>
             </div>
             <div class="playing-info" id="now-playing-user">等待點歌...</div>
             <div class="control-strip">
@@ -386,15 +389,27 @@
             Object.keys(data).forEach(k => { if (data[k] && data[k].videoId) list.push({ key: k, ...data[k] }); });
             list.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0)); currentQueue = list; renderQueueUI();
         }
-        function renderQueueUI() {
+      function renderQueueUI() {
             const qDiv = document.getElementById('live-queue');
             if (currentQueue.length > 0) {
-                document.getElementById('now-playing-title').innerText = currentQueue[0].title;
-                document.getElementById('now-playing-user').innerText = `點歌人：${currentQueue[0].nickname || '臭香腸'}`;
+                const currentSong = currentQueue[0]; // 💡 先把正在播的歌抓出來
+                
+                document.getElementById('now-playing-title').innerText = currentSong.title;
+                document.getElementById('now-playing-user').innerText = `點歌人：${currentSong.nickname || '臭香腸'}`;
+                
+                // 💡 就是這行！把正在播放歌曲的星星畫出來
+                document.getElementById('now-playing-fav').innerHTML = currentUser ? `<button class="btn-fav star-btn" data-vid="${currentSong.videoId}" onclick="toggleFav('${currentSong.videoId}', '${currentSong.title.replace(/'/g, "\\'")}')">☆</button>` : '';
+
                 qDiv.innerHTML = currentQueue.slice(1).map((s, i) => `<div class="queue-item"><div class="q-idx">${i+1}</div><div class="q-info"><span class="q-title">${s.title}</span><span class="q-user">👤 ${s.nickname}</span></div><div class="res-actions">${currentUser?`<button class="btn-fav star-btn" data-vid="${s.videoId}" onclick="toggleFav('${s.videoId}', '${s.title.replace(/'/g, "\\'")}')">☆</button>`:''}<button class="btn-del" style="${(currentUser&&s.uid===currentUser.uid)?'color:#ff4b2b; opacity:1;':''}" onclick="removeSong('${s.key}', '${s.uid}')">🗑️</button></div></div>`).join('') || '<p style="text-align:center; color:#444; font-size:12px; padding:15px;">後面沒歌了，快點一首！</p>';
-                updateAllStars();
+                
+                updateAllStars(); // 確保星星顏色正確
             } else {
                 document.getElementById('now-playing-title').innerText = '📻 派對電台放送中';
+                document.getElementById('now-playing-user').innerText = '等待點歌...'; 
+                
+                // 💡 如果沒人點歌，就把星星隱藏起來
+                document.getElementById('now-playing-fav').innerHTML = ''; 
+                
                 qDiv.innerHTML = '<p style="text-align:center; color:#444; font-size:12px; padding:30px;">大香腸電台播送中... 快點歌吧！</p>';
             }
         }
