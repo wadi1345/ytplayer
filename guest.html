@@ -286,7 +286,7 @@
         function updateLeaderboard(s) {
             const data = s.val() || {}; let maxCount = 0; topKing = null;
             Object.keys(data).forEach(uid => { if(data[uid].count > maxCount) { maxCount = data[uid].count; topKing = data[uid]; }});
-            if(topKing) { document.querySelector('.king-text').innerHTML = `👑 全公司點歌王：${topKing.name}`; document.querySelector('.king-count').innerText = `${topKing.count} 首`; }
+            if(topKing) { document.querySelector('.king-text').innerHTML = `👑 點歌王：${topKing.name}`; document.querySelector('.king-count').innerText = `${topKing.count} 首`; }
         }
 
         function searchYouTube() { /* (沿用先前的 API 搜尋邏輯，無更動) */ 
