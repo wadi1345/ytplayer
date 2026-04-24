@@ -13,19 +13,18 @@
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg-black); color: #fff; margin: 0; padding: 20px; padding-bottom: 80px; }
         .container { max-width: 500px; margin: 0 auto; display: none; }
         
-        /* 🚪 派對大廳 (Lobby) */
+        /* 🚪 派對大廳 */
         #lobby-screen { position: fixed; inset: 0; background: var(--bg-black); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; }
         .lobby-box { background: var(--card-gray); padding: 30px; border-radius: 20px; width: 100%; max-width: 350px; text-align: center; border: 1px solid #333; box-shadow: 0 20px 40px rgba(0,0,0,0.8); }
         .room-input { width: 100%; padding: 15px; font-size: 24px; text-align: center; text-transform: uppercase; background: #222; color: #fff; border: 2px solid #444; border-radius: 12px; margin-bottom: 20px; font-weight: bold; letter-spacing: 2px; box-sizing: border-box; }
-        .room-input:focus { border-color: var(--spotify-green); outline: none; }
         .btn-join { width: 100%; padding: 15px; font-size: 18px; font-weight: bold; background: var(--spotify-green); color: #000; border: none; border-radius: 50px; cursor: pointer; }
 
         #room-banner { text-align: center; font-size: 12px; color: #888; margin-bottom: 15px; letter-spacing: 1px; }
 
-        /* 👑 點歌王與身分 */
+        /* 👑 點歌王橫幅 (每日重置) */
         #leaderboard-banner { background: linear-gradient(90deg, rgba(255,215,0,0.1) 0%, rgba(255,215,0,0.05) 100%); border-left: 4px solid var(--gold); padding: 12px 15px; border-radius: 8px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; border: 1px solid rgba(255,215,0,0.2); }
         .king-text { font-size: 14px; color: var(--gold); font-weight: bold; }
-        .king-count { font-size: 12px; color: #ccc; background: rgba(0,0,0,0.5); padding: 3px 8px; border-radius: 50px; }
+        .king-count { font-size: 11px; color: #ccc; background: rgba(0,0,0,0.5); padding: 3px 8px; border-radius: 50px; }
 
         #auth-banner { display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); padding: 12px 20px; border-radius: 50px; margin-bottom: 20px; border: 1px solid #333; }
         .user-profile { display: flex; align-items: center; gap: 10px; }
@@ -50,33 +49,25 @@
         .res-item { background: #222; margin-top: 10px; padding: 12px 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #333; }
         .res-title { font-size: 13px; max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .res-actions { display: flex; gap: 8px; align-items: center; }
-        .btn-fav { background: none; border: none; font-size: 18px; cursor: pointer; padding: 0 5px; color: #888; }
         
         .queue-item { background: var(--card-gray); padding: 14px 18px; border-radius: 15px; display: flex; align-items: center; margin-bottom: 10px; border: 1px solid #222; }
         .q-idx { color: var(--spotify-green); font-weight: 900; width: 30px; font-size: 14px; }
         .q-info { flex-grow: 1; overflow: hidden; }
         .q-title { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
         .q-user { font-size: 11px; color: var(--text-gray); }
-        .btn-del { background: none; border: none; cursor: pointer; font-size: 15px; padding: 5px; opacity: 0.5; color: #444; }
 
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: flex; justify-content: center; align-items: center; z-index: 2000; padding: 20px; backdrop-filter: blur(5px); display: none; }
         .modal-body { background: var(--card-gray); width: 100%; max-width: 400px; border-radius: 24px; padding: 25px; border: 1px solid #333; }
         .modal-list { max-height: 300px; overflow-y: auto; background: #000; border-radius: 15px; padding: 10px; margin: 15px 0; border: 1px solid #222; }
-        
         .member-item { display: flex; align-items: center; gap: 10px; padding: 10px; border-bottom: 1px solid #222; }
-        .member-info { flex-grow: 1; display: flex; flex-direction: column; }
-        .member-name { font-size: 14px; font-weight: bold; }
-        .member-badge { font-size: 10px; background: #444; padding: 2px 6px; border-radius: 4px; }
-        .member-btn { background: none; border: 1px solid #555; color: #888; border-radius: 6px; padding: 5px 10px; font-size: 12px; cursor: pointer; }
-        .member-btn.banned { color: #ff4b2b; border-color: #ff4b2b; }
     </style>
 </head>
 <body>
 
     <div id="lobby-screen">
         <div class="lobby-box">
-            <h2 style="color:var(--spotify-green); margin-top:0;">🎶 派對包廂</h2>
-            <p style="color:#888; font-size:14px; margin-bottom:20px;">請查看大螢幕上的代碼</p>
+            <h2 style="color:var(--spotify-green); margin-top:0;">🎶 大香腸點歌系統</h2>
+            <p style="color:#888; font-size:14px; margin-bottom:20px;">請輸入大螢幕顯示的房號代碼</p>
             <input type="text" id="roomInput" class="room-input" placeholder="輸入代碼" autocomplete="off">
             <button class="btn-join" onclick="joinRoom()" id="joinBtn">進入房間</button>
             <p id="lobbyMsg" style="color:#ff4b2b; font-size:13px; margin-top:15px; display:none;"></p>
@@ -84,10 +75,10 @@
     </div>
 
     <div class="container" id="main-app">
-        <div id="room-banner">目前位於房間：<strong id="displayRoomId">----</strong> <span style="cursor:pointer; text-decoration:underline; margin-left:10px;" onclick="location.reload()">離開</span></div>
+        <div id="room-banner">目前房號：<strong id="displayRoomId">----</strong> <span style="cursor:pointer; text-decoration:underline; margin-left:10px;" onclick="location.reload()">離開</span></div>
         
         <div id="leaderboard-banner">
-            <div class="king-text">👑 尚未產生點歌王</div>
+            <div class="king-text">👑 本日點歌王：結算中</div>
             <div class="king-count">0 首</div>
         </div>
 
@@ -102,7 +93,7 @@
 
         <div id="now-playing-card">
             <div>
-                <div id="now-playing-title">📻 點歌系統已就緒</div>
+                <div id="now-playing-title">📻 系統準備中...</div>
                 <span class="fake-like" onclick="disguisedSkip()" title="切歌">👍</span>
             </div>
             <div class="playing-info" id="now-playing-user">等待點歌...</div>
@@ -114,8 +105,8 @@
         </div>
 
         <div class="search-box">
-            <input type="text" id="userName" placeholder="👤 輸入你的稱呼" oninput="setupPresence()">
-            <input type="text" id="searchInput" placeholder="🔍 輸入歌名或貼上 YT 網址">
+            <input type="text" id="userName" placeholder="👤 點歌稱號 (預設: 臭香腸)" oninput="setupPresence()">
+            <input type="text" id="searchInput" placeholder="🔍 搜尋歌名或貼上 YouTube 清單網址">
             <button class="btn-search" onclick="searchYouTube()">即刻點歌</button>
             <div class="action-btns">
                 <button class="action-btn" id="my-fav-btn" onclick="openFavModal()" style="display:none; border-color:var(--spotify-green); color:var(--spotify-green);">📂 私人歌單</button>
@@ -128,9 +119,11 @@
         <div id="live-queue">同步中...</div>
     </div>
 
-    <div id="onlineModal" class="modal-overlay"><div class="modal-body"><h3 style="color:var(--spotify-green); margin-top:0;">👥 目前在線成員</h3><div class="modal-list" id="onlineItems"></div><button onclick="document.getElementById('onlineModal').style.display='none'" style="width:100%; padding:14px; background:#333; border:none; color:white; border-radius:50px; font-weight:bold;">關閉</button></div></div>
-    <div id="favModal" class="modal-overlay"><div class="modal-body"><h3 style="color:var(--spotify-green); margin-top:0;">⭐ 我的專屬歌單</h3><div class="modal-list" id="favItems"></div><div style="display:flex; gap:10px;"><button onclick="document.getElementById('favModal').style.display='none'" style="flex:1; padding:12px; background:#333; border:none; color:white; border-radius:50px; font-weight:bold;">關閉</button><button onclick="batchAddFromFav()" style="flex:1; padding:12px; background:var(--spotify-green); color:black; border-radius:50px; font-weight:bold;">批次點播</button></div></div></div>
-    <div id="playlistModal" class="modal-overlay"><div class="modal-body"><h3 style="color:var(--spotify-green); margin-top:0;">📋 匯入播放清單</h3><div class="modal-list" id="plItems"></div><div style="display:flex; gap:12px;"><button onclick="document.getElementById('playlistModal').style.display='none'" style="flex:1; padding:14px; background:#333; border:none; color:white; border-radius:50px; font-weight:bold;">取消</button><button onclick="batchAdd()" style="flex:1; padding:14px; background:var(--spotify-green); color:black; border-radius:50px; font-weight:bold;">確認匯入</button></div></div></div>
+    <div id="onlineModal" class="modal-overlay"><div class="modal-body"><h3 style="color:var(--spotify-green); margin-top:0;">👥 在線成員</h3><div class="modal-list" id="onlineItems"></div><button onclick="document.getElementById('onlineModal').style.display='none'" style="width:100%; padding:14px; background:#333; border:none; color:white; border-radius:50px; font-weight:bold;">關閉</button></div></div>
+    
+    <div id="favModal" class="modal-overlay"><div class="modal-body"><h3 style="color:var(--spotify-green); margin-top:0;">⭐ 我的專屬歌單</h3><div style="font-size: 11px; color: #888; display: flex; justify-content: space-between; margin-bottom:5px;"><span><input type="checkbox" id="selAllFav" checked onchange="toggleAllFav()"> 全選</span><span>一次上限 10 首</span></div><div class="modal-list" id="favItems"></div><div style="display:flex; gap:10px;"><button onclick="document.getElementById('favModal').style.display='none'" style="flex:1; padding:12px; background:#333; border:none; color:white; border-radius:50px; font-weight:bold;">關閉</button><button onclick="batchAddFromFav()" style="flex:1; padding:12px; background:var(--spotify-green); color:black; border-radius:50px; font-weight:bold;">批次點播</button></div></div></div>
+    
+    <div id="playlistModal" class="modal-overlay"><div class="modal-body"><h3 style="color:var(--spotify-green); margin-top:0;">📋 匯入播放清單</h3><div style="font-size: 11px; color: #888; display: flex; justify-content: space-between; margin-bottom:5px;"><span><input type="checkbox" id="selAllPl" checked onchange="toggleAllPl()"> 全選</span><span>一次上限 20 首</span></div><div class="modal-list" id="plItems"></div><div style="display:flex; gap:12px;"><button onclick="document.getElementById('playlistModal').style.display='none'" style="flex:1; padding:14px; background:#333; border:none; color:white; border-radius:50px; font-weight:bold;">取消</button><button onclick="batchAdd()" style="flex:1; padding:14px; background:var(--spotify-green); color:black; border-radius:50px; font-weight:bold;">確認匯入</button></div></div></div>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -158,7 +151,7 @@
         let currentRoomId = null, roomRef = null;
 
         // ==========================================
-        // 🚪 智慧門牌攔截器
+        // 🚪 房間系統
         // ==========================================
         async function joinRoom() {
             const input = document.getElementById('roomInput').value.trim().toUpperCase();
@@ -172,10 +165,8 @@
                 if (aliasSnap.exists()) { setupRoom(aliasSnap.val(), input); return; }
                 const roomSnap = await db.ref(`rooms/${input}`).once('value');
                 if (roomSnap.exists()) { setupRoom(input, roomSnap.val().alias || input); return; }
-                msg.innerText = '❌ 找不到這個房間，請檢查大螢幕代碼！'; msg.style.display = 'block'; btn.innerText = '進入房間';
-            } catch (error) {
-                msg.innerText = '❌ 連線錯誤，請重試！'; msg.style.display = 'block'; btn.innerText = '進入房間';
-            }
+                msg.innerText = '❌ 房號代碼錯誤，請確認大螢幕！'; msg.style.display = 'block'; btn.innerText = '進入房間';
+            } catch (e) { msg.innerText = '❌ 連線失敗！'; msg.style.display = 'block'; btn.innerText = '進入房間'; }
         }
 
         function setupRoom(roomId, displayAlias) {
@@ -185,8 +176,8 @@
             document.getElementById('displayRoomId').innerText = displayAlias;
 
             auth.onAuthStateChanged(handleAuthChange);
-            roomRef.child('banned').on('value', s => { bannedList = s.val() || {}; if(bannedList[currentUser?currentUser.uid:localGuestId]) alert("注意：你已被房主限制點歌！"); renderOnlineModal(); });
-            roomRef.child('online').on('value', s => { onlineUsers = s.val() || {}; if(document.getElementById('onlineModal').style.display==='flex') renderOnlineModal(); });
+            roomRef.child('banned').on('value', s => { bannedList = s.val() || {}; renderOnlineModal(); });
+            roomRef.child('online').on('value', s => { onlineUsers = s.val() || {}; renderOnlineModal(); });
             db.ref('leaderboard').on('value', updateLeaderboard);
             
             roomRef.child('queue').on('value', syncQueue);
@@ -195,7 +186,7 @@
         }
 
         // ==========================================
-        // 🟢 身分與自訂暱稱邏輯
+        // 🟢 身分與自訂暱稱 (預設: 臭香腸)
         // ==========================================
         let presenceRef = null;
         function setupPresence() {
@@ -203,8 +194,7 @@
             if (presenceRef) { presenceRef.remove(); presenceRef.onDisconnect().cancel(); }
             const isLog = !!currentUser;
             const id = isLog ? currentUser.uid : localGuestId;
-            // 💡 如果有登入，優先使用 customName，沒有才用 displayName
-            const name = isLog ? (currentUser.customName || currentUser.displayName) : (document.getElementById('userName').value || '神祕路人');
+            const name = isLog ? (currentUser.customName || currentUser.displayName) : (document.getElementById('userName').value || '臭香腸');
             const photo = isLog ? currentUser.photoURL : 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
             
             presenceRef = roomRef.child(`online/${id}`);
@@ -220,43 +210,31 @@
             currentUser = user;
             if (user) {
                 document.getElementById('userName').style.display = 'none'; document.getElementById('login-btn').style.display = 'none'; document.getElementById('logout-btn').style.display = 'inline-block'; document.getElementById('my-fav-btn').style.display = 'flex';
-                
-                // 💡 讀取使用者的專屬暱稱
                 db.ref(`users/${user.uid}/nickname`).on('value', snap => {
                     currentUser.customName = snap.val() || user.displayName;
                     document.getElementById('user-info').innerHTML = `
                         <img src="${user.photoURL}" class="avatar" referrerpolicy="no-referrer">
-                        <span style="font-size: 14px; font-weight: bold; display:flex; align-items:center; gap:5px; color:#fff;">
+                        <span style="font-size: 14px; font-weight: bold; color:#fff; display:flex; align-items:center; gap:5px;">
                             ${currentUser.customName}
-                            <button onclick="editNickname()" style="background:none; border:none; cursor:pointer; font-size:12px; color:#888;" title="修改暱稱">✏️</button>
+                            <button onclick="editNickname()" style="background:none; border:none; cursor:pointer; font-size:12px; color:#888;">✏️</button>
                         </span>`;
-                    setupPresence(); // 更新在線名單的名稱
+                    setupPresence();
                 });
-
                 db.ref(`users/${user.uid}/favorites`).on('value', s => { myFavorites = s.val() || {}; updateAllStars(); });
             } else {
                 if(currentUser) { db.ref(`users/${currentUser.uid}/favorites`).off(); db.ref(`users/${currentUser.uid}/nickname`).off(); }
                 document.getElementById('userName').style.display = 'block'; document.getElementById('login-btn').style.display = 'inline-block'; document.getElementById('logout-btn').style.display = 'none'; document.getElementById('my-fav-btn').style.display = 'none';
-                document.getElementById('userName').value = localStorage.getItem('savedNickname') || '';
                 document.getElementById('user-info').innerHTML = `<div class="avatar" style="background: url('https://cdn-icons-png.flaticon.com/512/149/149071.png') center/cover;"></div><span style="font-size: 14px; color: #888;">訪客模式</span>`;
                 setupPresence();
             }
             renderQueueUI();
         }
 
-        // 💡 編輯暱稱函式
         function editNickname() {
-            if (!currentUser) return;
-            const currentName = currentUser.customName || currentUser.displayName;
-            const newName = prompt("不想顯示本名嗎？請輸入你的辦公室暱稱：", currentName);
-            if (newName && newName.trim() !== "") {
-                const finalName = newName.trim();
-                db.ref(`users/${currentUser.uid}/nickname`).set(finalName);
-                // 同步更新排行榜上的名字
-                db.ref(`leaderboard/${currentUser.uid}`).once('value', s => {
-                    if(s.exists()) db.ref(`leaderboard/${currentUser.uid}`).update({ name: finalName });
-                });
-                alert("✅ 暱稱修改成功！");
+            const n = prompt("輸入你的大香腸暱稱：", currentUser.customName || currentUser.displayName);
+            if (n && n.trim()) {
+                db.ref(`users/${currentUser.uid}/nickname`).set(n.trim());
+                db.ref(`leaderboard/${currentUser.uid}`).update({ name: n.trim() });
             }
         }
 
@@ -264,20 +242,59 @@
         function signOut() { auth.signOut(); }
 
         // ==========================================
-        // 點歌核心 
+        // 🏆 本日點歌王 (每日重置)
         // ==========================================
         function updateLeaderboard(s) {
             const data = s.val() || {}; let maxCount = 0; topKing = null;
-            Object.keys(data).forEach(uid => { if(data[uid].count > maxCount) { maxCount = data[uid].count; topKing = data[uid]; }});
-            if(topKing) { document.querySelector('.king-text').innerHTML = `👑 本日大香腸點歌王：${topKing.name}`; document.querySelector('.king-count').innerText = `${topKing.count} 首`; }
+            const today = new Date().toLocaleDateString();
+            Object.keys(data).forEach(uid => { 
+                if(data[uid].date === today && data[uid].count > maxCount) { 
+                    maxCount = data[uid].count; topKing = data[uid]; 
+                }
+            });
+            if(topKing) { 
+                document.querySelector('.king-text').innerHTML = `👑 本日點歌王：${topKing.name}`; 
+                document.querySelector('.king-count').innerText = `${topKing.count} 首`; 
+            } else {
+                document.querySelector('.king-text').innerText = "👑 尚未產生今日點歌王";
+                document.querySelector('.king-count').innerText = "0 首";
+            }
         }
 
+        function incrementScore(addedCount) {
+            if (!currentUser) return;
+            const today = new Date().toLocaleDateString();
+            const r = db.ref(`leaderboard/${currentUser.uid}`);
+            r.once('value', s => {
+                const d = s.val() || {};
+                let nc = (d.date === today) ? (d.count || 0) + addedCount : addedCount;
+                r.set({ count: nc, name: currentUser.customName || currentUser.displayName, date: today });
+            });
+        }
+
+        // ==========================================
+        // 🔍 YouTube API 搜尋與匯入
+        // ==========================================
         function searchYouTube() {
             const input = document.getElementById('searchInput').value.trim();
             if (!input) return;
             const lid = (input.match(/[?&]list=([^#\&\?]+)/) || [])[1];
             const vid = (input.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/) || [])[2];
-            fetch(vid ? `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${vid}&key=${YOUTUBE_API_KEYS[0]}` : `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=5&q=${encodeURIComponent(input)}&type=video&key=${YOUTUBE_API_KEYS[0]}`).then(r=>r.json()).then(render);
+            const key = YOUTUBE_API_KEYS[currentKeyIndex];
+
+            if (lid) {
+                fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=20&playlistId=${lid}&key=${key}`)
+                .then(r => r.json()).then(data => {
+                    if(!data.items) return alert("無法讀取清單或為私人清單！");
+                    tempPlaylist = data.items.map(it => ({ id: it.snippet.resourceId.videoId, title: it.snippet.title }));
+                    document.getElementById('plItems').innerHTML = tempPlaylist.map((it, i) => `<div style="padding:10px 0; border-bottom:1px solid #111; font-size:12px;"><input type="checkbox" class="pl-chk" value="${i}" checked> ${it.title}</div>`).join('');
+                    document.getElementById('playlistModal').style.display = 'flex';
+                });
+            } else if (vid) {
+                fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${vid}&key=${key}`).then(r=>r.json()).then(render);
+            } else {
+                fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=5&q=${encodeURIComponent(input)}&type=video&key=${key}`).then(r=>r.json()).then(render);
+            }
         }
 
         function render(data) {
@@ -289,85 +306,72 @@
         }
 
         function addToQueue(id, title) {
-            const myId = currentUser ? currentUser.uid : localGuestId;
-            if (bannedList[myId]) return alert('🛑 你已被限制點歌權限！');
-            // 💡 使用者名稱判斷：有登入就用 customName
+            if (bannedList[currentUser?currentUser.uid:localGuestId]) return alert('🛑 你已被禁言！');
             let name = currentUser ? (currentUser.customName || currentUser.displayName) : (document.getElementById('userName').value || '臭香腸');
-            if (!currentUser) localStorage.setItem('savedNickname', name);
             if (currentQueue.some(s => s.videoId === id)) return alert('重複點歌囉！');
-            
             roomRef.child('queue').push({ videoId: id, title: title, nickname: name, uid: currentUser?currentUser.uid:null, timestamp: Date.now() });
-           if (currentUser) { 
-    const ref = db.ref(`leaderboard/${currentUser.uid}`); 
-    ref.once('value', s => { 
-        const data = s.val() || {};
-        const today = new Date().toLocaleDateString(); // 取得今天日期，例如 "2026/4/24"
-        let newCount = 1;
-        
-        // 如果資料庫紀錄的日期是今天，就累加；如果不是，就從 1 開始算
-        if (data.date === today) {
-            newCount = (data.count || 0) + 1;
-        }
-        
-        ref.set({ 
-            count: newCount, 
-            name: currentUser.customName || currentUser.displayName,
-            date: today 
-        }); 
-    }); 
-}
-            document.getElementById('results').innerHTML = '<p style="color:var(--spotify-green); text-align:center;">✅ 點歌成功！</p>'; setTimeout(()=>document.getElementById('results').innerHTML='', 1500); document.getElementById('searchInput').value = '';
+            incrementScore(1);
+            document.getElementById('results').innerHTML = ''; document.getElementById('searchInput').value = '';
         }
 
+        function batchAdd() {
+            const chks = document.querySelectorAll('.pl-chk:checked'), now = Date.now();
+            let added = 0;
+            chks.forEach((chk, i) => {
+                const it = tempPlaylist[chk.value];
+                if (!currentQueue.some(s => s.videoId === it.id)) {
+                    roomRef.child('queue').push({ videoId: it.id, title: it.title, nickname: currentUser? (currentUser.customName || currentUser.displayName) : '臭香腸', uid: currentUser?currentUser.uid:null, timestamp: now + i });
+                    added++;
+                }
+            });
+            incrementScore(added); document.getElementById('playlistModal').style.display = 'none';
+        }
+        function toggleAllPl() { const s = document.getElementById('selAllPl').checked; document.querySelectorAll('.pl-chk').forEach(c => c.checked = s); }
+
+        // ==========================================
+        // ⭐ 私人歌單批次與連動
+        // ==========================================
+        function toggleFav(id, title) { if(currentUser) { const r = db.ref(`users/${currentUser.uid}/favorites/${id}`); myFavorites[id]?r.remove():r.set({title, addedAt:Date.now()}); } }
+        function updateAllStars() { document.querySelectorAll('.star-btn').forEach(btn => { const vid = btn.getAttribute('data-vid'); btn.innerHTML = myFavorites[vid]?'★':'☆'; btn.style.color = myFavorites[vid]?'var(--spotify-green)':'#888'; }); }
+        function openFavModal() { if(currentUser){ document.getElementById('favModal').style.display='flex'; renderFavItems(); } }
+        function renderFavItems() {
+            const c = document.getElementById('favItems');
+            const sorted = Object.keys(myFavorites).map(id => ({ id, ...myFavorites[id] })).sort((a,b) => b.addedAt - a.addedAt);
+            if (sorted.length===0) return c.innerHTML = '<p style="text-align:center; color:#555;">尚未收藏歌曲</p>';
+            c.innerHTML = sorted.map((s, i) => `<div class="res-item" style="border:none; padding:8px 0; margin:0;"><input type="checkbox" class="fav-chk" data-vid="${s.id}" data-title="${s.title.replace(/'/g, "\\'")}" checked style="margin-right:10px;"><span class="res-title" style="flex-grow:1;">${s.title}</span><button onclick="toggleFav('${s.id}', '')" style="background:none; border:none; color:#ff4b2b; font-size:10px;">移除</button></div>`).join('');
+        }
         function batchAddFromFav() {
-            const myId = currentUser ? currentUser.uid : localGuestId;
-            if (bannedList[myId]) return alert('🛑 你已被限制點歌權限！');
-            const chks = document.querySelectorAll('.fav-chk:checked'); if (chks.length > 10) return alert('一次最多 10 首！');
+            const chks = document.querySelectorAll('.fav-chk:checked');
+            if (chks.length > 10) return alert('為了公平，一次上限 10 首喔！');
             let added = 0; const now = Date.now();
-            let name = currentUser ? (currentUser.customName || currentUser.displayName) : '臭香腸';
-
             chks.forEach((chk, i) => {
                 const vid = chk.getAttribute('data-vid'), t = chk.getAttribute('data-title');
-                if (!currentQueue.some(s => s.videoId === vid)) { roomRef.child('queue').push({ videoId: vid, title: t, nickname: name, uid: currentUser.uid, timestamp: now + i }); added++; }
+                if (!currentQueue.some(s => s.videoId === vid)) {
+                    roomRef.child('queue').push({ videoId: vid, title: t, nickname: currentUser.customName || currentUser.displayName, uid: currentUser.uid, timestamp: now + i });
+                    added++;
+                }
             });
-            if(added > 0){ 
-    const r = db.ref(`leaderboard/${currentUser.uid}`); 
-    r.once('value', s => { 
-        const data = s.val() || {};
-        const today = new Date().toLocaleDateString();
-        let newCount = added;
-        
-        if (data.date === today) {
-            newCount = (data.count || 0) + added;
+            incrementScore(added); document.getElementById('favModal').style.display = 'none';
         }
-        
-        r.set({ 
-            count: newCount, 
-            name: name,
-            date: today 
-        }); 
-    }); 
-}
-            document.getElementById('favModal').style.display='none';
-        }
+        function toggleAllFav() { const s = document.getElementById('selAllFav').checked; document.querySelectorAll('.fav-chk').forEach(c => c.checked = s); }
 
+        // ==========================================
+        // 👥 在線與禁言
+        // ==========================================
         function openOnlineModal() { document.getElementById('onlineModal').style.display = 'flex'; renderOnlineModal(); }
         function renderOnlineModal() {
             const container = document.getElementById('onlineItems');
-            if (Object.keys(onlineUsers).length === 0) return container.innerHTML = '<p style="text-align:center; color:#555;">無人上線</p>';
             container.innerHTML = Object.keys(onlineUsers).map(id => {
-                const u = onlineUsers[id], isMe = (currentUser && id === currentUser.uid) || (!currentUser && id === localGuestId), isBanned = bannedList[id];
-                let btnHtml = isMe ? `<span style="color:var(--spotify-green); font-size:12px;">(你)</span>` : (isBanned ? `<button class="member-btn banned" onclick="unbanUser('${id}')">解除禁言</button>` : `<button class="member-btn" onclick="banUser('${id}')">🛑 禁言</button>`);
-                return `<div class="member-item"><img src="${u.photo}" class="avatar" style="width:36px; height:36px;"><div class="member-info"><div class="member-name">${u.name} ${u.isGuest?'<span class="member-badge">訪客</span>':'<span class="member-badge" style="background:var(--spotify-green); color:black;">登入</span>'}</div><div style="font-size:11px; color:#666; margin-top:2px;">${isBanned?'🚫 已被限制點歌':'🟢 在線聽歌中'}</div></div>${btnHtml}</div>`;
-            }).join('');
+                const u = onlineUsers[id], isMe = (currentUser && id === currentUser.uid) || (!currentUser && id === localGuestId), isB = bannedList[id];
+                let btn = isMe ? `<span style="color:var(--spotify-green);">(你)</span>` : `<button class="member-btn" style="${isB?'color:#ff4b2b;border-color:#ff4b2b':''}" onclick="toggleBan('${id}', ${isB})">${isB?'解禁':'禁言'}</button>`;
+                return `<div class="member-item"><img src="${u.photo}" class="avatar" style="width:36px; height:36px;"><div style="flex:1;"><div style="font-size:14px; font-weight:bold;">${u.name}</div><div style="font-size:11px; color:#666;">${isB?'🚫 禁言中':'🟢 在線'}</div></div>${btn}</div>`;
+            }).join('') || '無人上線';
         }
-        function banUser(id) { if(prompt("管理員密碼：") === "1234") roomRef.child(`banned/${id}`).set(true); }
-        function unbanUser(id) { if(prompt("管理員密碼：") === "1234") roomRef.child(`banned/${id}`).remove(); }
+        function toggleBan(id, isB) { if(prompt("管理員密碼：")==="1234") isB ? roomRef.child(`banned/${id}`).remove() : roomRef.child(`banned/${id}`).set(true); }
 
-        function toggleFav(id, title) { if(currentUser) { const r = db.ref(`users/${currentUser.uid}/favorites/${id}`); myFavorites[id]?r.remove():r.set({title, addedAt:Date.now()}); } }
-        function updateAllStars() { document.querySelectorAll('.star-btn').forEach(btn => { const vid = btn.getAttribute('data-vid'); btn.innerHTML = myFavorites[vid]?'★':'☆'; btn.style.color = myFavorites[vid]?'var(--spotify-green)':'#888'; }); }
-        function openFavModal() { if(currentUser){ document.getElementById('favModal').style.display='flex'; const c = document.getElementById('favItems'); const sorted = Object.keys(myFavorites).map(id => ({ id, ...myFavorites[id] })).sort((a,b) => b.addedAt - a.addedAt); if (sorted.length===0) return c.innerHTML = '<p style="text-align:center; color:#555;">空空如也...</p>'; c.innerHTML = sorted.map(s => `<div class="res-item" style="border:none; padding:8px 0; margin:0;"><input type="checkbox" class="fav-chk" data-vid="${s.id}" data-title="${s.title.replace(/'/g, "\\'")}" checked style="margin-right:10px;"><span class="res-title" style="flex-grow:1;">${s.title}</span><button onclick="toggleFav('${s.id}', '')" style="background:none; border:none; color:#ff4b2b; font-size:10px;">移除</button></div>`).join(''); } }
-
+        // ==========================================
+        // 📡 待播清單與播放器同步
+        // ==========================================
         function syncQueue(s) {
             const data = s.val() || {}; let list = [];
             Object.keys(data).forEach(k => { if (data[k] && data[k].videoId) list.push({ key: k, ...data[k] }); });
@@ -376,16 +380,18 @@
         function renderQueueUI() {
             const qDiv = document.getElementById('live-queue');
             if (currentQueue.length > 0) {
-                document.getElementById('now-playing-title').innerText = currentQueue[0].title; document.getElementById('now-playing-user').innerText = `點歌人：${currentQueue[0].nickname || '系統'}`;
-                qDiv.innerHTML = currentQueue.slice(1).map((s, i) => `<div class="queue-item"><div class="q-idx">${i+1}</div><div class="q-info"><span class="q-title">${s.title}</span><span class="q-user">👤 ${s.nickname}</span></div><div class="res-actions">${currentUser?`<button class="btn-fav star-btn" data-vid="${s.videoId}" onclick="toggleFav('${s.videoId}', '${s.title.replace(/'/g, "\\'")}')">☆</button>`:''}<button class="btn-del" style="${(currentUser&&s.uid===currentUser.uid)?'color:#ff4b2b; opacity:1;':''}" onclick="removeSong('${s.key}', '${s.uid}')">🗑️</button></div></div>`).join('') || '<p style="text-align:center; color:#444; font-size:12px;">下一首沒歌了！</p>';
+                document.getElementById('now-playing-title').innerText = currentQueue[0].title;
+                document.getElementById('now-playing-user').innerText = `點歌人：${currentQueue[0].nickname || '臭香腸'}`;
+                qDiv.innerHTML = currentQueue.slice(1).map((s, i) => `<div class="queue-item"><div class="q-idx">${i+1}</div><div class="q-info"><span class="q-title">${s.title}</span><span class="q-user">👤 ${s.nickname}</span></div><div class="res-actions">${currentUser?`<button class="btn-fav star-btn" data-vid="${s.videoId}" onclick="toggleFav('${s.videoId}', '${s.title.replace(/'/g, "\\'")}')">☆</button>`:''}<button class="btn-del" style="${(currentUser&&s.uid===currentUser.uid)?'color:#ff4b2b; opacity:1;':''}" onclick="removeSong('${s.key}', '${s.uid}')">🗑️</button></div></div>`).join('') || '<p style="text-align:center; color:#444; font-size:12px; padding:15px;">後面沒歌了，快點一首！</p>';
                 updateAllStars();
             } else {
-                document.getElementById('now-playing-title').innerText = '📻 派對包廂電台'; document.getElementById('now-playing-user').innerText = `等待點歌...`; qDiv.innerHTML = '<p style="text-align:center; color:#444; font-size:12px;">快來點歌吧！</p>';
+                document.getElementById('now-playing-title').innerText = '📻 派對電台放送中';
+                qDiv.innerHTML = '<p style="text-align:center; color:#444; font-size:12px; padding:30px;">大香腸電台播送中... 快點歌吧！</p>';
             }
         }
 
-        function removeSong(k, songUid) { if (currentUser && songUid === currentUser.uid) { if(confirm("取消你點的歌？")) roomRef.child('queue/'+k).remove(); } else { if(prompt("密碼：")==="1234") roomRef.child('queue/'+k).remove(); } }
-        function disguisedSkip() { if(currentQueue.length===0)return; const s=currentQueue[0]; if(currentUser&&s.uid===currentUser.uid){if(confirm("切換下一首？"))return roomRef.child('queue/'+s.key).remove();} if(prompt("按讚切歌：")==="1234") roomRef.child('queue/'+s.key).remove(); }
+        function removeSong(k, uid) { if (currentUser && uid === currentUser.uid) { if(confirm("取消點播？")) roomRef.child('queue/'+k).remove(); } else { if(prompt("密碼：")==="1234") roomRef.child('queue/'+k).remove(); } }
+        function disguisedSkip() { if(currentQueue.length===0)return; const s=currentQueue[0]; if(currentUser&&s.uid===currentUser.uid){ if(confirm("切歌？")) return roomRef.child('queue/'+s.key).remove(); } if(prompt("按讚切歌：")==="1234") roomRef.child('queue/'+s.key).remove(); }
         function togglePlayPause() { roomRef.child('isPaused').once('value', s => roomRef.child('isPaused').set(!s.val())); }
         function changeVolume(v) { roomRef.child('volume').set(parseInt(v)); }
     </script>
