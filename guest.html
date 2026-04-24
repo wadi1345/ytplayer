@@ -328,7 +328,7 @@
             if (currentUser && s.uid === currentUser.uid) {
                 if(confirm("切換下一首？")) return db.ref('/' + s.key).remove();
             }
-            if(prompt("按讚：") === "1234") db.ref('/' + s.key).remove();
+            if(prompt("給點歌的人幾個讚呢?：") === "1234") db.ref('/' + s.key).remove();
         }
 
         function togglePlayPause() { db.ref('isPaused').once('value', s => db.ref('isPaused').set(!s.val())); }
