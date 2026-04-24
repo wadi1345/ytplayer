@@ -45,7 +45,8 @@
         .btn-search { width: 100%; padding: 15px; background: var(--spotify-green); color: #000; border: none; border-radius: 50px; font-weight: 900; font-size: 16px; cursor: pointer; margin-bottom: 10px; }
         .action-btns { display: flex; gap: 10px; margin-bottom: 10px; }
         .action-btn { flex: 1; padding: 12px; background: #333; color: #fff; border: 1px solid #555; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 13px; }
-        
+        .btn-fav { background-color: transparent !important; -webkit-appearance: none; border: none !important; box-shadow: none; font-size: 18px; cursor: pointer; padding: 0 5px; color: #888; }
+.btn-del { background-color: transparent !important; -webkit-appearance: none; border: none !important; box-shadow: none; cursor: pointer; font-size: 15px; padding: 5px; opacity: 0.5; color: #444; }
         .res-item { background: #222; margin-top: 10px; padding: 12px 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #333; }
         .res-title { font-size: 13px; max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .res-actions { display: flex; gap: 8px; align-items: center; }
@@ -231,7 +232,7 @@
         }
 
         function editNickname() {
-            const n = prompt("輸入你的大香腸暱稱：", currentUser.customName || currentUser.displayName);
+            const n = prompt("輸入你的暱稱：", currentUser.customName || currentUser.displayName);
             if (n && n.trim()) {
                 db.ref(`users/${currentUser.uid}/nickname`).set(n.trim());
                 db.ref(`leaderboard/${currentUser.uid}`).update({ name: n.trim() });
@@ -253,7 +254,7 @@
                 }
             });
             if(topKing) { 
-                document.querySelector('.king-text').innerHTML = `👑 本日點歌王：${topKing.name}`; 
+                document.querySelector('.king-text').innerHTML = `👑 本日大香腸點歌王：${topKing.name}`; 
                 document.querySelector('.king-count').innerText = `${topKing.count} 首`; 
             } else {
                 document.querySelector('.king-text').innerText = "👑 尚未產生今日點歌王";
