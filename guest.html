@@ -11,46 +11,30 @@
         ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
         
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg-black); color: #fff; margin: 0; padding: 20px; padding-bottom: 80px; }
-        .container { max-width: 500px; margin: 0 auto; display: none; /* 進入房間前先隱藏 */ }
+        .container { max-width: 500px; margin: 0 auto; display: none; }
         
         /* 🚪 派對大廳 (Lobby) */
         #lobby-screen { position: fixed; inset: 0; background: var(--bg-black); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; }
         .lobby-box { background: var(--card-gray); padding: 30px; border-radius: 20px; width: 100%; max-width: 350px; text-align: center; border: 1px solid #333; box-shadow: 0 20px 40px rgba(0,0,0,0.8); }
-        .room-input { 
-    width: 100%; 
-    padding: 15px; 
-    font-size: 24px; 
-    text-align: center; 
-    text-transform: uppercase; 
-    background: #222; 
-    color: #fff; 
-    border: 2px solid #444; 
-    border-radius: 12px; 
-    margin-bottom: 20px; 
-    font-weight: bold; 
-    letter-spacing: 2px;
-    
-    /* 👇 加上這行，把邊框跟內距限制在 100% 內 */
-    box-sizing: border-box; 
-}
+        .room-input { width: 100%; padding: 15px; font-size: 24px; text-align: center; text-transform: uppercase; background: #222; color: #fff; border: 2px solid #444; border-radius: 12px; margin-bottom: 20px; font-weight: bold; letter-spacing: 2px; box-sizing: border-box; }
         .room-input:focus { border-color: var(--spotify-green); outline: none; }
         .btn-join { width: 100%; padding: 15px; font-size: 18px; font-weight: bold; background: var(--spotify-green); color: #000; border: none; border-radius: 50px; cursor: pointer; }
 
-        /* 房間資訊橫幅 */
         #room-banner { text-align: center; font-size: 12px; color: #888; margin-bottom: 15px; letter-spacing: 1px; }
 
-        /* 👑 點歌王與身分 (沿用) */
-        #leaderboard-banner { background: linear-gradient(90deg, rgba(255,215,0,0.1) 0%, rgba(255,215,0,0.05) 100%); border-left: 4px solid var(--gold); padding: 12px 15px; border-radius: 8px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; }
+        /* 👑 點歌王與身分 */
+        #leaderboard-banner { background: linear-gradient(90deg, rgba(255,215,0,0.1) 0%, rgba(255,215,0,0.05) 100%); border-left: 4px solid var(--gold); padding: 12px 15px; border-radius: 8px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; border: 1px solid rgba(255,215,0,0.2); }
         .king-text { font-size: 14px; color: var(--gold); font-weight: bold; }
         .king-count { font-size: 12px; color: #ccc; background: rgba(0,0,0,0.5); padding: 3px 8px; border-radius: 50px; }
 
         #auth-banner { display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); padding: 12px 20px; border-radius: 50px; margin-bottom: 20px; border: 1px solid #333; }
         .user-profile { display: flex; align-items: center; gap: 10px; }
         .avatar { width: 32px; height: 32px; border-radius: 50%; background: #444; object-fit: cover; }
-        .auth-btn { background: transparent; border: 1px solid var(--spotify-green); color: var(--spotify-green); padding: 6px 15px; border-radius: 50px; font-weight: bold; cursor: pointer; }
+        .auth-btn { background: transparent; border: 1px solid var(--spotify-green); color: var(--spotify-green); padding: 6px 15px; border-radius: 50px; font-weight: bold; cursor: pointer; font-size: 13px; }
 
         #now-playing-card { background: linear-gradient(135deg, #2a2a2a, #000); border-radius: 20px; padding: 20px; margin-bottom: 25px; border: 1px solid #333; box-shadow: 0 15px 35px rgba(0,0,0,0.5); }
         #now-playing-title { font-size: 20px; font-weight: 800; color: var(--spotify-green); margin-bottom: 4px; display: inline-block; max-width: 85%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .fake-like { font-size: 16px; cursor: pointer; opacity: 0.2; margin-left: 8px; vertical-align: middle; }
         .playing-info { font-size: 12px; color: var(--text-gray); margin-bottom: 15px; }
 
         .control-strip { display: flex; align-items: center; gap: 12px; background: rgba(255,255,255,0.07); padding: 8px 15px; border-radius: 50px; }
@@ -93,7 +77,7 @@
         <div class="lobby-box">
             <h2 style="color:var(--spotify-green); margin-top:0;">🎶 派對包廂</h2>
             <p style="color:#888; font-size:14px; margin-bottom:20px;">請查看大螢幕上的代碼</p>
-            <input type="text" id="roomInput" class="room-input" placeholder="輸入房號或代碼" autocomplete="off">
+            <input type="text" id="roomInput" class="room-input" placeholder="輸入代碼" autocomplete="off">
             <button class="btn-join" onclick="joinRoom()" id="joinBtn">進入房間</button>
             <p id="lobbyMsg" style="color:#ff4b2b; font-size:13px; margin-top:15px; display:none;"></p>
         </div>
@@ -169,80 +153,49 @@
         
         let currentKeyIndex = 0, currentQueue = [], tempPlaylist = [], myFavorites = {}, currentUser = null; 
         let onlineUsers = {}, bannedList = {}, topKing = null;
-        let localGuestId = localStorage.getItem('guestId');
-        if (!localGuestId) { localGuestId = 'guest_' + Math.random().toString(36).substr(2, 9); localStorage.setItem('guestId', localGuestId); }
-
-        // 💡 房間系統核心變數
-        let currentRoomId = null; 
-        let roomRef = null; // 進入房間後，所有的 db 操作都透過這個 ref
+        let localGuestId = localStorage.getItem('guestId') || ('guest_' + Math.random().toString(36).substr(2, 9));
+        localStorage.setItem('guestId', localGuestId);
+        let currentRoomId = null, roomRef = null;
 
         // ==========================================
-        // 🚪 智慧門牌攔截器 (找房間)
+        // 🚪 智慧門牌攔截器
         // ==========================================
         async function joinRoom() {
             const input = document.getElementById('roomInput').value.trim().toUpperCase();
             const msg = document.getElementById('lobbyMsg');
             const btn = document.getElementById('joinBtn');
             if (!input) return;
-            
-            btn.innerText = '尋找包廂中...';
-            msg.style.display = 'none';
+            btn.innerText = '尋找包廂中...'; msg.style.display = 'none';
 
             try {
-                // 第一關：檢查是不是英文代碼 (Alias)
                 const aliasSnap = await db.ref(`aliases/${input}`).once('value');
-                if (aliasSnap.exists()) {
-                    setupRoom(aliasSnap.val(), input); // 傳入真實數字ID 和 別名
-                    return;
-                }
-
-                // 第二關：檢查是不是直接輸入 4 位數字房號
+                if (aliasSnap.exists()) { setupRoom(aliasSnap.val(), input); return; }
                 const roomSnap = await db.ref(`rooms/${input}`).once('value');
-                if (roomSnap.exists()) {
-                    const roomData = roomSnap.val();
-                    setupRoom(input, roomData.alias || input);
-                    return;
-                }
-
-                // 找不到
-                msg.innerText = '❌ 找不到這個房間，請檢查大螢幕代碼！';
-                msg.style.display = 'block';
-                btn.innerText = '進入房間';
-
+                if (roomSnap.exists()) { setupRoom(input, roomSnap.val().alias || input); return; }
+                msg.innerText = '❌ 找不到這個房間，請檢查大螢幕代碼！'; msg.style.display = 'block'; btn.innerText = '進入房間';
             } catch (error) {
-                msg.innerText = '❌ 連線錯誤，請重試！';
-                msg.style.display = 'block';
-                btn.innerText = '進入房間';
+                msg.innerText = '❌ 連線錯誤，請重試！'; msg.style.display = 'block'; btn.innerText = '進入房間';
             }
         }
 
-        // ==========================================
-        // 🚀 進入房間並掛載所有監聽器
-        // ==========================================
         function setupRoom(roomId, displayAlias) {
-            currentRoomId = roomId;
-            roomRef = db.ref(`rooms/${roomId}`); // 💡 以後所有操作都鎖定在這個房間！
-
+            currentRoomId = roomId; roomRef = db.ref(`rooms/${roomId}`);
             document.getElementById('lobby-screen').style.display = 'none';
             document.getElementById('main-app').style.display = 'block';
             document.getElementById('displayRoomId').innerText = displayAlias;
 
-            // 1. 啟動身分驗證 & 在線偵測
             auth.onAuthStateChanged(handleAuthChange);
-
-            // 2. 啟動房間專屬資料監聽
             roomRef.child('banned').on('value', s => { bannedList = s.val() || {}; if(bannedList[currentUser?currentUser.uid:localGuestId]) alert("注意：你已被房主限制點歌！"); renderOnlineModal(); });
             roomRef.child('online').on('value', s => { onlineUsers = s.val() || {}; if(document.getElementById('onlineModal').style.display==='flex') renderOnlineModal(); });
-            db.ref('leaderboard').on('value', updateLeaderboard); // 點歌王全公司共用
+            db.ref('leaderboard').on('value', updateLeaderboard);
             
-            // 3. 啟動歌曲與播放器同步
             roomRef.child('queue').on('value', syncQueue);
             roomRef.child('volume').on('value', s => { if(s.val()!==null) { document.getElementById('volumeSlider').value=s.val(); document.getElementById('vol-label').innerText=s.val(); }});
             roomRef.child('isPaused').on('value', s => { document.getElementById('playPauseBtn').innerText = s.val() ? '▶️' : '⏸️'; });
         }
 
         // ==========================================
-        // 🟢 狀態與連線監聽
+        // 🟢 身分與自訂暱稱邏輯
         // ==========================================
         let presenceRef = null;
         function setupPresence() {
@@ -250,7 +203,8 @@
             if (presenceRef) { presenceRef.remove(); presenceRef.onDisconnect().cancel(); }
             const isLog = !!currentUser;
             const id = isLog ? currentUser.uid : localGuestId;
-            const name = isLog ? currentUser.displayName : (document.getElementById('userName').value || '臭香腸');
+            // 💡 如果有登入，優先使用 customName，沒有才用 displayName
+            const name = isLog ? (currentUser.customName || currentUser.displayName) : (document.getElementById('userName').value || '神祕路人');
             const photo = isLog ? currentUser.photoURL : 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
             
             presenceRef = roomRef.child(`online/${id}`);
@@ -266,32 +220,62 @@
             currentUser = user;
             if (user) {
                 document.getElementById('userName').style.display = 'none'; document.getElementById('login-btn').style.display = 'none'; document.getElementById('logout-btn').style.display = 'inline-block'; document.getElementById('my-fav-btn').style.display = 'flex';
-                document.getElementById('user-info').innerHTML = `<img src="${user.photoURL}" class="avatar" referrerpolicy="no-referrer"><span style="font-size: 14px; font-weight: bold;">${user.displayName}</span>`;
+                
+                // 💡 讀取使用者的專屬暱稱
+                db.ref(`users/${user.uid}/nickname`).on('value', snap => {
+                    currentUser.customName = snap.val() || user.displayName;
+                    document.getElementById('user-info').innerHTML = `
+                        <img src="${user.photoURL}" class="avatar" referrerpolicy="no-referrer">
+                        <span style="font-size: 14px; font-weight: bold; display:flex; align-items:center; gap:5px; color:#fff;">
+                            ${currentUser.customName}
+                            <button onclick="editNickname()" style="background:none; border:none; cursor:pointer; font-size:12px; color:#888;" title="修改暱稱">✏️</button>
+                        </span>`;
+                    setupPresence(); // 更新在線名單的名稱
+                });
+
                 db.ref(`users/${user.uid}/favorites`).on('value', s => { myFavorites = s.val() || {}; updateAllStars(); });
             } else {
-                if(currentUser) db.ref(`users/${currentUser.uid}/favorites`).off();
+                if(currentUser) { db.ref(`users/${currentUser.uid}/favorites`).off(); db.ref(`users/${currentUser.uid}/nickname`).off(); }
                 document.getElementById('userName').style.display = 'block'; document.getElementById('login-btn').style.display = 'inline-block'; document.getElementById('logout-btn').style.display = 'none'; document.getElementById('my-fav-btn').style.display = 'none';
                 document.getElementById('userName').value = localStorage.getItem('savedNickname') || '';
                 document.getElementById('user-info').innerHTML = `<div class="avatar" style="background: url('https://cdn-icons-png.flaticon.com/512/149/149071.png') center/cover;"></div><span style="font-size: 14px; color: #888;">訪客模式</span>`;
+                setupPresence();
             }
-            setupPresence(); renderQueueUI();
+            renderQueueUI();
+        }
+
+        // 💡 編輯暱稱函式
+        function editNickname() {
+            if (!currentUser) return;
+            const currentName = currentUser.customName || currentUser.displayName;
+            const newName = prompt("不想顯示本名嗎？請輸入你的辦公室暱稱：", currentName);
+            if (newName && newName.trim() !== "") {
+                const finalName = newName.trim();
+                db.ref(`users/${currentUser.uid}/nickname`).set(finalName);
+                // 同步更新排行榜上的名字
+                db.ref(`leaderboard/${currentUser.uid}`).once('value', s => {
+                    if(s.exists()) db.ref(`leaderboard/${currentUser.uid}`).update({ name: finalName });
+                });
+                alert("✅ 暱稱修改成功！");
+            }
         }
 
         function signIn() { auth.signInWithPopup(provider); }
         function signOut() { auth.signOut(); }
 
         // ==========================================
-        // 點歌核心 (指向 roomRef)
+        // 點歌核心 
         // ==========================================
         function updateLeaderboard(s) {
             const data = s.val() || {}; let maxCount = 0; topKing = null;
             Object.keys(data).forEach(uid => { if(data[uid].count > maxCount) { maxCount = data[uid].count; topKing = data[uid]; }});
-            if(topKing) { document.querySelector('.king-text').innerHTML = `👑 點歌王：${topKing.name}`; document.querySelector('.king-count').innerText = `${topKing.count} 首`; }
+            if(topKing) { document.querySelector('.king-text').innerHTML = `👑 本日大香腸點歌王：${topKing.name}`; document.querySelector('.king-count').innerText = `${topKing.count} 首`; }
         }
 
-        function searchYouTube() { /* (沿用先前的 API 搜尋邏輯，無更動) */ 
+        function searchYouTube() {
             const input = document.getElementById('searchInput').value.trim();
             if (!input) return;
+            const lid = (input.match(/[?&]list=([^#\&\?]+)/) || [])[1];
             const vid = (input.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/) || [])[2];
             fetch(vid ? `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${vid}&key=${YOUTUBE_API_KEYS[0]}` : `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=5&q=${encodeURIComponent(input)}&type=video&key=${YOUTUBE_API_KEYS[0]}`).then(r=>r.json()).then(render);
         }
@@ -307,14 +291,31 @@
         function addToQueue(id, title) {
             const myId = currentUser ? currentUser.uid : localGuestId;
             if (bannedList[myId]) return alert('🛑 你已被限制點歌權限！');
-            let name = currentUser ? currentUser.displayName : (document.getElementById('userName').value || '臭香腸');
+            // 💡 使用者名稱判斷：有登入就用 customName
+            let name = currentUser ? (currentUser.customName || currentUser.displayName) : (document.getElementById('userName').value || '臭香腸');
             if (!currentUser) localStorage.setItem('savedNickname', name);
             if (currentQueue.some(s => s.videoId === id)) return alert('重複點歌囉！');
             
-            // 💡 寫入當前房間的 queue
             roomRef.child('queue').push({ videoId: id, title: title, nickname: name, uid: currentUser?currentUser.uid:null, timestamp: Date.now() });
-            
-            if (currentUser) { const ref = db.ref(`leaderboard/${currentUser.uid}`); ref.once('value', s => { const c = (s.val()||{}).count || 0; ref.set({ count: c+1, name: currentUser.displayName }); }); }
+           if (currentUser) { 
+    const ref = db.ref(`leaderboard/${currentUser.uid}`); 
+    ref.once('value', s => { 
+        const data = s.val() || {};
+        const today = new Date().toLocaleDateString(); // 取得今天日期，例如 "2026/4/24"
+        let newCount = 1;
+        
+        // 如果資料庫紀錄的日期是今天，就累加；如果不是，就從 1 開始算
+        if (data.date === today) {
+            newCount = (data.count || 0) + 1;
+        }
+        
+        ref.set({ 
+            count: newCount, 
+            name: currentUser.customName || currentUser.displayName,
+            date: today 
+        }); 
+    }); 
+}
             document.getElementById('results').innerHTML = '<p style="color:var(--spotify-green); text-align:center;">✅ 點歌成功！</p>'; setTimeout(()=>document.getElementById('results').innerHTML='', 1500); document.getElementById('searchInput').value = '';
         }
 
@@ -323,17 +324,33 @@
             if (bannedList[myId]) return alert('🛑 你已被限制點歌權限！');
             const chks = document.querySelectorAll('.fav-chk:checked'); if (chks.length > 10) return alert('一次最多 10 首！');
             let added = 0; const now = Date.now();
+            let name = currentUser ? (currentUser.customName || currentUser.displayName) : '臭香腸';
+
             chks.forEach((chk, i) => {
                 const vid = chk.getAttribute('data-vid'), t = chk.getAttribute('data-title');
-                if (!currentQueue.some(s => s.videoId === vid)) { roomRef.child('queue').push({ videoId: vid, title: t, nickname: currentUser.displayName, uid: currentUser.uid, timestamp: now + i }); added++; }
+                if (!currentQueue.some(s => s.videoId === vid)) { roomRef.child('queue').push({ videoId: vid, title: t, nickname: name, uid: currentUser.uid, timestamp: now + i }); added++; }
             });
-            if(added>0){ const r=db.ref(`leaderboard/${currentUser.uid}`); r.once('value', s => { r.set({count: ((s.val()||{}).count||0)+added, name: currentUser.displayName}); }); }
+            if(added > 0){ 
+    const r = db.ref(`leaderboard/${currentUser.uid}`); 
+    r.once('value', s => { 
+        const data = s.val() || {};
+        const today = new Date().toLocaleDateString();
+        let newCount = added;
+        
+        if (data.date === today) {
+            newCount = (data.count || 0) + added;
+        }
+        
+        r.set({ 
+            count: newCount, 
+            name: name,
+            date: today 
+        }); 
+    }); 
+}
             document.getElementById('favModal').style.display='none';
         }
 
-        // ==========================================
-        // UI 更新與管理操作 (指向 roomRef)
-        // ==========================================
         function openOnlineModal() { document.getElementById('onlineModal').style.display = 'flex'; renderOnlineModal(); }
         function renderOnlineModal() {
             const container = document.getElementById('onlineItems');
