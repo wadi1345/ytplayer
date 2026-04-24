@@ -56,7 +56,15 @@
         .q-info { flex-grow: 1; overflow: hidden; }
         .q-title { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
         .q-user { font-size: 11px; color: var(--text-gray); }
-
+/* 在線成員樣式完整防護版 */
+        .member-item { display: flex; align-items: center; gap: 10px; padding: 10px; border-bottom: 1px solid #222; }
+        .member-info { flex-grow: 1; display: flex; flex-direction: column; }
+        .member-name { font-size: 14px; font-weight: bold; display: flex; align-items: center; gap: 5px; color: #fff; }
+        .member-badge { font-size: 10px; background: #444; padding: 2px 6px; border-radius: 4px; color: #fff; }
+        
+        /* 禁言按鈕：加入強制透明與防蘋果劫持 */
+        .member-btn { background-color: transparent !important; -webkit-appearance: none; border: 1px solid #555 !important; color: #888; border-radius: 6px; padding: 5px 10px; font-size: 12px; cursor: pointer; box-shadow: none; }
+        .member-btn.banned { color: #ff4b2b !important; border-color: #ff4b2b !important; }
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: flex; justify-content: center; align-items: center; z-index: 2000; padding: 20px; backdrop-filter: blur(5px); display: none; }
         .modal-body { background: var(--card-gray); width: 100%; max-width: 400px; border-radius: 24px; padding: 25px; border: 1px solid #333; }
         .modal-list { max-height: 300px; overflow-y: auto; background: #000; border-radius: 15px; padding: 10px; margin: 15px 0; border: 1px solid #222; }
