@@ -234,7 +234,7 @@
             if (presenceRef) { presenceRef.remove(); presenceRef.onDisconnect().cancel(); }
             const isLog = !!currentUser;
             const id = isLog ? currentUser.uid : localGuestId;
-            const name = isLog ? currentUser.displayName : (document.getElementById('userName').value || '神祕路人');
+            const name = isLog ? currentUser.displayName : (document.getElementById('userName').value || '臭香腸');
             const photo = isLog ? currentUser.photoURL : 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
             
             presenceRef = roomRef.child(`online/${id}`);
@@ -291,7 +291,7 @@
         function addToQueue(id, title) {
             const myId = currentUser ? currentUser.uid : localGuestId;
             if (bannedList[myId]) return alert('🛑 你已被限制點歌權限！');
-            let name = currentUser ? currentUser.displayName : (document.getElementById('userName').value || '神祕路人');
+            let name = currentUser ? currentUser.displayName : (document.getElementById('userName').value || '臭香腸');
             if (!currentUser) localStorage.setItem('savedNickname', name);
             if (currentQueue.some(s => s.videoId === id)) return alert('重複點歌囉！');
             
