@@ -287,7 +287,7 @@
         // ==========================================
         // 🔍 YouTube API 搜尋與匯入
         // ==========================================
-        function searchYouTube() {
+      function searchYouTube() {
             const input = document.getElementById('searchInput').value.trim();
             if (!input) return;
             const lid = (input.match(/[?&]list=([^#\&\?]+)/) || [])[1];
@@ -295,9 +295,14 @@
             const key = YOUTUBE_API_KEYS[currentKeyIndex];
 
             if (lid) {
+                // 🛑 攔截臭香腸匯入清單
+                if (!currentUser) {
+                    return alert("🛑 這是大香腸（登入者）專屬功能！\n臭香腸不能一次匯入整排清單喔，請登入解鎖！");
+                }
+                
                 fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=20&playlistId=${lid}&key=${key}`)
                 .then(r => r.json()).then(data => {
-                    if(!data.items) return alert("無法讀取清單或為私人清單！");
+                    if(!data.items) return alert("無法讀取清單！");
                     tempPlaylist = data.items.map(it => ({ id: it.snippet.resourceId.videoId, title: it.snippet.title }));
                     document.getElementById('plItems').innerHTML = tempPlaylist.map((it, i) => `<div style="padding:10px 0; border-bottom:1px solid #111; font-size:12px;"><input type="checkbox" class="pl-chk" value="${i}" checked> ${it.title}</div>`).join('');
                     document.getElementById('playlistModal').style.display = 'flex';
@@ -353,7 +358,13 @@
             document.getElementById('searchInput').value = '';
         }
 
-        function batchAdd() {
+       function batchAdd() {
+            // 🛑 再次確認權限
+            if (!currentUser) {
+                document.getElementById('playlistModal').style.display = 'none';
+                return alert("🛑 這是登入後才能使用的功能喔！");
+            }
+
             const chks = document.querySelectorAll('.pl-chk:checked'), now = Date.now();
             let added = 0;
             chks.forEach((chk, i) => {
