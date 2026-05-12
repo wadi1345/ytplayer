@@ -287,7 +287,7 @@
         // ==========================================
         // 🔍 YouTube API 搜尋與匯入
         // ==========================================
-      function searchYouTube() {
+     function searchYouTube() {
             const input = document.getElementById('searchInput').value.trim();
             if (!input) return;
             const lid = (input.match(/[?&]list=([^#\&\?]+)/) || [])[1];
@@ -295,17 +295,30 @@
             const key = YOUTUBE_API_KEYS[currentKeyIndex];
 
             if (lid) {
-                // 🛑 攔截臭香腸匯入清單
-                if (!currentUser) {
-                    return alert("🛑 這是大香腸（登入者）專屬功能！\n臭香腸不能一次匯入整排清單喔，請登入解鎖！");
-                }
-                
+                // 發送請求去抓播放清單
                 fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=20&playlistId=${lid}&key=${key}`)
                 .then(r => r.json()).then(data => {
-                    if(!data.items) return alert("無法讀取清單！");
-                    tempPlaylist = data.items.map(it => ({ id: it.snippet.resourceId.videoId, title: it.snippet.title }));
-                    document.getElementById('plItems').innerHTML = tempPlaylist.map((it, i) => `<div style="padding:10px 0; border-bottom:1px solid #111; font-size:12px;"><input type="checkbox" class="pl-chk" value="${i}" checked> ${it.title}</div>`).join('');
-                    document.getElementById('playlistModal').style.display = 'flex';
+                    if(!data.items || data.items.length === 0) return alert("無法讀取清單或清單為空！");
+                    
+                    if (!currentUser) {
+                        // 🛑 臭香腸限制：只抓第一首歌當作單曲搜尋結果
+                        alert("🌭 臭香腸限制：\n你貼了播放清單，但訪客只能讀取「第一首歌」喔！\n\n(💡 登入 Google 帳號解鎖一鍵匯入 20 首特權！)");
+                        
+                        const firstItem = data.items[0];
+                        // 偽裝成一般的單曲搜尋結果，餵給 render 函數去畫出按鈕
+                        const fakeData = {
+                            items: [{
+                                id: firstItem.snippet.resourceId.videoId,
+                                snippet: { title: firstItem.snippet.title }
+                            }]
+                        };
+                        render(fakeData);
+                    } else {
+                        // 👑 大香腸特權：正常顯示批次匯入清單面板
+                        tempPlaylist = data.items.map(it => ({ id: it.snippet.resourceId.videoId, title: it.snippet.title }));
+                        document.getElementById('plItems').innerHTML = tempPlaylist.map((it, i) => `<div style="padding:10px 0; border-bottom:1px solid #111; font-size:12px;"><input type="checkbox" class="pl-chk" value="${i}" checked> ${it.title}</div>`).join('');
+                        document.getElementById('playlistModal').style.display = 'flex';
+                    }
                 });
             } else if (vid) {
                 fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${vid}&key=${key}`).then(r=>r.json()).then(render);
