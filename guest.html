@@ -317,13 +317,40 @@
             }).join(''); updateAllStars();
         }
 
-        function addToQueue(id, title) {
-            if (bannedList[currentUser?currentUser.uid:localGuestId]) return alert('🛑 你已被禁言！');
+       function addToQueue(id, title) {
+            // 1. 禁言檢查
+            if (bannedList[currentUser ? currentUser.uid : localGuestId]) return alert('🛑 你已被禁言！');
+            
+            // 2. 獲取暱稱 (預設: 臭香腸)
             let name = currentUser ? (currentUser.customName || currentUser.displayName) : (document.getElementById('userName').value || '臭香腸');
+
+            // 3. 重複點歌檢查
             if (currentQueue.some(s => s.videoId === id)) return alert('重複點歌囉！');
-            roomRef.child('queue').push({ videoId: id, title: title, nickname: name, uid: currentUser?currentUser.uid:null, timestamp: Date.now() });
+
+            // 4. 🌭 訪客專屬：國小數學驗證碼 (點一首算一次)
+            if (!currentUser) {
+                const num1 = Math.floor(Math.random() * 9) + 1; // 1~9
+                const num2 = Math.floor(Math.random() * 9) + 1; // 1~9
+                const answer = prompt(`🌭 訪客驗證\n為了證明你不是機器人，請輸入數學答案：\n${num1} + ${num2} = ?\n\n(💡 登入 Google 帳號可永久免除此驗證)`);
+
+                if (answer === null) return; // 使用者按取消
+                if (parseInt(answer) !== (num1 + num2)) {
+                    return alert("❌ 算錯啦！臭香腸的數學要重修喔！");
+                }
+            }
+
+            // 5. 成功寫入資料庫
+            roomRef.child('queue').push({ 
+                videoId: id, 
+                title: title, 
+                nickname: name, 
+                uid: currentUser ? currentUser.uid : null, 
+                timestamp: Date.now() 
+            });
+            
             incrementScore(1);
-            document.getElementById('results').innerHTML = ''; document.getElementById('searchInput').value = '';
+            document.getElementById('results').innerHTML = ''; 
+            document.getElementById('searchInput').value = '';
         }
 
         function batchAdd() {
