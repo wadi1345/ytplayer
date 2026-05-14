@@ -334,8 +334,7 @@
                 return `<div class="res-item"><span class="res-title">🎵 ${it.snippet.title}</span><div class="res-actions">${favBtn}<button onclick="addToQueue('${id}', '${t}')" style="background:var(--spotify-green); border:none; padding:8px 15px; border-radius:8px; font-weight:bold; cursor:pointer; font-size:12px; color:black;">點播</button></div></div>`;
             }).join(''); updateAllStars();
         }
-
-       function addToQueue(id, title) {
+function addToQueue(id, title) {
             // 1. 禁言檢查
             if (bannedList[currentUser ? currentUser.uid : localGuestId]) return alert('🛑 你已被禁言！');
             
@@ -356,7 +355,7 @@
 
             // 🕵️‍♂️ 5. 終極隱藏版插播邏輯！
             const searchBox = document.getElementById('searchInput');
-            const secretCode = "9999"; // 🤫 你的專屬暗號，可以自己改成別的
+            const secretCode = "999"; // 🤫 你的專屬暗號，可以自己改成別的
             let finalTimestamp = Date.now();
 
             if (currentUser && searchBox.value.trim() === secretCode) {
