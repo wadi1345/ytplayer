@@ -140,7 +140,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    <script>
+   <script>
         const firebaseConfig = {
             apiKey: "AIzaSyBF5p7x31GP_O9ePRrhJbXJM9C6aPj4wiE",
             authDomain: "ytplayer-be8ef.firebaseapp.com",
@@ -160,11 +160,8 @@
         let onlineUsers = {}, bannedList = {}, topKing = null;
         let localGuestId = localStorage.getItem('guestId') || ('guest_' + Math.random().toString(36).substr(2, 9));
         localStorage.setItem('guestId', localGuestId);
-        let currentRoomId = null, roomRef = null;
+        let currentRoomId = null, roomRef = null, presenceRef = null;
 
-        // ==========================================
-        // 🚪 房間系統
-        // ==========================================
         async function joinRoom() {
             const input = document.getElementById('roomInput').value.trim().toUpperCase();
             const msg = document.getElementById('lobbyMsg');
@@ -177,7 +174,7 @@
                 if (aliasSnap.exists()) { setupRoom(aliasSnap.val(), input); return; }
                 const roomSnap = await db.ref(`rooms/${input}`).once('value');
                 if (roomSnap.exists()) { setupRoom(input, roomSnap.val().alias || input); return; }
-                msg.innerText = '❌ 房號代碼錯誤，請確認大螢幕！'; msg.style.display = 'block'; btn.innerText = '進入房間';
+                msg.innerText = '❌ 房號錯誤，請查看大螢幕！'; msg.style.display = 'block'; btn.innerText = '進入房間';
             } catch (e) { msg.innerText = '❌ 連線失敗！'; msg.style.display = 'block'; btn.innerText = '進入房間'; }
         }
 
@@ -191,16 +188,11 @@
             roomRef.child('banned').on('value', s => { bannedList = s.val() || {}; renderOnlineModal(); });
             roomRef.child('online').on('value', s => { onlineUsers = s.val() || {}; renderOnlineModal(); });
             db.ref('leaderboard').on('value', updateLeaderboard);
-            
             roomRef.child('queue').on('value', syncQueue);
             roomRef.child('volume').on('value', s => { if(s.val()!==null) { document.getElementById('volumeSlider').value=s.val(); document.getElementById('vol-label').innerText=s.val(); }});
             roomRef.child('isPaused').on('value', s => { document.getElementById('playPauseBtn').innerText = s.val() ? '▶️' : '⏸️'; });
         }
 
-        // ==========================================
-        // 🟢 身分與自訂暱稱 (預設: 臭香腸)
-        // ==========================================
-        let presenceRef = null;
         function setupPresence() {
             if (!currentRoomId) return;
             if (presenceRef) { presenceRef.remove(); presenceRef.onDisconnect().cancel(); }
@@ -243,7 +235,7 @@
         }
 
         function editNickname() {
-            const n = prompt("輸入你的暱稱：", currentUser.customName || currentUser.displayName);
+            const n = prompt("輸入你的大香腸暱稱：", currentUser.customName || currentUser.displayName);
             if (n && n.trim()) {
                 db.ref(`users/${currentUser.uid}/nickname`).set(n.trim());
                 db.ref(`leaderboard/${currentUser.uid}`).update({ name: n.trim() });
@@ -253,22 +245,17 @@
         function signIn() { auth.signInWithPopup(provider); }
         function signOut() { auth.signOut(); }
 
-        // ==========================================
-        // 🏆 本日點歌王 (每日重置)
-        // ==========================================
         function updateLeaderboard(s) {
             const data = s.val() || {}; let maxCount = 0; topKing = null;
             const today = new Date().toLocaleDateString();
             Object.keys(data).forEach(uid => { 
-                if(data[uid].date === today && data[uid].count > maxCount) { 
-                    maxCount = data[uid].count; topKing = data[uid]; 
-                }
+                if(data[uid].date === today && data[uid].count > maxCount) { maxCount = data[uid].count; topKing = data[uid]; }
             });
             if(topKing) { 
-                document.querySelector('.king-text').innerHTML = `👑 本日大香腸點歌王：${topKing.name}`; 
+                document.querySelector('.king-text').innerHTML = `👑 本日大香腸之王：${topKing.name}`; 
                 document.querySelector('.king-count').innerText = `${topKing.count} 首`; 
             } else {
-                document.querySelector('.king-text').innerText = "👑 尚未產生今日點歌王";
+                document.querySelector('.king-text').innerText = "👑 尚未產生今日大香腸王";
                 document.querySelector('.king-count').innerText = "0 首";
             }
         }
@@ -284,37 +271,37 @@
             });
         }
 
-        // ==========================================
-        // 🔍 YouTube API 搜尋與匯入
-        // ==========================================
-     function searchYouTube() {
+        function searchYouTube() {
             const input = document.getElementById('searchInput').value.trim();
             if (!input) return;
             const lid = (input.match(/[?&]list=([^#\&\?]+)/) || [])[1];
             const vid = (input.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/) || [])[2];
             const key = YOUTUBE_API_KEYS[currentKeyIndex];
 
-            if (lid) {
-                // 發送請求去抓播放清單
+            // 🛡️ 防呆機制：判斷使用者到底要單曲還是清單
+            let loadPlaylist = false;
+            if (lid && vid) {
+                loadPlaylist = confirm("這個網址包含「播放清單」喔！\n你要讀取整張清單嗎？\n\n(按「確定」讀取清單，按「取消」只搜尋這首單曲)");
+            } else if (lid) {
+                loadPlaylist = true;
+            }
+
+            if (loadPlaylist && lid) {
                 fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=20&playlistId=${lid}&key=${key}`)
                 .then(r => r.json()).then(data => {
                     if(!data.items || data.items.length === 0) return alert("無法讀取清單或清單為空！");
                     
                     if (!currentUser) {
-                        // 🛑 臭香腸限制：只抓第一首歌當作單曲搜尋結果
                         alert("🌭 臭香腸限制：\n你貼了播放清單，但訪客只能讀取「第一首歌」喔！\n\n(💡 登入 Google 帳號解鎖一鍵匯入 20 首特權！)");
-                        
                         const firstItem = data.items[0];
-                        // 偽裝成一般的單曲搜尋結果，餵給 render 函數去畫出按鈕
                         const fakeData = {
                             items: [{
                                 id: firstItem.snippet.resourceId.videoId,
-                                snippet: { title: firstItem.snippet.title }
+                                snippet: { title: firstItem.snippet.title, thumbnails: firstItem.snippet.thumbnails }
                             }]
                         };
                         render(fakeData);
                     } else {
-                        // 👑 大香腸特權：正常顯示批次匯入清單面板
                         tempPlaylist = data.items.map(it => ({ id: it.snippet.resourceId.videoId, title: it.snippet.title }));
                         document.getElementById('plItems').innerHTML = tempPlaylist.map((it, i) => `<div style="padding:10px 0; border-bottom:1px solid #111; font-size:12px;"><input type="checkbox" class="pl-chk" value="${i}" checked> ${it.title}</div>`).join('');
                         document.getElementById('playlistModal').style.display = 'flex';
@@ -329,22 +316,30 @@
 
         function render(data) {
             document.getElementById('results').innerHTML = (data.items || []).map(it => {
-                const id = it.id.videoId || it.id, t = it.snippet.title.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+                const id = it.id.videoId || it.id;
+                const t = it.snippet.title.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+                const thumbUrl = it.snippet.thumbnails?.default?.url || ''; 
                 const favBtn = currentUser ? `<button class="btn-fav star-btn" data-vid="${id}" onclick="toggleFav('${id}', '${t}')">☆</button>` : '';
-                return `<div class="res-item"><span class="res-title">🎵 ${it.snippet.title}</span><div class="res-actions">${favBtn}<button onclick="addToQueue('${id}', '${t}')" style="background:var(--spotify-green); border:none; padding:8px 15px; border-radius:8px; font-weight:bold; cursor:pointer; font-size:12px; color:black;">點播</button></div></div>`;
-            }).join(''); updateAllStars();
+                
+                return `<div class="res-item" style="align-items: flex-start; padding: 12px;">
+                            <img src="${thumbUrl}" style="width: 80px; height: 60px; object-fit: cover; border-radius: 8px; margin-right: 12px; flex-shrink: 0; background: #000; border: 1px solid #333;">
+                            <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; min-height: 60px; overflow: hidden;">
+                                <span class="res-title" style="max-width: 100%; white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.4; margin-bottom: 8px; font-size: 13px;">${it.snippet.title}</span>
+                                <div class="res-actions" style="justify-content: flex-end;">
+                                    ${favBtn}
+                                    <button onclick="addToQueue('${id}', '${t}')" style="background:var(--spotify-green); border:none; padding:8px 15px; border-radius:8px; font-weight:bold; cursor:pointer; font-size:12px; color:black;">點播</button>
+                                </div>
+                            </div>
+                        </div>`;
+            }).join(''); 
+            updateAllStars();
         }
-function addToQueue(id, title) {
-            // 1. 禁言檢查
-            if (bannedList[currentUser ? currentUser.uid : localGuestId]) return alert('🛑 你已被禁言！');
-            
-            // 2. 獲取暱稱
-            let name = currentUser ? (currentUser.customName || currentUser.displayName) : (document.getElementById('userName').value || '臭香腸');
 
-            // 3. 重複點歌檢查
+        function addToQueue(id, title) {
+            if (bannedList[currentUser ? currentUser.uid : localGuestId]) return alert('🛑 你已被禁言！');
+            let name = currentUser ? (currentUser.customName || currentUser.displayName) : (document.getElementById('userName').value || '臭香腸');
             if (currentQueue.some(s => s.videoId === id)) return alert('重複點歌囉！');
 
-            // 4. 🌭 訪客專屬：國小數學驗證碼
             if (!currentUser) {
                 const num1 = Math.floor(Math.random() * 9) + 1;
                 const num2 = Math.floor(Math.random() * 9) + 1;
@@ -353,20 +348,16 @@ function addToQueue(id, title) {
                 if (parseInt(answer) !== (num1 + num2)) return alert("❌ 算錯啦！臭香腸的數學要重修喔！");
             }
 
-            // 🕵️‍♂️ 5. 終極隱藏版插播邏輯！
             const searchBox = document.getElementById('searchInput');
-            const secretCode = "999"; // 🤫 你的專屬暗號，可以自己改成別的
+            const secretCode = "999"; 
             let finalTimestamp = Date.now();
 
             if (currentUser && searchBox.value.trim() === secretCode) {
-                // 如果是登入狀態，且搜尋框裡剛好打著暗號，啟動無痕插播！
                 if (currentQueue.length > 1) {
-                    finalTimestamp = currentQueue[1].timestamp - 1; // 偷偷把時間改到排隊區的第一首歌前面
+                    finalTimestamp = currentQueue[1].timestamp - 1; 
                 }
-                // 為了極致低調，連暱稱都不加特殊符號，當作沒事發生
             }
 
-            // 6. 成功寫入資料庫
             roomRef.child('queue').push({ 
                 videoId: id, 
                 title: title, 
@@ -377,30 +368,14 @@ function addToQueue(id, title) {
             
             incrementScore(1);
             document.getElementById('results').innerHTML = ''; 
-            searchBox.value = ''; // 點完瞬間清空暗號，毀屍滅跡
+            searchBox.value = ''; 
         }
 
-            // 5. 成功寫入資料庫
-            roomRef.child('queue').push({ 
-                videoId: id, 
-                title: title, 
-                nickname: name, 
-                uid: currentUser ? currentUser.uid : null, 
-                timestamp: Date.now() 
-            });
-            
-            incrementScore(1);
-            document.getElementById('results').innerHTML = ''; 
-            document.getElementById('searchInput').value = '';
-        }
-
-       function batchAdd() {
-            // 🛑 再次確認權限
+        function batchAdd() {
             if (!currentUser) {
                 document.getElementById('playlistModal').style.display = 'none';
                 return alert("🛑 這是登入後才能使用的功能喔！");
             }
-
             const chks = document.querySelectorAll('.pl-chk:checked'), now = Date.now();
             let added = 0;
             chks.forEach((chk, i) => {
@@ -414,21 +389,18 @@ function addToQueue(id, title) {
         }
         function toggleAllPl() { const s = document.getElementById('selAllPl').checked; document.querySelectorAll('.pl-chk').forEach(c => c.checked = s); }
 
-        // ==========================================
-        // ⭐ 私人歌單批次與連動
-        // ==========================================
         function toggleFav(id, title) { if(currentUser) { const r = db.ref(`users/${currentUser.uid}/favorites/${id}`); myFavorites[id]?r.remove():r.set({title, addedAt:Date.now()}); } }
         function updateAllStars() { document.querySelectorAll('.star-btn').forEach(btn => { const vid = btn.getAttribute('data-vid'); btn.innerHTML = myFavorites[vid]?'★':'☆'; btn.style.color = myFavorites[vid]?'var(--spotify-green)':'#888'; }); }
         function openFavModal() { if(currentUser){ document.getElementById('favModal').style.display='flex'; renderFavItems(); } }
         function renderFavItems() {
             const c = document.getElementById('favItems');
             const sorted = Object.keys(myFavorites).map(id => ({ id, ...myFavorites[id] })).sort((a,b) => b.addedAt - a.addedAt);
-            if (sorted.length===0) return c.innerHTML = '<p style="text-align:center; color:#555;">尚未收藏歌曲</p>';
-            c.innerHTML = sorted.map((s, i) => `<div class="res-item" style="border:none; padding:8px 0; margin:0;"><input type="checkbox" class="fav-chk" data-vid="${s.id}" data-title="${s.title.replace(/'/g, "\\'")}" checked style="margin-right:10px;"><span class="res-title" style="flex-grow:1;">${s.title}</span><button onclick="toggleFav('${s.id}', '')" style="background:none; border:none; color:#ff4b2b; font-size:10px;">移除</button></div>`).join('');
+            if (sorted.length===0) return c.innerHTML = '<p style="text-align:center; color:#555;">無收藏</p>';
+            c.innerHTML = sorted.map(s => `<div class="res-item" style="border:none; padding:8px 0; margin:0;"><input type="checkbox" class="fav-chk" data-vid="${s.id}" data-title="${s.title.replace(/'/g, "\\'")}" checked style="margin-right:10px;"><span class="res-title" style="flex-grow:1;">${s.title}</span><button onclick="toggleFav('${s.id}', '')" style="background:none; border:none; color:#ff4b2b; font-size:10px;">移除</button></div>`).join('');
         }
         function batchAddFromFav() {
             const chks = document.querySelectorAll('.fav-chk:checked');
-            if (chks.length > 10) return alert('為了公平，一次上限 10 首喔！');
+            if (chks.length > 10) return alert('一次上限 10 首！');
             let added = 0; const now = Date.now();
             chks.forEach((chk, i) => {
                 const vid = chk.getAttribute('data-vid'), t = chk.getAttribute('data-title');
@@ -441,54 +413,42 @@ function addToQueue(id, title) {
         }
         function toggleAllFav() { const s = document.getElementById('selAllFav').checked; document.querySelectorAll('.fav-chk').forEach(c => c.checked = s); }
 
-        // ==========================================
-        // 👥 在線與禁言
-        // ==========================================
         function openOnlineModal() { document.getElementById('onlineModal').style.display = 'flex'; renderOnlineModal(); }
         function renderOnlineModal() {
             const container = document.getElementById('onlineItems');
             container.innerHTML = Object.keys(onlineUsers).map(id => {
                 const u = onlineUsers[id], isMe = (currentUser && id === currentUser.uid) || (!currentUser && id === localGuestId), isB = bannedList[id];
                 let btn = isMe ? `<span style="color:var(--spotify-green);">(你)</span>` : `<button class="member-btn" style="${isB?'color:#ff4b2b;border-color:#ff4b2b':''}" onclick="toggleBan('${id}', ${isB})">${isB?'解禁':'禁言'}</button>`;
-                return `<div class="member-item"><img src="${u.photo}" class="avatar" style="width:36px; height:36px;"><div style="flex:1;"><div style="font-size:14px; font-weight:bold;">${u.name}</div><div style="font-size:11px; color:#666;">${isB?'🚫 禁言中':'🟢 在線'}</div></div>${btn}</div>`;
+                return `<div class="member-item"><img src="${u.photo}" class="avatar" style="width:36px; height:36px;"><div class="member-info"><div class="member-name">${u.name}</div><div style="font-size:11px; color:#666;">${isB?'🚫 禁言':'🟢 在線'}</div></div>${btn}</div>`;
             }).join('') || '無人上線';
         }
-        function toggleBan(id, isB) { if(prompt("管理員密碼：")==="1234") isB ? roomRef.child(`banned/${id}`).remove() : roomRef.child(`banned/${id}`).set(true); }
+        function toggleBan(id, isB) { if(prompt("密碼：")==="1234") isB ? roomRef.child(`banned/${id}`).remove() : roomRef.child(`banned/${id}`).set(true); }
 
-        // ==========================================
-        // 📡 待播清單與播放器同步
-        // ==========================================
         function syncQueue(s) {
             const data = s.val() || {}; let list = [];
             Object.keys(data).forEach(k => { if (data[k] && data[k].videoId) list.push({ key: k, ...data[k] }); });
             list.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0)); currentQueue = list; renderQueueUI();
         }
-      function renderQueueUI() {
+
+        function renderQueueUI() {
             const qDiv = document.getElementById('live-queue');
             if (currentQueue.length > 0) {
-                const currentSong = currentQueue[0]; // 💡 先把正在播的歌抓出來
+                const cur = currentQueue[0];
+                document.getElementById('now-playing-title').innerText = cur.title;
+                document.getElementById('now-playing-user').innerText = `點歌人：${cur.nickname || '臭香腸'}`;
+                document.getElementById('now-playing-fav').innerHTML = currentUser ? `<button class="btn-fav star-btn" data-vid="${cur.videoId}" onclick="toggleFav('${cur.videoId}', '${cur.title.replace(/'/g, "\\'")}')">☆</button>` : '';
                 
-                document.getElementById('now-playing-title').innerText = currentSong.title;
-                document.getElementById('now-playing-user').innerText = `點歌人：${currentSong.nickname || '臭香腸'}`;
-                
-                // 💡 就是這行！把正在播放歌曲的星星畫出來
-                document.getElementById('now-playing-fav').innerHTML = currentUser ? `<button class="btn-fav star-btn" data-vid="${currentSong.videoId}" onclick="toggleFav('${currentSong.videoId}', '${currentSong.title.replace(/'/g, "\\'")}')">☆</button>` : '';
-
-                qDiv.innerHTML = currentQueue.slice(1).map((s, i) => `<div class="queue-item"><div class="q-idx">${i+1}</div><div class="q-info"><span class="q-title">${s.title}</span><span class="q-user">👤 ${s.nickname}</span></div><div class="res-actions">${currentUser?`<button class="btn-fav star-btn" data-vid="${s.videoId}" onclick="toggleFav('${s.videoId}', '${s.title.replace(/'/g, "\\'")}')">☆</button>`:''}<button class="btn-del" style="${(currentUser&&s.uid===currentUser.uid)?'color:#ff4b2b; opacity:1;':''}" onclick="removeSong('${s.key}', '${s.uid}')">🗑️</button></div></div>`).join('') || '<p style="text-align:center; color:#444; font-size:12px; padding:15px;">後面沒歌了，快點一首！</p>';
-                
-                updateAllStars(); // 確保星星顏色正確
+                qDiv.innerHTML = currentQueue.slice(1).map((s, i) => `<div class="queue-item"><div class="q-idx">${i+1}</div><div class="q-info"><span class="q-title">${s.title}</span><span class="q-user">👤 ${s.nickname}</span></div><div class="res-actions">${currentUser?`<button class="btn-fav star-btn" data-vid="${s.videoId}" onclick="toggleFav('${s.videoId}', '${s.title.replace(/'/g, "\\'")}')">☆</button>`:''}<button class="btn-del" style="${(currentUser&&s.uid===currentUser.uid)?'color:#ff4b2b; opacity:1;':''}" onclick="removeSong('${s.key}', '${s.uid}')">🗑️</button></div></div>`).join('') || '<p style="text-align:center; color:#444; font-size:12px; padding:15px;">後面沒歌了！</p>';
+                updateAllStars();
             } else {
                 document.getElementById('now-playing-title').innerText = '📻 派對電台放送中';
-                document.getElementById('now-playing-user').innerText = '等待點歌...'; 
-                
-                // 💡 如果沒人點歌，就把星星隱藏起來
-                document.getElementById('now-playing-fav').innerHTML = ''; 
-                
-                qDiv.innerHTML = '<p style="text-align:center; color:#444; font-size:12px; padding:30px;">大香腸電台播送中... 快點歌吧！</p>';
+                document.getElementById('now-playing-user').innerText = '等待點歌...';
+                document.getElementById('now-playing-fav').innerHTML = '';
+                qDiv.innerHTML = '<p style="text-align:center; color:#444; font-size:12px; padding:30px;">大香腸電台播送中...</p>';
             }
         }
 
-        function removeSong(k, uid) { if (currentUser && uid === currentUser.uid) { if(confirm("取消點播？")) roomRef.child('queue/'+k).remove(); } else { if(prompt("密碼：")==="1234") roomRef.child('queue/'+k).remove(); } }
+        function removeSong(k, uid) { if (currentUser && uid === currentUser.uid) { if(confirm("取消點歌？")) roomRef.child('queue/'+k).remove(); } else { if(prompt("密碼：")==="1234") roomRef.child('queue/'+k).remove(); } }
         function disguisedSkip() { if(currentQueue.length===0)return; const s=currentQueue[0]; if(currentUser&&s.uid===currentUser.uid){ if(confirm("切歌？")) return roomRef.child('queue/'+s.key).remove(); } if(prompt("按讚切歌：")==="1234") roomRef.child('queue/'+s.key).remove(); }
         function togglePlayPause() { roomRef.child('isPaused').once('value', s => roomRef.child('isPaused').set(!s.val())); }
         function changeVolume(v) { roomRef.child('volume').set(parseInt(v)); }
