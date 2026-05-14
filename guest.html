@@ -339,23 +339,47 @@
             // 1. 禁言檢查
             if (bannedList[currentUser ? currentUser.uid : localGuestId]) return alert('🛑 你已被禁言！');
             
-            // 2. 獲取暱稱 (預設: 臭香腸)
+            // 2. 獲取暱稱
             let name = currentUser ? (currentUser.customName || currentUser.displayName) : (document.getElementById('userName').value || '臭香腸');
 
             // 3. 重複點歌檢查
             if (currentQueue.some(s => s.videoId === id)) return alert('重複點歌囉！');
 
-            // 4. 🌭 訪客專屬：國小數學驗證碼 (點一首算一次)
+            // 4. 🌭 訪客專屬：國小數學驗證碼
             if (!currentUser) {
-                const num1 = Math.floor(Math.random() * 9) + 1; // 1~9
-                const num2 = Math.floor(Math.random() * 9) + 1; // 1~9
-                const answer = prompt(`🌭 訪客驗證\n為了證明你不是機器人，請輸入數學答案：\n${num1} + ${num2} = ?\n\n(💡 登入 Google 帳號可永久免除此驗證)`);
-
-                if (answer === null) return; // 使用者按取消
-                if (parseInt(answer) !== (num1 + num2)) {
-                    return alert("❌ 算錯啦！臭香腸的數學要重修喔！");
-                }
+                const num1 = Math.floor(Math.random() * 9) + 1;
+                const num2 = Math.floor(Math.random() * 9) + 1;
+                const answer = prompt(`🌭 訪客驗證 (臭香腸限定)\n為了證明你不是機器人，請輸入數學答案：\n${num1} + ${num2} = ?\n\n(💡 登入 Google 帳號可永久免除此驗證)`);
+                if (answer === null) return;
+                if (parseInt(answer) !== (num1 + num2)) return alert("❌ 算錯啦！臭香腸的數學要重修喔！");
             }
+
+            // 🕵️‍♂️ 5. 終極隱藏版插播邏輯！
+            const searchBox = document.getElementById('searchInput');
+            const secretCode = "9999"; // 🤫 你的專屬暗號，可以自己改成別的
+            let finalTimestamp = Date.now();
+
+            if (currentUser && searchBox.value.trim() === secretCode) {
+                // 如果是登入狀態，且搜尋框裡剛好打著暗號，啟動無痕插播！
+                if (currentQueue.length > 1) {
+                    finalTimestamp = currentQueue[1].timestamp - 1; // 偷偷把時間改到排隊區的第一首歌前面
+                }
+                // 為了極致低調，連暱稱都不加特殊符號，當作沒事發生
+            }
+
+            // 6. 成功寫入資料庫
+            roomRef.child('queue').push({ 
+                videoId: id, 
+                title: title, 
+                nickname: name, 
+                uid: currentUser ? currentUser.uid : null, 
+                timestamp: finalTimestamp 
+            });
+            
+            incrementScore(1);
+            document.getElementById('results').innerHTML = ''; 
+            searchBox.value = ''; // 點完瞬間清空暗號，毀屍滅跡
+        }
 
             // 5. 成功寫入資料庫
             roomRef.child('queue').push({ 
