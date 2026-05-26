@@ -20,7 +20,7 @@ let lastFallbackVideo = null; // 🧠 讓系統記住上一首的電台歌
 // 📻 你的派對電台專屬歌單 (可隨意新增 YouTube 網址 v= 後面的 ID)
 const fallbackPlaylist = [
     'GVv4kCa9jj8', // 原本的預設
-    'TxcElyDnnZE', // 可以繼續往下加，記得加引號和逗號
+    'i2Z4JaFnMjU', // 可以繼續往下加，記得加引號和逗號
     'uP3tUVBujx0'
 ];
 
