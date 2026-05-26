@@ -16,7 +16,7 @@ const ADMIN_PASSWORD = "1234";
 
 let player, songQueue = [];
 let isPlayingFallback = false, currentPlayingKey = null, isStarted = false; 
-
+let lastFallbackVideo = null; // 🧠 讓系統記住上一首的電台歌
 // 📻 你的派對電台專屬歌單 (可隨意新增 YouTube 網址 v= 後面的 ID)
 const fallbackPlaylist = [
     'GVv4kCa9jj8', // 原本的預設
@@ -108,6 +108,7 @@ roomRef.child('queue').on('value', (snapshot) => {
 // ==========================================
 function evaluatePlayback() {
     if (songQueue.length > 0) {
+        // === 有人點歌時 ===
         isPlayingFallback = false;
         const topSong = songQueue[0]; 
         
@@ -119,11 +120,26 @@ function evaluatePlayback() {
             }
         }
     } else {
+        // === 沒人點歌，派對電台啟動時 ===
         currentPlayingKey = null;
         if (!isPlayingFallback) {
             isPlayingFallback = true;
-            // 隨機抽取備用電台歌單
-            const randomVideo = fallbackPlaylist[Math.floor(Math.random() * fallbackPlaylist.length)];
+            
+            let randomVideo;
+            // 🎲 核心升級：強制重抽機制！只要抽到跟上一首一樣的，就重抽！
+            if (fallbackPlaylist.length > 1) {
+                do {
+                    randomVideo = fallbackPlaylist[Math.floor(Math.random() * fallbackPlaylist.length)];
+                } while (randomVideo === lastFallbackVideo);
+            } else {
+                // 如果歌單只有一首歌，就只能乖乖播那首
+                randomVideo = fallbackPlaylist[0];
+            }
+            
+            lastFallbackVideo = randomVideo; // 📝 寫入記憶，把這首登記為「上一首」
+            
+            console.log("📻 電台切換成功！現在播放：", randomVideo);
+
             if (player && player.loadVideoById) {
                 player.loadVideoById(randomVideo);
                 roomRef.child('isPaused').set(false);
