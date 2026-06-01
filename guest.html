@@ -161,7 +161,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-   <script>
+  <script>
         const firebaseConfig = {
             apiKey: "AIzaSyBF5p7x31GP_O9ePRrhJbXJM9C6aPj4wiE",
             authDomain: "ytplayer-be8ef.firebaseapp.com",
@@ -299,7 +299,6 @@
             const vid = (input.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/) || [])[2];
             const key = YOUTUBE_API_KEYS[currentKeyIndex];
 
-            // 🛡️ 防呆機制：判斷使用者到底要單曲還是清單
             let loadPlaylist = false;
             if (lid && vid) {
                 loadPlaylist = confirm("這個網址包含「播放清單」喔！\n你要讀取整張清單嗎？\n\n(按「確定」讀取清單，按「取消」只搜尋這首單曲)");
@@ -379,7 +378,6 @@
                 }
             }
 
-            // 6. 成功寫入資料庫 (原本的代碼)
             roomRef.child('queue').push({ 
                 videoId: id, 
                 title: title, 
@@ -388,7 +386,6 @@
                 timestamp: finalTimestamp 
             });
             
-            // 📈 新增：統計神曲排行榜 (次數自動 +1)
             roomRef.child(`songStats/${id}/count`).set(firebase.database.ServerValue.increment(1));
             roomRef.child(`songStats/${id}/title`).set(title);
 
@@ -397,7 +394,7 @@
             searchBox.value = ''; 
         }
 
-       function batchAdd() {
+        function batchAdd() {
             if (!currentUser) {
                 document.getElementById('playlistModal').style.display = 'none';
                 return alert("🛑 這是登入後才能使用的功能喔！");
@@ -408,10 +405,8 @@
             chks.forEach((chk, i) => {
                 const it = tempPlaylist[chk.value];
                 if (!currentQueue.some(s => s.videoId === it.id)) {
-                    // 寫入排隊清單
-                    roomRef.child('queue').push({ videoId: it.id, title: it.title, nickname: currentUser? (currentUser.customName || currentUser.displayName) : '臭香腸', uid: currentUser?currentUser.uid:null, timestamp: now + i });
+                    roomRef.child('queue').push({ videoId: it.id, title: it.title, nickname: currentUser ? (currentUser.customName || currentUser.displayName) : '臭香腸', uid: currentUser ? currentUser.uid : null, timestamp: now + i });
                     
-                    // 📈 補上計數器：YouTube 播放清單匯入也要算！
                     roomRef.child(`songStats/${it.id}/count`).set(firebase.database.ServerValue.increment(1));
                     roomRef.child(`songStats/${it.id}/title`).set(it.title);
                     
@@ -421,18 +416,20 @@
             incrementScore(added); 
             document.getElementById('playlistModal').style.display = 'none';
         }
-        }
+
         function toggleAllPl() { const s = document.getElementById('selAllPl').checked; document.querySelectorAll('.pl-chk').forEach(c => c.checked = s); }
 
         function toggleFav(id, title) { if(currentUser) { const r = db.ref(`users/${currentUser.uid}/favorites/${id}`); myFavorites[id]?r.remove():r.set({title, addedAt:Date.now()}); } }
         function updateAllStars() { document.querySelectorAll('.star-btn').forEach(btn => { const vid = btn.getAttribute('data-vid'); btn.innerHTML = myFavorites[vid]?'★':'☆'; btn.style.color = myFavorites[vid]?'var(--spotify-green)':'#888'; }); }
         function openFavModal() { if(currentUser){ document.getElementById('favModal').style.display='flex'; renderFavItems(); } }
+        
         function renderFavItems() {
             const c = document.getElementById('favItems');
             const sorted = Object.keys(myFavorites).map(id => ({ id, ...myFavorites[id] })).sort((a,b) => b.addedAt - a.addedAt);
             if (sorted.length===0) return c.innerHTML = '<p style="text-align:center; color:#555;">無收藏</p>';
             c.innerHTML = sorted.map(s => `<div class="res-item" style="border:none; padding:8px 0; margin:0;"><input type="checkbox" class="fav-chk" data-vid="${s.id}" data-title="${s.title.replace(/'/g, "\\'")}" checked style="margin-right:10px;"><span class="res-title" style="flex-grow:1;">${s.title}</span><button onclick="toggleFav('${s.id}', '')" style="background:none; border:none; color:#ff4b2b; font-size:10px;">移除</button></div>`).join('');
         }
+
         function batchAddFromFav() {
             const chks = document.querySelectorAll('.fav-chk:checked');
             if (chks.length > 10) return alert('一次上限 10 首！');
@@ -441,10 +438,8 @@
             chks.forEach((chk, i) => {
                 const vid = chk.getAttribute('data-vid'), t = chk.getAttribute('data-title');
                 if (!currentQueue.some(s => s.videoId === vid)) {
-                    // 寫入排隊清單
                     roomRef.child('queue').push({ videoId: vid, title: t, nickname: currentUser.customName || currentUser.displayName, uid: currentUser.uid, timestamp: now + i });
                     
-                    // 📈 補上計數器：連私人歌單點的也要算進香腸榜！
                     roomRef.child(`songStats/${vid}/count`).set(firebase.database.ServerValue.increment(1));
                     roomRef.child(`songStats/${vid}/title`).set(t);
                     
@@ -454,6 +449,7 @@
             incrementScore(added); 
             document.getElementById('favModal').style.display = 'none';
         }
+
         function toggleAllFav() { const s = document.getElementById('selAllFav').checked; document.querySelectorAll('.fav-chk').forEach(c => c.checked = s); }
 
         function openOnlineModal() { document.getElementById('onlineModal').style.display = 'flex'; renderOnlineModal(); }
@@ -495,33 +491,32 @@
         function disguisedSkip() { if(currentQueue.length===0)return; const s=currentQueue[0]; if(currentUser&&s.uid===currentUser.uid){ if(confirm("切歌？")) return roomRef.child('queue/'+s.key).remove(); } if(prompt("按讚切歌：")==="1234") roomRef.child('queue/'+s.key).remove(); }
         function togglePlayPause() { roomRef.child('isPaused').once('value', s => roomRef.child('isPaused').set(!s.val())); }
         function changeVolume(v) { roomRef.child('volume').set(parseInt(v)); }
-       // ==========================================
-        // 🔥 神曲排行榜邏輯
+
+        // ==========================================
+        // 🌭 香腸排行榜邏輯
         // ==========================================
         function openHotModal() {
-            document.getElementById('hotModal').style.display = 'flex';
+            const modal = document.getElementById('hotModal');
+            if (!modal) return alert("❌ 找不到排行榜視窗，請檢查 HTML 有沒有貼對！");
+            
+            modal.style.display = 'flex';
             const container = document.getElementById('hotItems');
             container.innerHTML = '<p style="text-align:center; color:#888;">📊 統計中...</p>';
             
-            // 去 Firebase 抓取歌曲統計資料
             roomRef.child('songStats').once('value', snap => {
                 const data = snap.val() || {};
                 
-                // 把資料轉成陣列，並依照點播次數 (count) 從大到小排序，最後只切出前 10 名 (slice(0, 10))
                 const sorted = Object.keys(data)
                     .map(id => ({ id, ...data[id] }))
                     .sort((a, b) => b.count - a.count)
                     .slice(0, 10);
                 
                 if(sorted.length === 0) {
-                    return container.innerHTML = '<p style="text-align:center; color:#555;">目前還沒有點歌紀錄喔！</p>';
+                    return container.innerHTML = '<p style="text-align:center; color:#555;">目前還沒有點歌紀錄喔！趕快去點第一首！</p>';
                 }
                 
-                // 畫出前 10 名的列表
                 container.innerHTML = sorted.map((s, i) => {
-                    // 給前三名特別的獎牌圖示
                     let medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `<span style="color:#888; font-size:12px;">${i+1}.</span>`;
-                    
                     return `<div class="res-item" style="display:flex; align-items:center; border-bottom:1px solid #444; padding:10px 0; margin:0;">
                                 <div style="width:30px; text-align:center; font-size:18px;">${medal}</div>
                                 <div style="flex-grow:1; margin:0 10px; overflow:hidden;">
