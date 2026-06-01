@@ -136,7 +136,21 @@
     <div id="favModal" class="modal-overlay"><div class="modal-body"><h3 style="color:var(--spotify-green); margin-top:0;">⭐ 我的專屬歌單</h3><div style="font-size: 11px; color: #888; display: flex; justify-content: space-between; margin-bottom:5px;"><span><input type="checkbox" id="selAllFav" checked onchange="toggleAllFav()"> 全選</span><span>一次上限 10 首</span></div><div class="modal-list" id="favItems"></div><div style="display:flex; gap:10px;"><button onclick="document.getElementById('favModal').style.display='none'" style="flex:1; padding:12px; background:#333; border:none; color:white; border-radius:50px; font-weight:bold;">關閉</button><button onclick="batchAddFromFav()" style="flex:1; padding:12px; background:var(--spotify-green); color:black; border-radius:50px; font-weight:bold;">批次點播</button></div></div></div>
     
     <div id="playlistModal" class="modal-overlay"><div class="modal-body"><h3 style="color:var(--spotify-green); margin-top:0;">📋 匯入播放清單</h3><div style="font-size: 11px; color: #888; display: flex; justify-content: space-between; margin-bottom:5px;"><span><input type="checkbox" id="selAllPl" checked onchange="toggleAllPl()"> 全選</span><span>一次上限 20 首</span></div><div class="modal-list" id="plItems"></div><div style="display:flex; gap:12px;"><button onclick="document.getElementById('playlistModal').style.display='none'" style="flex:1; padding:14px; background:#333; border:none; color:white; border-radius:50px; font-weight:bold;">取消</button><button onclick="batchAdd()" style="flex:1; padding:14px; background:var(--spotify-green); color:black; border-radius:50px; font-weight:bold;">確認匯入</button></div></div></div>
+<!-- 🔥 神曲排行榜 Modal -->
+    <div id="hotModal" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:1000; justify-content:center; align-items:center;">
+        <div class="modal-content" style="background:#282828; padding:20px; border-radius:16px; width:90%; max-width:400px; max-height:80vh; display:flex; flex-direction:column;">
+            <h3 style="margin-top:0; color:#ff4b2b; text-align:center;">🔥 辦公室洗腦神曲 Top 10</h3>
+            <div id="hotItems" style="overflow-y:auto; flex-grow:1; margin-bottom:15px; padding-right:5px;">
+                <!-- 排行榜內容會長在這裡 -->
+            </div>
+            <button class="modal-btn btn-cancel" onclick="document.getElementById('hotModal').style.display='none'" style="width:100%; padding:12px; background:#555; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">關閉</button>
+        </div>
+    </div>
 
+    <!-- 🏆 浮動打開按鈕 (放在右下角) -->
+    <button onclick="openHotModal()" style="position:fixed; bottom:20px; right:20px; background:linear-gradient(45deg, #ff4b2b, #ff416c); color:white; border:none; padding:12px 18px; border-radius:50px; font-weight:bold; box-shadow:0 4px 15px rgba(0,0,0,0.5); z-index:900; cursor:pointer; font-size:14px;">
+        🏆 神曲榜
+    </button>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -358,6 +372,7 @@
                 }
             }
 
+            // 6. 成功寫入資料庫 (原本的代碼)
             roomRef.child('queue').push({ 
                 videoId: id, 
                 title: title, 
@@ -366,6 +381,10 @@
                 timestamp: finalTimestamp 
             });
             
+            // 📈 新增：統計神曲排行榜 (次數自動 +1)
+            roomRef.child(`songStats/${id}/count`).set(firebase.database.ServerValue.increment(1));
+            roomRef.child(`songStats/${id}/title`).set(title);
+
             incrementScore(1);
             document.getElementById('results').innerHTML = ''; 
             searchBox.value = ''; 
