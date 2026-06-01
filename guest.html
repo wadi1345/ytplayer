@@ -471,6 +471,44 @@
         function disguisedSkip() { if(currentQueue.length===0)return; const s=currentQueue[0]; if(currentUser&&s.uid===currentUser.uid){ if(confirm("切歌？")) return roomRef.child('queue/'+s.key).remove(); } if(prompt("按讚切歌：")==="1234") roomRef.child('queue/'+s.key).remove(); }
         function togglePlayPause() { roomRef.child('isPaused').once('value', s => roomRef.child('isPaused').set(!s.val())); }
         function changeVolume(v) { roomRef.child('volume').set(parseInt(v)); }
+       // ==========================================
+        // 🔥 神曲排行榜邏輯
+        // ==========================================
+        function openHotModal() {
+            document.getElementById('hotModal').style.display = 'flex';
+            const container = document.getElementById('hotItems');
+            container.innerHTML = '<p style="text-align:center; color:#888;">📊 統計中...</p>';
+            
+            // 去 Firebase 抓取歌曲統計資料
+            roomRef.child('songStats').once('value', snap => {
+                const data = snap.val() || {};
+                
+                // 把資料轉成陣列，並依照點播次數 (count) 從大到小排序，最後只切出前 10 名 (slice(0, 10))
+                const sorted = Object.keys(data)
+                    .map(id => ({ id, ...data[id] }))
+                    .sort((a, b) => b.count - a.count)
+                    .slice(0, 10);
+                
+                if(sorted.length === 0) {
+                    return container.innerHTML = '<p style="text-align:center; color:#555;">目前還沒有點歌紀錄喔！</p>';
+                }
+                
+                // 畫出前 10 名的列表
+                container.innerHTML = sorted.map((s, i) => {
+                    // 給前三名特別的獎牌圖示
+                    let medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `<span style="color:#888; font-size:12px;">${i+1}.</span>`;
+                    
+                    return `<div class="res-item" style="display:flex; align-items:center; border-bottom:1px solid #444; padding:10px 0; margin:0;">
+                                <div style="width:30px; text-align:center; font-size:18px;">${medal}</div>
+                                <div style="flex-grow:1; margin:0 10px; overflow:hidden;">
+                                    <div style="font-size:13px; color:white; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${s.title}</div>
+                                    <div style="font-size:11px; color:#1DB954; font-weight:bold; margin-top:3px;">被點了 ${s.count} 次</div>
+                                </div>
+                                <button onclick="addToQueue('${s.id}', '${s.title.replace(/'/g, "\\'")}')" style="background:var(--spotify-green); border:none; padding:6px 12px; border-radius:8px; font-weight:bold; cursor:pointer; font-size:11px; color:black; flex-shrink:0;">點播</button>
+                            </div>`;
+                }).join('');
+            });
+        }
     </script>
 </body>
 </html>
