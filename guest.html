@@ -90,7 +90,18 @@
             <div class="king-text">👑 本日點歌王：結算中</div>
             <div class="king-count">0 首</div>
         </div>
+<div id="hotModal" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; justify-content:center; align-items:center;">
+        <div class="modal-content" style="background:#282828; padding:20px; border-radius:16px; width:90%; max-width:400px; max-height:80vh; display:flex; flex-direction:column; box-shadow: 0 10px 30px rgba(0,0,0,0.8);">
+            <h3 style="margin-top:0; color:#ff4b2b; text-align:center;">🌭 大香腸熱播榜 Top 10</h3>
+            <div id="hotItems" style="overflow-y:auto; flex-grow:1; margin-bottom:15px; padding-right:5px;">
+                </div>
+            <button class="modal-btn btn-cancel" onclick="document.getElementById('hotModal').style.display='none'" style="width:100%; padding:12px; background:#555; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">關閉</button>
+        </div>
+    </div>
 
+    <button onclick="openHotModal()" style="position:fixed; bottom:20px; right:20px; background:linear-gradient(45deg, #ff4b2b, #ff416c); color:white; border:none; padding:12px 18px; border-radius:50px; font-weight:bold; box-shadow:0 4px 15px rgba(0,0,0,0.5); z-index:9998; cursor:pointer; font-size:14px;">
+        🌭 香腸榜
+    </button>
         <div id="auth-banner">
             <div class="user-profile" id="user-info">
                 <div class="avatar" style="background: url('https://cdn-icons-png.flaticon.com/512/149/149071.png') center/cover;"></div>
@@ -147,10 +158,6 @@
         </div>
     </div>
 
-    <!-- 🏆 浮動打開按鈕 (放在右下角) -->
-    <button onclick="openHotModal()" style="position:fixed; bottom:20px; right:20px; background:linear-gradient(45deg, #ff4b2b, #ff416c); color:white; border:none; padding:12px 18px; border-radius:50px; font-weight:bold; box-shadow:0 4px 15px rgba(0,0,0,0.5); z-index:900; cursor:pointer; font-size:14px;">
-        🏆 神曲榜
-    </button>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
