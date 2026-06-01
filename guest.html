@@ -397,21 +397,30 @@
             searchBox.value = ''; 
         }
 
-        function batchAdd() {
+       function batchAdd() {
             if (!currentUser) {
                 document.getElementById('playlistModal').style.display = 'none';
                 return alert("🛑 這是登入後才能使用的功能喔！");
             }
             const chks = document.querySelectorAll('.pl-chk:checked'), now = Date.now();
             let added = 0;
+            
             chks.forEach((chk, i) => {
                 const it = tempPlaylist[chk.value];
                 if (!currentQueue.some(s => s.videoId === it.id)) {
+                    // 寫入排隊清單
                     roomRef.child('queue').push({ videoId: it.id, title: it.title, nickname: currentUser? (currentUser.customName || currentUser.displayName) : '臭香腸', uid: currentUser?currentUser.uid:null, timestamp: now + i });
+                    
+                    // 📈 補上計數器：YouTube 播放清單匯入也要算！
+                    roomRef.child(`songStats/${it.id}/count`).set(firebase.database.ServerValue.increment(1));
+                    roomRef.child(`songStats/${it.id}/title`).set(it.title);
+                    
                     added++;
                 }
             });
-            incrementScore(added); document.getElementById('playlistModal').style.display = 'none';
+            incrementScore(added); 
+            document.getElementById('playlistModal').style.display = 'none';
+        }
         }
         function toggleAllPl() { const s = document.getElementById('selAllPl').checked; document.querySelectorAll('.pl-chk').forEach(c => c.checked = s); }
 
@@ -428,14 +437,22 @@
             const chks = document.querySelectorAll('.fav-chk:checked');
             if (chks.length > 10) return alert('一次上限 10 首！');
             let added = 0; const now = Date.now();
+            
             chks.forEach((chk, i) => {
                 const vid = chk.getAttribute('data-vid'), t = chk.getAttribute('data-title');
                 if (!currentQueue.some(s => s.videoId === vid)) {
+                    // 寫入排隊清單
                     roomRef.child('queue').push({ videoId: vid, title: t, nickname: currentUser.customName || currentUser.displayName, uid: currentUser.uid, timestamp: now + i });
+                    
+                    // 📈 補上計數器：連私人歌單點的也要算進香腸榜！
+                    roomRef.child(`songStats/${vid}/count`).set(firebase.database.ServerValue.increment(1));
+                    roomRef.child(`songStats/${vid}/title`).set(t);
+                    
                     added++;
                 }
             });
-            incrementScore(added); document.getElementById('favModal').style.display = 'none';
+            incrementScore(added); 
+            document.getElementById('favModal').style.display = 'none';
         }
         function toggleAllFav() { const s = document.getElementById('selAllFav').checked; document.querySelectorAll('.fav-chk').forEach(c => c.checked = s); }
 
