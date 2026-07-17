@@ -46,7 +46,7 @@
         .action-btns { display: flex; gap: 10px; margin-bottom: 10px; }
         .action-btn { flex: 1; padding: 12px; background: #333; color: #fff; border: 1px solid #555; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 13px; }
         .btn-fav { background-color: transparent !important; -webkit-appearance: none; border: none !important; box-shadow: none; font-size: 18px; cursor: pointer; padding: 0 5px; color: #888; }
-.btn-del { background-color: transparent !important; -webkit-appearance: none; border: none !important; box-shadow: none; cursor: pointer; font-size: 15px; padding: 5px; opacity: 0.5; color: #444; }
+        .btn-del { background-color: transparent !important; -webkit-appearance: none; border: none !important; box-shadow: none; cursor: pointer; font-size: 15px; padding: 5px; opacity: 0.5; color: #444; }
         .res-item { background: #222; margin-top: 10px; padding: 12px 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #333; }
         .res-title { font-size: 13px; max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .res-actions { display: flex; gap: 8px; align-items: center; }
@@ -56,19 +56,16 @@
         .q-info { flex-grow: 1; overflow: hidden; }
         .q-title { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
         .q-user { font-size: 11px; color: var(--text-gray); }
-/* 在線成員樣式完整防護版 */
         .member-item { display: flex; align-items: center; gap: 10px; padding: 10px; border-bottom: 1px solid #222; }
         .member-info { flex-grow: 1; display: flex; flex-direction: column; }
         .member-name { font-size: 14px; font-weight: bold; display: flex; align-items: center; gap: 5px; color: #fff; }
         .member-badge { font-size: 10px; background: #444; padding: 2px 6px; border-radius: 4px; color: #fff; }
         
-        /* 禁言按鈕：加入強制透明與防蘋果劫持 */
         .member-btn { background-color: transparent !important; -webkit-appearance: none; border: 1px solid #555 !important; color: #888; border-radius: 6px; padding: 5px 10px; font-size: 12px; cursor: pointer; box-shadow: none; }
         .member-btn.banned { color: #ff4b2b !important; border-color: #ff4b2b !important; }
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: flex; justify-content: center; align-items: center; z-index: 2000; padding: 20px; backdrop-filter: blur(5px); display: none; }
         .modal-body { background: var(--card-gray); width: 100%; max-width: 400px; border-radius: 24px; padding: 25px; border: 1px solid #333; }
         .modal-list { max-height: 300px; overflow-y: auto; background: #000; border-radius: 15px; padding: 10px; margin: 15px 0; border: 1px solid #222; }
-        .member-item { display: flex; align-items: center; gap: 10px; padding: 10px; border-bottom: 1px solid #222; }
     </style>
 </head>
 <body>
@@ -90,18 +87,7 @@
             <div class="king-text">👑 本日點歌王：結算中</div>
             <div class="king-count">0 首</div>
         </div>
-<div id="hotModal" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; justify-content:center; align-items:center;">
-        <div class="modal-content" style="background:#282828; padding:20px; border-radius:16px; width:90%; max-width:400px; max-height:80vh; display:flex; flex-direction:column; box-shadow: 0 10px 30px rgba(0,0,0,0.8);">
-            <h3 style="margin-top:0; color:#ff4b2b; text-align:center;">🌭 大香腸熱播榜 Top 10</h3>
-            <div id="hotItems" style="overflow-y:auto; flex-grow:1; margin-bottom:15px; padding-right:5px;">
-                </div>
-            <button class="modal-btn btn-cancel" onclick="document.getElementById('hotModal').style.display='none'" style="width:100%; padding:12px; background:#555; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">關閉</button>
-        </div>
-    </div>
-
-    <button onclick="openHotModal()" style="position:fixed; bottom:20px; right:20px; background:linear-gradient(45deg, #ff4b2b, #ff416c); color:white; border:none; padding:12px 18px; border-radius:50px; font-weight:bold; box-shadow:0 4px 15px rgba(0,0,0,0.5); z-index:9998; cursor:pointer; font-size:14px;">
-        🌭 香腸榜
-    </button>
+        
         <div id="auth-banner">
             <div class="user-profile" id="user-info">
                 <div class="avatar" style="background: url('https://cdn-icons-png.flaticon.com/512/149/149071.png') center/cover;"></div>
@@ -147,21 +133,25 @@
     <div id="favModal" class="modal-overlay"><div class="modal-body"><h3 style="color:var(--spotify-green); margin-top:0;">⭐ 我的專屬歌單</h3><div style="font-size: 11px; color: #888; display: flex; justify-content: space-between; margin-bottom:5px;"><span><input type="checkbox" id="selAllFav" checked onchange="toggleAllFav()"> 全選</span><span>一次上限 10 首</span></div><div class="modal-list" id="favItems"></div><div style="display:flex; gap:10px;"><button onclick="document.getElementById('favModal').style.display='none'" style="flex:1; padding:12px; background:#333; border:none; color:white; border-radius:50px; font-weight:bold;">關閉</button><button onclick="batchAddFromFav()" style="flex:1; padding:12px; background:var(--spotify-green); color:black; border-radius:50px; font-weight:bold;">批次點播</button></div></div></div>
     
     <div id="playlistModal" class="modal-overlay"><div class="modal-body"><h3 style="color:var(--spotify-green); margin-top:0;">📋 匯入播放清單</h3><div style="font-size: 11px; color: #888; display: flex; justify-content: space-between; margin-bottom:5px;"><span><input type="checkbox" id="selAllPl" checked onchange="toggleAllPl()"> 全選</span><span>一次上限 20 首</span></div><div class="modal-list" id="plItems"></div><div style="display:flex; gap:12px;"><button onclick="document.getElementById('playlistModal').style.display='none'" style="flex:1; padding:14px; background:#333; border:none; color:white; border-radius:50px; font-weight:bold;">取消</button><button onclick="batchAdd()" style="flex:1; padding:14px; background:var(--spotify-green); color:black; border-radius:50px; font-weight:bold;">確認匯入</button></div></div></div>
-<!-- 🔥 神曲排行榜 Modal -->
-    <div id="hotModal" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:1000; justify-content:center; align-items:center;">
-        <div class="modal-content" style="background:#282828; padding:20px; border-radius:16px; width:90%; max-width:400px; max-height:80vh; display:flex; flex-direction:column;">
-            <h3 style="margin-top:0; color:#ff4b2b; text-align:center;">🔥 辦公室洗腦神曲 Top 10</h3>
-            <div id="hotItems" style="overflow-y:auto; flex-grow:1; margin-bottom:15px; padding-right:5px;">
-                <!-- 排行榜內容會長在這裡 -->
-            </div>
+
+    <!-- 🔥 香腸排行榜 Modal -->
+    <div id="hotModal" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; justify-content:center; align-items:center;">
+        <div class="modal-content" style="background:#282828; padding:20px; border-radius:16px; width:90%; max-width:400px; max-height:80vh; display:flex; flex-direction:column; box-shadow: 0 10px 30px rgba(0,0,0,0.8);">
+            <h3 style="margin-top:0; color:#ff4b2b; text-align:center;">🌭 大香腸熱播榜 Top 10</h3>
+            <div id="hotItems" style="overflow-y:auto; flex-grow:1; margin-bottom:15px; padding-right:5px;"></div>
             <button class="modal-btn btn-cancel" onclick="document.getElementById('hotModal').style.display='none'" style="width:100%; padding:12px; background:#555; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">關閉</button>
         </div>
     </div>
 
+    <!-- 香腸榜按鈕 -->
+    <button onclick="openHotModal()" style="position:fixed; bottom:20px; right:20px; background:linear-gradient(45deg, #ff4b2b, #ff416c); color:white; border:none; padding:12px 18px; border-radius:50px; font-weight:bold; box-shadow:0 4px 15px rgba(0,0,0,0.5); z-index:9998; cursor:pointer; font-size:14px;">
+        🌭 香腸榜
+    </button>
+
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-  <script>
+    <script>
         const firebaseConfig = {
             apiKey: "AIzaSyBF5p7x31GP_O9ePRrhJbXJM9C6aPj4wiE",
             authDomain: "ytplayer-be8ef.firebaseapp.com",
@@ -347,6 +337,8 @@
                                 <span class="res-title" style="max-width: 100%; white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.4; margin-bottom: 8px; font-size: 13px;">${it.snippet.title}</span>
                                 <div class="res-actions" style="justify-content: flex-end;">
                                     ${favBtn}
+                                    <!-- 👑 新增：低調的管理員一鍵電台按鈕 -->
+                                    <button onclick="addToRadio('${id}', '${t}')" style="background:#444; border:none; padding:8px 10px; border-radius:8px; font-weight:bold; cursor:pointer; font-size:12px; color:white; margin-right:5px;" title="加入派對電台">📻</button>
                                     <button onclick="addToQueue('${id}', '${t}')" style="background:var(--spotify-green); border:none; padding:8px 15px; border-radius:8px; font-weight:bold; cursor:pointer; font-size:12px; color:black;">點播</button>
                                 </div>
                             </div>
@@ -355,9 +347,33 @@
             updateAllStars();
         }
 
+        // 👑 一鍵加入派對電台 (管理員專用)
+        function addToRadio(id, title) {
+            if (prompt("👑 管理員專屬功能\n請輸入密碼將此歌加入電台：") !== "1234") {
+                return alert("❌ 密碼錯誤！你不是大香腸王！");
+            }
+            roomRef.child('radioPlaylist').push(id);
+            alert(`✅ 太神啦！已將《${title}》加入大螢幕的電台輪播池！`);
+        }
+
         function addToQueue(id, title) {
             if (bannedList[currentUser ? currentUser.uid : localGuestId]) return alert('🛑 你已被禁言！');
             let name = currentUser ? (currentUser.customName || currentUser.displayName) : (document.getElementById('userName').value || '臭香腸');
+
+            // ==========================================
+            // 🤫 終極無痕黑名單（完美甩鍋版）
+            // ==========================================
+            // 在這裡輸入你想禁播的「歌手名字」、「歌名關鍵字」或「特定 YouTube ID」
+            const forbiddenKeywords = ['告五人', '玖壹壹', '不想聽的歌名']; 
+            
+            const lowerTitle = title.toLowerCase();
+            const isBanned = forbiddenKeywords.some(keyword => lowerTitle.includes(keyword.toLowerCase()) || id === keyword);
+
+            if (isBanned) {
+                return alert("⚠️ YouTube API 播放限制：\n此影片由於版權方保護或區域限制，暫停開放外部點歌機播放，請換一首歌試試看！");
+            }
+            // ==========================================
+
             if (currentQueue.some(s => s.videoId === id)) return alert('重複點歌囉！');
 
             if (!currentUser) {
@@ -386,8 +402,21 @@
                 timestamp: finalTimestamp 
             });
             
+            // 📈 神曲排行榜統計
             roomRef.child(`songStats/${id}/count`).set(firebase.database.ServerValue.increment(1));
             roomRef.child(`songStats/${id}/title`).set(title);
+
+            // ==========================================
+            // 📓 新增：黑盒子歷史紀錄 (為年度回顧做準備)
+            // ==========================================
+            if (currentUser) {
+                db.ref(`users/${currentUser.uid}/history`).push({
+                    videoId: id,
+                    title: title,
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                });
+            }
+            // ==========================================
 
             incrementScore(1);
             document.getElementById('results').innerHTML = ''; 
@@ -410,6 +439,15 @@
                     roomRef.child(`songStats/${it.id}/count`).set(firebase.database.ServerValue.increment(1));
                     roomRef.child(`songStats/${it.id}/title`).set(it.title);
                     
+                    // 📓 黑盒子歷史紀錄 (YouTube 清單匯入)
+                    if (currentUser) {
+                        db.ref(`users/${currentUser.uid}/history`).push({
+                            videoId: it.id,
+                            title: it.title,
+                            timestamp: firebase.database.ServerValue.TIMESTAMP
+                        });
+                    }
+
                     added++;
                 }
             });
@@ -426,8 +464,23 @@
         function renderFavItems() {
             const c = document.getElementById('favItems');
             const sorted = Object.keys(myFavorites).map(id => ({ id, ...myFavorites[id] })).sort((a,b) => b.addedAt - a.addedAt);
-            if (sorted.length===0) return c.innerHTML = '<p style="text-align:center; color:#555;">無收藏</p>';
-            c.innerHTML = sorted.map(s => `<div class="res-item" style="border:none; padding:8px 0; margin:0;"><input type="checkbox" class="fav-chk" data-vid="${s.id}" data-title="${s.title.replace(/'/g, "\\'")}" checked style="margin-right:10px;"><span class="res-title" style="flex-grow:1;">${s.title}</span><button onclick="toggleFav('${s.id}', '')" style="background:none; border:none; color:#ff4b2b; font-size:10px;">移除</button></div>`).join('');
+            
+            // 👑 新增：霸道總裁專屬的「雲端電台同步」按鈕
+            let adminBtn = `<button onclick="syncFavToRadio()" style="width:100%; margin-bottom:15px; padding:12px; background:linear-gradient(45deg, #ff4b2b, #ff416c); color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-size:14px; box-shadow: 0 4px 10px rgba(255,75,43,0.3);">📻 將這份歌單設為大螢幕「派對電台」</button>`;
+            
+            if (sorted.length===0) return c.innerHTML = adminBtn + '<p style="text-align:center; color:#555;">無收藏</p>';
+            
+            c.innerHTML = adminBtn + sorted.map(s => `<div class="res-item" style="border:none; padding:8px 0; margin:0;"><input type="checkbox" class="fav-chk" data-vid="${s.id}" data-title="${s.title.replace(/'/g, "\\'")}" checked style="margin-right:10px;"><span class="res-title" style="flex-grow:1;">${s.title}</span><button onclick="toggleFav('${s.id}', '')" style="background:none; border:none; color:#ff4b2b; font-size:10px;">移除</button></div>`).join('');
+        }
+
+        // 👑 將收藏同步到 Firebase 成為電台
+        function syncFavToRadio() {
+            if (prompt("👑 最高權限認證，請輸入密碼：") !== "1234") return alert("❌ 密碼錯誤，你不是大香腸王！");
+            const ids = Object.keys(myFavorites);
+            if (ids.length === 0) return alert("你的收藏是空的，無法設為電台！");
+            
+            roomRef.child('radioPlaylist').set(ids);
+            alert(`✅ 太神啦！已經成功將 ${ids.length} 首歌推送到大螢幕，變成最新的派對電台了！`);
         }
 
         function batchAddFromFav() {
@@ -443,6 +496,15 @@
                     roomRef.child(`songStats/${vid}/count`).set(firebase.database.ServerValue.increment(1));
                     roomRef.child(`songStats/${vid}/title`).set(t);
                     
+                    // 📓 黑盒子歷史紀錄 (私人歌單匯入)
+                    if (currentUser) {
+                        db.ref(`users/${currentUser.uid}/history`).push({
+                            videoId: vid,
+                            title: t,
+                            timestamp: firebase.database.ServerValue.TIMESTAMP
+                        });
+                    }
+
                     added++;
                 }
             });
