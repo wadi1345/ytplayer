@@ -364,7 +364,7 @@
             // 🤫 終極無痕黑名單（完美甩鍋版）
             // ==========================================
             // 在這裡輸入你想禁播的「歌手名字」、「歌名關鍵字」或「特定 YouTube ID」
-            const forbiddenKeywords = ['告五人', '玖壹壹', '不想聽的歌名']; 
+            const forbiddenKeywords = ['安利']; 
             
             const lowerTitle = title.toLowerCase();
             const isBanned = forbiddenKeywords.some(keyword => lowerTitle.includes(keyword.toLowerCase()) || id === keyword);
@@ -475,7 +475,7 @@
 
         // 👑 將收藏同步到 Firebase 成為電台
         function syncFavToRadio() {
-            if (prompt("👑 最高權限認證，請輸入密碼：") !== "1234") return alert("❌ 密碼錯誤，你不是大香腸王！");
+            if (prompt("👑 最高權限認證，請輸入密碼：") !== "0821") return alert("❌ 密碼錯誤，你不是大香腸王！");
             const ids = Object.keys(myFavorites);
             if (ids.length === 0) return alert("你的收藏是空的，無法設為電台！");
             
