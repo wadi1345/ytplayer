@@ -17,12 +17,17 @@ const ADMIN_PASSWORD = "1234";
 let player, songQueue = [];
 let isPlayingFallback = false, currentPlayingKey = null, isStarted = false; 
 let lastFallbackVideo = null; // 🧠 讓系統記住上一首的電台歌
-// 📻 你的派對電台專屬歌單 (可隨意新增 YouTube 網址 v= 後面的 ID)
-const fallbackPlaylist = [
+
+// 📻 你的派對電台專屬歌單「基礎底」(鎖死不可變動)
+const baseRadio = [
     'GVv4kCa9jj8', // 原本的預設
-    'i2Z4JaFnMjU', // 可以繼續往下加，記得加引號和逗號
+    'i2Z4JaFnMjU', 
     'uP3tUVBujx0'
 ];
+
+// 🧠 fallbackPlaylist 改成 let，而且預設先裝載基礎底
+let fallbackPlaylist = [...baseRadio]; 
+
 
 // ==========================================
 // 🚪 2. 房間生成器 (Host 核心)
@@ -88,6 +93,7 @@ function onYouTubeIframeAPIReady() {
     });
 }
 
+// 🎧 監聽排隊清單
 roomRef.child('queue').on('value', (snapshot) => {
     const data = snapshot.val() || {};
     let newList = [];
@@ -102,6 +108,24 @@ roomRef.child('queue').on('value', (snapshot) => {
     renderHostUI();
     if (isStarted) evaluatePlayback();
 });
+
+// 🚀 新增：監聽並合併「雲端電台擴充包」
+roomRef.child('radioPlaylist').on('value', (snapshot) => {
+    const data = snapshot.val();
+    if (data) {
+        const cloudList = Array.isArray(data) ? data : Object.values(data);
+        
+        // 🧠 魔法合體：把「基礎底」跟「雲端歌」疊加，並用 Set 自動剔除重複的歌！
+        fallbackPlaylist = Array.from(new Set([...baseRadio, ...cloudList]));
+        
+        console.log("📻 電台已擴充！預設底 + 雲端新增，目前共", fallbackPlaylist.length, "首");
+    } else {
+        // 如果雲端被清空了，就恢復原本的基礎底
+        fallbackPlaylist = [...baseRadio]; 
+        console.log("📻 雲端電台為空，已恢復基礎底歌單。");
+    }
+});
+
 
 // ==========================================
 // 4. 播放邏輯與 UI 更新 
@@ -176,7 +200,7 @@ function playNextSong() {
         // 刪除當前房間 queue 裡的第一首歌
         roomRef.child('queue').child(songQueue[0].key).remove();
     } else {
-        // 💡 修正：如果 queue 是空的，把備用狀態重置，讓 evaluatePlayback 可以再抽一首新歌
+        // 💡 如果 queue 是空的，把備用狀態重置，讓 evaluatePlayback 可以再抽一首新歌
         isPlayingFallback = false; 
         evaluatePlayback();
     }
