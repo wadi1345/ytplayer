@@ -33,7 +33,6 @@
         #now-playing-title { font-size: 20px; font-weight: 800; color: var(--spotify-green); margin-bottom: 4px; display: inline-block; max-width: 85%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .playing-info { font-size: 12px; color: var(--text-gray); margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;}
         
-        /* 🔮 修仙投票按鈕樣式 */
         .vote-btn { background: #333; border: 1px solid #555; color: white; padding: 5px 12px; border-radius: 20px; font-size: 12px; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 5px; }
         .vote-btn.active-like { background: rgba(29, 185, 84, 0.2); color: #1DB954; border-color: #1DB954; font-weight: bold; }
         .vote-btn.active-dislike { background: rgba(255, 75, 43, 0.2); color: #ff4b2b; border-color: #ff4b2b; font-weight: bold; }
@@ -47,7 +46,7 @@
         .btn-search { width: 100%; padding: 15px; background: var(--spotify-green); color: #000; border: none; border-radius: 50px; font-weight: 900; font-size: 16px; cursor: pointer; margin-bottom: 10px; }
         
         .action-btns { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
-        .action-btn { flex: 1; min-width: 30%; padding: 12px; background: #333; color: #fff; border: 1px solid #555; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 13px; text-align: center; }
+        .action-btn { flex: 1; min-width: 30%; padding: 12px; background: #333; color: #fff; border: 1px solid #555; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 13px; text-align: center; transition: 0.3s; }
         
         .btn-fav { background-color: transparent !important; -webkit-appearance: none; border: none !important; box-shadow: none; font-size: 18px; cursor: pointer; padding: 0 5px; color: #888; }
         .btn-del { background-color: transparent !important; -webkit-appearance: none; border: none !important; box-shadow: none; cursor: pointer; font-size: 15px; padding: 5px; opacity: 0.5; color: #444; }
@@ -131,8 +130,8 @@
             <div class="action-btns">
                 <button class="action-btn" id="my-fav-btn" onclick="openFavModal()" style="display:none; border-color:var(--spotify-green); color:var(--spotify-green);">📂 私人歌單</button>
                 <button class="action-btn" onclick="openOnlineModal()">👥 在線名單</button>
-                <!-- 🎁 每日機遇按鈕 -->
-                <button class="action-btn" id="gacha-btn" onclick="spinRoulette()" style="display:none; border-color:#9400d3; color:#e066ff;">🎁 尋找機遇</button>
+                <!-- 🧭 整點秘境按鈕 -->
+                <button class="action-btn" id="gacha-btn" style="display:none; border-color:#9400d3; color:#e066ff;">🧭 秘境探險</button>
             </div>
             <div id="results"></div>
         </div>
@@ -158,7 +157,8 @@
                 <div style="margin-bottom: 15px;">
                     <strong style="color: #fff;">【因果修練法】</strong><br>
                     🎵 點歌 +1 | 👼 獲贈仙丹 +2<br>
-                    😈 心魔纏身 -3 | ⚡ 累積 5 心魔直接天譴抹殺
+                    😈 心魔纏身 -3 | ⚡ 累積 5 心魔直接天譴抹殺<br>
+                    🧭 每逢整點，可探尋秘境獲取機緣 (亦有隕落風險)
                 </div>
                 <table class="rule-table">
                     <tr><th>境界</th><th>修為需求</th><th>解鎖特權</th></tr>
@@ -205,8 +205,12 @@
 
         // 🔮 修仙變數
         let myPoints = 0;
-        let todayKey = new Date().toLocaleDateString().replace(/\//g, '-'); // 格式化成 Firebase 可用的日期 Key
-        let myDailyStats = { jump: 0, skip: 0, gacha: 0 }; // 追蹤今日特權使用狀況
+        let todayKey = new Date().toLocaleDateString().replace(/\//g, '-'); // 格式化每日特權 Key
+        let myDailyStats = { jump: 0, skip: 0 }; // 今日特權使用狀況
+        
+        // 🧭 秘境系統變數
+        let myGachaHour = ""; 
+        let countdownTimer = null;
 
         function getRealm(points) {
             if (!points || points < 0) return "煉氣期";
@@ -298,21 +302,21 @@
                     });
                 });
 
-                // 監聽今日特權使用狀況
+                // 監聽今日特權
                 db.ref(`users/${user.uid}/dailyStats/${todayKey}`).on('value', s => {
-                    myDailyStats = s.val() || { jump: 0, skip: 0, gacha: 0 };
-                    // 根據抽獎狀態更新按鈕文字
-                    const gachaBtn = document.getElementById('gacha-btn');
-                    if (myDailyStats.gacha > 0) {
-                        gachaBtn.innerText = "明日再來"; gachaBtn.style.opacity = "0.5";
-                    } else {
-                        gachaBtn.innerText = "🎁 尋找機遇"; gachaBtn.style.opacity = "1";
-                    }
+                    myDailyStats = s.val() || { jump: 0, skip: 0 };
                 });
 
+                // 監聽秘境抽取紀錄 (整點制)
+                db.ref(`users/${user.uid}/gachaHour`).on('value', s => {
+                    myGachaHour = s.val() || "";
+                });
+                
+                startGachaCountdown(); // 啟動整點倒數器
                 db.ref(`users/${user.uid}/favorites`).on('value', s => { myFavorites = s.val() || {}; updateAllStars(); });
             } else {
                 myPoints = 0;
+                if (countdownTimer) clearInterval(countdownTimer);
                 document.getElementById('userName').style.display = 'block'; document.getElementById('login-btn').style.display = 'inline-block'; document.getElementById('logout-btn').style.display = 'none'; document.getElementById('my-fav-btn').style.display = 'none'; document.getElementById('gacha-btn').style.display = 'none';
                 document.getElementById('user-info').innerHTML = `<div class="avatar" style="background: url('https://cdn-icons-png.flaticon.com/512/149/149071.png') center/cover;"></div><span style="font-size: 14px; color: #888;">凡人 (未登入)</span>`;
                 setupPresence();
@@ -321,33 +325,87 @@
         }
 
         // ==========================================
-        // 🎁 每日機遇 (輪盤抽獎)
+        // 🧭 整點秘境 (動態倒數與抽取)
         // ==========================================
-        function spinRoulette() {
-            if (!currentUser) return alert("⚠️ 登入後才能尋找天地機遇！");
-            if (myDailyStats.gacha > 0) return alert("🛑 你今天已經探索過秘境了，請明日再來！");
-
-            const weights = [40, 30, 20, 10]; // 機率分配
-            const prizes = [10, 20, 30, 50];  // 獎項 (修為)
-            let rand = Math.random() * 100, win = 10;
+        function startGachaCountdown() {
+            if (countdownTimer) clearInterval(countdownTimer);
             
-            for (let i = 0; i < weights.length; i++) {
-                if (rand < weights[i]) { win = prizes[i]; break; }
-                rand -= weights[i];
+            countdownTimer = setInterval(() => {
+                const now = new Date();
+                // 產生目前的小時金鑰 (例如: "2026-08-06-16")
+                const currentHourKey = `${now.getFullYear()}-${now.getMonth()+1}-${now.getDate()}-${now.getHours()}`;
+                const gachaBtn = document.getElementById('gacha-btn');
+                
+                if (!gachaBtn) return;
+
+                if (myGachaHour === currentHourKey) {
+                    // 已探索過，計算距離下一個整點的倒數時間
+                    const nextHour = new Date(now);
+                    nextHour.setHours(now.getHours() + 1);
+                    nextHour.setMinutes(0, 0, 0);
+                    
+                    const diffMs = nextHour - now;
+                    const m = Math.floor(diffMs / 60000).toString().padStart(2, '0');
+                    const s = Math.floor((diffMs % 60000) / 1000).toString().padStart(2, '0');
+                    
+                    gachaBtn.innerText = `⏳ 秘境關閉 (${m}:${s})`;
+                    gachaBtn.style.opacity = "0.5";
+                    gachaBtn.onclick = () => alert("🛑 此時辰的秘境你已探索過，錯過就是錯過了！請等待下個整點重啟。");
+                } else {
+                    // 尚未探索，開放按鈕
+                    gachaBtn.innerText = "🧭 進入秘境探險";
+                    gachaBtn.style.opacity = "1";
+                    gachaBtn.onclick = spinRoulette;
+                }
+            }, 1000);
+        }
+
+        function spinRoulette() {
+            if (!currentUser) return alert("⚠️ 登入後才能進入秘境！");
+            
+            const now = new Date();
+            const currentHourKey = `${now.getFullYear()}-${now.getMonth()+1}-${now.getDate()}-${now.getHours()}`;
+            
+            if (myGachaHour === currentHourKey) return alert("🛑 此時辰的秘境你已探索過，請等待下個整點！");
+
+            let rand = Math.random() * 100;
+            let diff = 0;
+            let msg = "";
+
+            if (rand < 10) {
+                // 10% 大機緣
+                diff = 50; msg = "✨ 你在秘境深處發現上古法寶，修為大增 +50！";
+            } else if (rand < 35) {
+                // 25% 小機緣
+                diff = 15; msg = "📜 你撿到一本殘破的樂譜，吸收後修為 +15！";
+            } else if (rand < 60) {
+                // 25% 微機緣
+                diff = 10; msg = "💧 你在茶水間頓悟，修為 +10！";
+            } else if (rand < 85) {
+                // 25% 小厄運
+                diff = -5; msg = "🐾 你遭遇了不知名兇獸的襲擊，受了點輕傷，修為 -5！";
+            } else {
+                // 15% 大劫難 (老闆)
+                if (confirm("💀 警告！你遭遇了傳說中的兇獸（老闆）對你微笑！\n你要嘗試「閃避」嗎？(50% 成功率)\n\n👉 按『確定』嘗試閃避\n👉 按『取消』勇敢面對")) {
+                    if (Math.random() < 0.5) {
+                        diff = 0;
+                        msg = "💨 你一個滑步躲進了廁所，成功逃過一劫！修為不變。";
+                    } else {
+                        diff = -10;
+                        msg = "💥 你閃避不及，被老闆叫住問專案進度，當場走火入魔！修為 -10！";
+                    }
+                } else {
+                    diff = -10;
+                    msg = "🩸 你選擇勇敢面對，承受了老闆的威壓，修為 -10！";
+                }
             }
 
-            // 隨機奇遇文案
-            const msgs = [
-                `你在茶水間頓悟，修為大增 +${win}！`,
-                `老闆對你微笑了一下，你感到靈光乍現，修為 +${win}！`,
-                `你在影印機旁撿到一本殘破的樂譜，吸收後修為 +${win}！`
-            ];
-            const txt = msgs[Math.floor(Math.random() * msgs.length)];
-
-            // 寫入資料庫
-            db.ref(`users/${currentUser.uid}/dailyStats/${todayKey}/gacha`).set(1);
-            db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(win));
-            alert(`🎉 機遇降臨！\n${txt}`);
+            // 寫入當前時辰金鑰，並更新修為
+            db.ref(`users/${currentUser.uid}/gachaHour`).set(currentHourKey);
+            if (diff !== 0) {
+                db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(diff));
+            }
+            alert(`🧭 秘境探索結果：\n\n${msg}`);
         }
 
         // ==========================================
@@ -355,7 +413,6 @@
         // ==========================================
         function addToQueue(id, title) {
             if (bannedList[currentUser ? currentUser.uid : localGuestId]) {
-                // 🛡️ 渡劫期庇護檢查
                 if (myPoints < 5000) return alert('🛑 業障太重，你已被禁言！');
             }
 
@@ -405,7 +462,6 @@
                 }
             }
             
-            // 凡人與用盡次數者的備用路線
             if(prompt("請輸入管理員按讚切歌密碼：")==="1234") roomRef.child('queue/'+s.key).remove(); 
         }
 
@@ -419,7 +475,6 @@
                 if (isMe) {
                     btn = `<span style="color:var(--spotify-green);">(你)</span>`;
                 } else if (u.points >= 5000) {
-                    // 👑 渡劫期絕對防禦
                     btn = `<span style="color:#9400d3; font-size:11px; font-weight:bold;">🛡️ 天道庇護</span>`;
                 } else {
                     btn = `<button class="member-btn" style="${isB?'color:#ff4b2b;border-color:#ff4b2b':''}" onclick="toggleBan('${id}', ${isB})">${isB?'解禁':'禁言'}</button>`;
@@ -487,7 +542,7 @@
         function render(data) { document.getElementById('results').innerHTML = (data.items || []).map(it => { const id = it.id.videoId || it.id; const t = it.snippet.title.replace(/'/g, "\\'").replace(/"/g, "&quot;"); const thumbUrl = it.snippet.thumbnails?.default?.url || ''; return `<div class="res-item" style="align-items: flex-start; padding: 12px;"><img src="${thumbUrl}" style="width: 80px; height: 60px; object-fit: cover; border-radius: 8px; margin-right: 12px; flex-shrink: 0;"><div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; min-height: 60px; overflow: hidden;"><span class="res-title" style="max-width: 100%; white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.4; margin-bottom: 8px; font-size: 13px;">${it.snippet.title}</span><div class="res-actions" style="justify-content: flex-end;">${currentUser ? `<button class="btn-fav star-btn" data-vid="${id}" onclick="toggleFav('${id}', '${t}')">☆</button>` : ''}<button onclick="addToRadio('${id}', '${t}')" style="background:#444; border:none; padding:8px 10px; border-radius:8px; font-weight:bold; cursor:pointer; font-size:12px; color:white; margin-right:5px;">📻</button><button onclick="addToQueue('${id}', '${t}')" style="background:var(--spotify-green); border:none; padding:8px 15px; border-radius:8px; font-weight:bold; cursor:pointer; font-size:12px; color:black;">點播</button></div></div></div>`; }).join(''); updateAllStars(); }
         
         function addToRadio(id, title) {
-            if (myPoints < 3000) return alert("❌ 境界不足！化神期以上方可將歌曲刻印至派對電台！");
+            if (myPoints < 3000) return alert("❌ 境界不足！化神期以上方可將歌曲刻印至派تدائي電台！");
             roomRef.child('radioPlaylist').push(id); alert(`✅ 已將《${title}》永久加入電台！`);
         }
 
