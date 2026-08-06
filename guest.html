@@ -74,7 +74,7 @@
 
     <div id="lobby-screen">
         <div class="lobby-box">
-            <h2 style="color:var(--spotify-green); margin-top:0;">🎶 大香腸點歌系統</h2>
+            <h2 style="color:var(--spotify-green); margin-top:0;">🎶 大香腸修仙系統</h2>
             <input type="text" id="roomInput" class="room-input" placeholder="輸入代碼" autocomplete="off">
             <button class="btn-join" onclick="joinRoom()" id="joinBtn">進入房間</button>
             <p id="lobbyMsg" style="color:#ff4b2b; font-size:13px; margin-top:15px; display:none;"></p>
@@ -130,7 +130,6 @@
             <div class="action-btns">
                 <button class="action-btn" id="my-fav-btn" onclick="openFavModal()" style="display:none; border-color:var(--spotify-green); color:var(--spotify-green);">📂 私人歌單</button>
                 <button class="action-btn" onclick="openOnlineModal()">👥 在線名單</button>
-                <!-- 🧭 整點秘境按鈕 -->
                 <button class="action-btn" id="gacha-btn" style="display:none; border-color:#9400d3; color:#e066ff;">🧭 秘境探險</button>
             </div>
             <div id="results"></div>
@@ -140,7 +139,7 @@
         <div id="live-queue">同步中...</div>
     </div>
 
-    <!-- Modals (在線名單、私人歌單、清單匯入、排行榜) -->
+    <!-- Modals -->
     <div id="onlineModal" class="modal-overlay"><div class="modal-body"><h3 style="color:var(--spotify-green); margin-top:0;">👥 在線成員與修為</h3><div class="modal-list" id="onlineItems"></div><button onclick="document.getElementById('onlineModal').style.display='none'" style="width:100%; padding:14px; background:#333; border:none; color:white; border-radius:50px; font-weight:bold;">關閉</button></div></div>
     
     <div id="favModal" class="modal-overlay"><div class="modal-body"><h3 style="color:var(--spotify-green); margin-top:0; display:flex; justify-content:space-between; align-items:center;">⭐ 我的專屬歌單<select id="favSortSelect" onchange="renderFavItems()" style="background:#222; color:#888; border:1px solid #444; padding:4px 8px; border-radius:8px; font-size:12px; outline:none; cursor:pointer;"><option value="dateDesc">最新加入</option><option value="dateAsc">最舊加入</option><option value="az">名稱 (A-Z)</option></select></h3><div style="font-size: 11px; color: #888; display: flex; justify-content: space-between; margin-bottom:5px;"><span><input type="checkbox" id="selAllFav" checked onchange="toggleAllFav()"> 全選</span><span>一次上限 10 首 (特權可解)</span></div><div class="modal-list" id="favItems"></div><div style="display:flex; gap:10px;"><button onclick="document.getElementById('favModal').style.display='none'" style="flex:1; padding:12px; background:#333; border:none; color:white; border-radius:50px; font-weight:bold; cursor:pointer;">關閉</button><button onclick="batchAddFromFav()" style="flex:1; padding:12px; background:var(--spotify-green); color:black; border-radius:50px; font-weight:bold; cursor:pointer;">批次點播</button></div></div></div>
@@ -155,9 +154,10 @@
             <h3 style="margin-top:0; color:var(--gold); text-align:center;">📜 修仙法則與境界</h3>
             <div class="modal-list" style="padding: 15px; font-size: 13px; color: #ddd; line-height: 1.5;">
                 <div style="margin-bottom: 15px;">
-                    <strong style="color: #fff;">【因果修練法】</strong><br>
+                    <strong style="color: #fff;">【因果與吐納法】</strong><br>
+                    🧘‍♂️ 頁面掛機：每滿 5 分鐘自動吐納 +1<br>
                     🎵 點歌 +1 | 👼 獲贈仙丹 +2<br>
-                    😈 心魔纏身 -3 | ⚡ 累積 5 心魔直接天譴抹殺<br>
+                    😈 心魔纏身 -1 | ⚡ 累積 5 心魔直接天譴抹殺<br>
                     🧭 每逢整點，可探尋秘境獲取機緣 (亦有隕落風險)
                 </div>
                 <table class="rule-table">
@@ -205,12 +205,13 @@
 
         // 🔮 修仙變數
         let myPoints = 0;
-        let todayKey = new Date().toLocaleDateString().replace(/\//g, '-'); // 格式化每日特權 Key
-        let myDailyStats = { jump: 0, skip: 0 }; // 今日特權使用狀況
+        let todayKey = new Date().toLocaleDateString().replace(/\//g, '-'); 
+        let myDailyStats = { jump: 0, skip: 0 }; 
         
         // 🧭 秘境系統變數
         let myGachaHour = ""; 
         let countdownTimer = null;
+        let idleTimer = null; // 🧘‍♂️ 掛機吐納計時器
 
         function getRealm(points) {
             if (!points || points < 0) return "煉氣期";
@@ -281,7 +282,6 @@
             if (user) {
                 document.getElementById('userName').style.display = 'none'; document.getElementById('login-btn').style.display = 'none'; document.getElementById('logout-btn').style.display = 'inline-block'; document.getElementById('my-fav-btn').style.display = 'flex'; document.getElementById('gacha-btn').style.display = 'flex';
                 
-                // 監聽當前修為
                 db.ref(`users/${user.uid}/cultivation`).on('value', cultSnap => {
                     myPoints = cultSnap.val() || 0;
                     const realm = getRealm(myPoints);
@@ -296,32 +296,46 @@
                                     ${currentUser.customName}
                                     <button onclick="editNickname()" style="background:none; border:none; cursor:pointer; font-size:12px; color:#888;">✏️</button>
                                 </span>
-                                <span style="font-size: 11px; color:${rColor}; font-weight:bold;">[${realm}] 點歌數: ${myPoints}</span>
+                                <span style="font-size: 11px; color:${rColor}; font-weight:bold;">[${realm}] 點歌數: ${myPoints} 🧘‍♂️(吐納中)</span>
                             </div>`;
                         setupPresence(); 
                     });
                 });
 
-                // 監聽今日特權
                 db.ref(`users/${user.uid}/dailyStats/${todayKey}`).on('value', s => {
                     myDailyStats = s.val() || { jump: 0, skip: 0 };
                 });
 
-                // 監聽秘境抽取紀錄 (整點制)
                 db.ref(`users/${user.uid}/gachaHour`).on('value', s => {
                     myGachaHour = s.val() || "";
                 });
                 
-                startGachaCountdown(); // 啟動整點倒數器
+                startGachaCountdown(); 
+                startIdleCultivation(); // 啟動掛機吐納計時器 (每 5 分鐘 +1)
                 db.ref(`users/${user.uid}/favorites`).on('value', s => { myFavorites = s.val() || {}; updateAllStars(); });
             } else {
                 myPoints = 0;
                 if (countdownTimer) clearInterval(countdownTimer);
+                if (idleTimer) clearInterval(idleTimer);
                 document.getElementById('userName').style.display = 'block'; document.getElementById('login-btn').style.display = 'inline-block'; document.getElementById('logout-btn').style.display = 'none'; document.getElementById('my-fav-btn').style.display = 'none'; document.getElementById('gacha-btn').style.display = 'none';
                 document.getElementById('user-info').innerHTML = `<div class="avatar" style="background: url('https://cdn-icons-png.flaticon.com/512/149/149071.png') center/cover;"></div><span style="font-size: 14px; color: #888;">凡人 (未登入)</span>`;
                 setupPresence();
             }
             renderQueueUI();
+        }
+
+        // ==========================================
+        // 🧘‍♂️ 天地吐納 (每 5 分鐘掛機 +1 修為)
+        // ==========================================
+        function startIdleCultivation() {
+            if (idleTimer) clearInterval(idleTimer);
+            // 5 分鐘 = 300,000 毫秒
+            idleTimer = setInterval(() => {
+                if (currentUser) {
+                    db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(1));
+                    console.log("🧘‍♂️ 天地吐納發動：掛機滿 5 分鐘，修為 +1");
+                }
+            }, 300000);
         }
 
         // ==========================================
@@ -332,14 +346,12 @@
             
             countdownTimer = setInterval(() => {
                 const now = new Date();
-                // 產生目前的小時金鑰 (例如: "2026-08-06-16")
                 const currentHourKey = `${now.getFullYear()}-${now.getMonth()+1}-${now.getDate()}-${now.getHours()}`;
                 const gachaBtn = document.getElementById('gacha-btn');
                 
                 if (!gachaBtn) return;
 
                 if (myGachaHour === currentHourKey) {
-                    // 已探索過，計算距離下一個整點的倒數時間
                     const nextHour = new Date(now);
                     nextHour.setHours(now.getHours() + 1);
                     nextHour.setMinutes(0, 0, 0);
@@ -352,7 +364,6 @@
                     gachaBtn.style.opacity = "0.5";
                     gachaBtn.onclick = () => alert("🛑 此時辰的秘境你已探索過，錯過就是錯過了！請等待下個整點重啟。");
                 } else {
-                    // 尚未探索，開放按鈕
                     gachaBtn.innerText = "🧭 進入秘境探險";
                     gachaBtn.style.opacity = "1";
                     gachaBtn.onclick = spinRoulette;
@@ -373,19 +384,14 @@
             let msg = "";
 
             if (rand < 10) {
-                // 10% 大機緣
                 diff = 50; msg = "✨ 你在秘境深處發現上古法寶，修為大增 +50！";
             } else if (rand < 35) {
-                // 25% 小機緣
                 diff = 15; msg = "📜 你撿到一本殘破的樂譜，吸收後修為 +15！";
             } else if (rand < 60) {
-                // 25% 微機緣
                 diff = 10; msg = "💧 你在茶水間頓悟，修為 +10！";
             } else if (rand < 85) {
-                // 25% 小厄運
                 diff = -5; msg = "🐾 你遭遇了不知名兇獸的襲擊，受了點輕傷，修為 -5！";
             } else {
-                // 15% 大劫難 (老闆)
                 if (confirm("💀 警告！你遭遇了傳說中的兇獸（老闆）對你微笑！\n你要嘗試「閃避」嗎？(50% 成功率)\n\n👉 按『確定』嘗試閃避\n👉 按『取消』勇敢面對")) {
                     if (Math.random() < 0.5) {
                         diff = 0;
@@ -400,7 +406,6 @@
                 }
             }
 
-            // 寫入當前時辰金鑰，並更新修為
             db.ref(`users/${currentUser.uid}/gachaHour`).set(currentHourKey);
             if (diff !== 0) {
                 db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(diff));
@@ -422,7 +427,6 @@
 
             let finalTimestamp = Date.now();
             
-            // 👑 金丹期【縮地成寸】插隊特權
             if (currentUser && myPoints >= 500 && currentQueue.length > 1) {
                 if (myDailyStats.jump === 0) {
                     if (confirm(`👑 金丹期特權：\n你今日還有 1 次「縮地成寸(插隊)」機會。要消耗它將此歌排到下一首嗎？`)) {
@@ -450,14 +454,13 @@
                 if(confirm("切除自己的歌？")) return roomRef.child('queue/'+s.key).remove(); 
             } 
             
-            // 👑 元嬰期【言出法隨】強制切歌特權
             if (currentUser && myPoints >= 1000) {
                 if (myDailyStats.skip === 0) {
                     if (confirm(`👑 元嬰期特權：\n你今日還有 1 次「言出法隨」機會。要消耗它強制抹殺這首爛歌嗎？`)) {
                         db.ref(`users/${currentUser.uid}/dailyStats/${todayKey}/skip`).set(1);
                         return roomRef.child('queue/'+s.key).remove();
                     } else {
-                        return; // 取消則不動作
+                        return; 
                     }
                 }
             }
@@ -484,13 +487,13 @@
             }).join('') || '無人上線';
         }
 
-        // ==========================================
-        // 其他維持不變的邏輯 (投票、批次點播等)
-        // ==========================================
         function editNickname() { const n = prompt("輸入大香腸暱稱：", currentUser.customName || currentUser.displayName); if (n && n.trim()) { db.ref(`users/${currentUser.uid}/nickname`).set(n.trim()); db.ref(`leaderboard/${currentUser.uid}`).update({ name: n.trim() }); } }
         function signIn() { auth.signInWithPopup(provider); }
         function signOut() { auth.signOut(); }
 
+        // ==========================================
+        // 🔮 心魔扣分改為 -1 點
+        // ==========================================
         function castVote(type) {
             if (!currentUser) return alert("⚠️ 登入後才能動用仙丹與心魔！");
             if (currentQueue.length === 0) return;
@@ -504,12 +507,12 @@
                 let diff = 0, newVote = null;
                 if (type === 'like') {
                     if (prevVote === 'like') { diff = -2; } 
-                    else if (prevVote === 'dislike') { diff = 5; newVote = 'like'; } 
+                    else if (prevVote === 'dislike') { diff = 3; newVote = 'like'; } // 從 -5 改回對應扣除的補償
                     else { diff = 2; newVote = 'like'; } 
                 } else if (type === 'dislike') {
-                    if (prevVote === 'dislike') { diff = 3; } 
-                    else if (prevVote === 'like') { diff = -5; newVote = 'dislike'; } 
-                    else { diff = -3; newVote = 'dislike'; } 
+                    if (prevVote === 'dislike') { diff = 1; newVote = null; } // 取消心魔時把 -1 加回來
+                    else if (prevVote === 'like') { diff = -3; newVote = 'dislike'; } 
+                    else { diff = -1; newVote = 'dislike'; } // 😈 心魔扣分改為 -1
                 }
                 if (newVote) voteRef.set(newVote); else voteRef.remove();
                 if (diff !== 0) db.ref(`users/${curSong.uid}/cultivation`).set(firebase.database.ServerValue.increment(diff));
@@ -542,7 +545,7 @@
         function render(data) { document.getElementById('results').innerHTML = (data.items || []).map(it => { const id = it.id.videoId || it.id; const t = it.snippet.title.replace(/'/g, "\\'").replace(/"/g, "&quot;"); const thumbUrl = it.snippet.thumbnails?.default?.url || ''; return `<div class="res-item" style="align-items: flex-start; padding: 12px;"><img src="${thumbUrl}" style="width: 80px; height: 60px; object-fit: cover; border-radius: 8px; margin-right: 12px; flex-shrink: 0;"><div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; min-height: 60px; overflow: hidden;"><span class="res-title" style="max-width: 100%; white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.4; margin-bottom: 8px; font-size: 13px;">${it.snippet.title}</span><div class="res-actions" style="justify-content: flex-end;">${currentUser ? `<button class="btn-fav star-btn" data-vid="${id}" onclick="toggleFav('${id}', '${t}')">☆</button>` : ''}<button onclick="addToRadio('${id}', '${t}')" style="background:#444; border:none; padding:8px 10px; border-radius:8px; font-weight:bold; cursor:pointer; font-size:12px; color:white; margin-right:5px;">📻</button><button onclick="addToQueue('${id}', '${t}')" style="background:var(--spotify-green); border:none; padding:8px 15px; border-radius:8px; font-weight:bold; cursor:pointer; font-size:12px; color:black;">點播</button></div></div></div>`; }).join(''); updateAllStars(); }
         
         function addToRadio(id, title) {
-            if (myPoints < 3000) return alert("❌ 境界不足！化神期以上方可將歌曲刻印至派تدائي電台！");
+            if (myPoints < 3000) return alert("❌ 境界不足！化神期以上方可將歌曲刻印至派對電台！");
             roomRef.child('radioPlaylist').push(id); alert(`✅ 已將《${title}》永久加入電台！`);
         }
 
