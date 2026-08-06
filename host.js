@@ -93,7 +93,7 @@ function onYouTubeIframeAPIReady() {
     });
 }
 
-// 🎧 監聽排隊清單
+// 🎧 監聽排隊清單 (🔮 加入天道雷罰機制)
 roomRef.child('queue').on('value', (snapshot) => {
     const data = snapshot.val() || {};
     let newList = [];
@@ -104,12 +104,32 @@ roomRef.child('queue').on('value', (snapshot) => {
     });
 
     newList.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+    
+    // ⚡ 判斷天譴：如果現在播的這首歌，心魔大於等於 5 個，直接抹殺！
+    if (newList.length > 0) {
+        const currentSong = newList[0];
+        if (currentSong.votes) {
+            const votes = Object.values(currentSong.votes);
+            const dislikes = votes.filter(v => v === 'dislike').length;
+            
+            if (dislikes >= 5) {
+                console.warn(`⚡ 天道雷罰降臨！《${currentSong.title}》魔性太重，系統強制抹殺！`);
+                // 在大螢幕顯示被天譴的特效文字
+                const listDiv = document.getElementById('queue-list');
+                if (listDiv) listDiv.innerHTML = `<div class="queue-item" style="color:#ff4b2b; justify-content:center; border: 1px dashed #ff4b2b; font-weight:bold; font-size:18px;">⚡ 此曲魔性太重，引發天譴，強制切除！ ⚡</div>`;
+                
+                roomRef.child('queue').child(currentSong.key).remove(); // 抹殺這首歌
+                return; // 終止這次動作，讓 Firebase 重新觸發下一首
+            }
+        }
+    }
+
     songQueue = newList;
     renderHostUI();
     if (isStarted) evaluatePlayback();
 });
 
-// 🚀 新增：監聽並合併「雲端電台擴充包」
+// 🚀 監聽並合併「雲端電台擴充包」
 roomRef.child('radioPlaylist').on('value', (snapshot) => {
     const data = snapshot.val();
     if (data) {
@@ -178,7 +198,35 @@ function renderHostUI() {
     listDiv.innerHTML = '';
     
     if (songQueue.length > 0) {
-        document.title = "正在播放: " + songQueue[0].title;
+        const cur = songQueue[0];
+        document.title = "正在播放: " + cur.title;
+        
+        // 🔮 顯示當前歌曲的仙丹與心魔統計
+        let likes = 0, dislikes = 0;
+        if (cur.votes) {
+            Object.values(cur.votes).forEach(v => {
+                if (v === 'like') likes++;
+                if (v === 'dislike') dislikes++;
+            });
+        }
+        
+        let voteStr = '';
+        if (likes > 0 || dislikes > 0) {
+            voteStr = `<span style="font-size:12px; margin-left:10px; background:rgba(0,0,0,0.5); padding:3px 10px; border-radius:12px;">
+                        <span style="color:#1DB954">👼 ${likes}</span> | <span style="color:#ff4b2b">😈 ${dislikes}/5</span>
+                       </span>`;
+        }
+
+        // 特別標註現正播放的歌曲，並印上戰況
+        listDiv.innerHTML += `
+            <div class="queue-item" style="border: 2px solid #1DB954; background: rgba(29, 185, 84, 0.1);">
+                <div style="flex-grow: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    <span style="color:#1DB954; font-size:12px; font-weight:bold;">[現正播放]</span> 
+                    <strong>${cur.nickname || '神秘人'}</strong>：${cur.title} ${voteStr}
+                </div>
+                <button class="remove-btn" onclick="requestSkip()">切歌</button>
+            </div>`;
+
         for (let i = 1; i < songQueue.length; i++) {
             const data = songQueue[i];
             listDiv.innerHTML += `
@@ -189,7 +237,6 @@ function renderHostUI() {
                     <button class="remove-btn" onclick="removeSong('${data.key}')">移除</button>
                 </div>`;
         }
-        if (songQueue.length === 1) listDiv.innerHTML = '<div class="queue-item" style="color:#aaa; justify-content:center;">沒有下一首歌了</div>';
     } else {
         listDiv.innerHTML = '<div class="queue-item" style="color:#1DB954; justify-content:center; border: 1px dashed #1DB954;">📻 派對電台隨機放送中...</div>';
     }
