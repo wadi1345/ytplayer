@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>大香腸修仙點歌系統</title>
+    <title>大香腸修仙點歌系統 v8.7</title>
     <style>
         :root { --spotify-green: #1DB954; --bg-black: #121212; --card-gray: #181818; --text-gray: #b3b3b3; --gold: #ffd700; }
         ::-webkit-scrollbar { width: 6px; }
@@ -65,9 +65,12 @@
         .modal-body { background: var(--card-gray); width: 100%; max-width: 400px; border-radius: 24px; padding: 25px; border: 1px solid #333; max-height: 85vh; display: flex; flex-direction: column; }
         .modal-list { flex-grow: 1; overflow-y: auto; background: #000; border-radius: 15px; padding: 10px; margin: 15px 0; border: 1px solid #222; }
         
-        .rule-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; }
-        .rule-table th, .rule-table td { border: 1px solid #444; padding: 8px; text-align: left; }
+        .rule-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .rule-table th, .rule-table td { border: 1px solid #444; padding: 6px; text-align: left; font-size: 11px; }
         .rule-table th { background: #222; color: var(--spotify-green); }
+        
+        /* 突破按鈕專屬特效 */
+        @keyframes pulse { 0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 75, 43, 0.7); } 70% { transform: scale(1.05); box-shadow: 0 0 0 5px rgba(255, 75, 43, 0); } 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 75, 43, 0); } }
     </style>
 </head>
 <body>
@@ -123,7 +126,7 @@
         </div>
 
         <div class="search-box">
-            <input type="text" id="userName" placeholder="👤 點歌稱號 (預設: 臭香腸)" oninput="setupPresence()">
+            <input type="text" id="userName" placeholder="👤 點歌稱號 (預設: 臭香腸)" oninput="setupPresence('凡人', '#888')">
             <input type="text" id="searchInput" placeholder="🔍 搜尋歌名或貼上 YouTube 清單網址">
             <button class="btn-search" onclick="searchYouTube()">即刻點歌</button>
             
@@ -142,33 +145,37 @@
     <!-- Modals -->
     <div id="onlineModal" class="modal-overlay"><div class="modal-body"><h3 style="color:var(--spotify-green); margin-top:0;">👥 在線成員與修為</h3><div class="modal-list" id="onlineItems"></div><button onclick="document.getElementById('onlineModal').style.display='none'" style="width:100%; padding:14px; background:#333; border:none; color:white; border-radius:50px; font-weight:bold;">關閉</button></div></div>
     
-    <div id="favModal" class="modal-overlay"><div class="modal-body"><h3 style="color:var(--spotify-green); margin-top:0; display:flex; justify-content:space-between; align-items:center;">⭐ 我的專屬歌單<select id="favSortSelect" onchange="renderFavItems()" style="background:#222; color:#888; border:1px solid #444; padding:4px 8px; border-radius:8px; font-size:12px; outline:none; cursor:pointer;"><option value="dateDesc">最新加入</option><option value="dateAsc">最舊加入</option><option value="az">名稱 (A-Z)</option></select></h3><div style="font-size: 11px; color: #888; display: flex; justify-content: space-between; margin-bottom:5px;"><span><input type="checkbox" id="selAllFav" checked onchange="toggleAllFav()"> 全選</span><span>一次上限 10 首 (特權可解)</span></div><div class="modal-list" id="favItems"></div><div style="display:flex; gap:10px;"><button onclick="document.getElementById('favModal').style.display='none'" style="flex:1; padding:12px; background:#333; border:none; color:white; border-radius:50px; font-weight:bold; cursor:pointer;">關閉</button><button onclick="batchAddFromFav()" style="flex:1; padding:12px; background:var(--spotify-green); color:black; border-radius:50px; font-weight:bold; cursor:pointer;">批次點播</button></div></div></div>
+    <div id="favModal" class="modal-overlay"><div class="modal-body"><h3 style="color:var(--spotify-green); margin-top:0; display:flex; justify-content:space-between; align-items:center;">⭐ 我的專屬歌單<select id="favSortSelect" onchange="renderFavItems()" style="background:#222; color:#888; border:1px solid #444; padding:4px 8px; border-radius:8px; font-size:12px; outline:none; cursor:pointer;"><option value="dateDesc">最新加入</option><option value="dateAsc">最舊加入</option><option value="az">名稱 (A-Z)</option></select></h3><div style="font-size: 11px; color: #888; display: flex; justify-content: space-between; margin-bottom:5px;"><span><input type="checkbox" id="selAllFav" checked onchange="toggleAllFav()"> 全選</span><span>特權解鎖數量上限</span></div><div class="modal-list" id="favItems"></div><div style="display:flex; gap:10px;"><button onclick="document.getElementById('favModal').style.display='none'" style="flex:1; padding:12px; background:#333; border:none; color:white; border-radius:50px; font-weight:bold; cursor:pointer;">關閉</button><button onclick="batchAddFromFav()" style="flex:1; padding:12px; background:var(--spotify-green); color:black; border-radius:50px; font-weight:bold; cursor:pointer;">批次點播</button></div></div></div>
     
-    <div id="playlistModal" class="modal-overlay"><div class="modal-body"><h3 style="color:var(--spotify-green); margin-top:0;">📋 匯入播放清單</h3><div style="font-size: 11px; color: #888; display: flex; justify-content: space-between; margin-bottom:5px;"><span><input type="checkbox" id="selAllPl" checked onchange="toggleAllPl()"> 全選</span><span>一次上限 20 首 (特權可解)</span></div><div class="modal-list" id="plItems"></div><div style="display:flex; gap:12px;"><button onclick="document.getElementById('playlistModal').style.display='none'" style="flex:1; padding:14px; background:#333; border:none; color:white; border-radius:50px; font-weight:bold;">取消</button><button onclick="batchAdd()" style="flex:1; padding:14px; background:var(--spotify-green); color:black; border-radius:50px; font-weight:bold;">確認匯入</button></div></div></div>
+    <div id="playlistModal" class="modal-overlay"><div class="modal-body"><h3 style="color:var(--spotify-green); margin-top:0;">📋 匯入播放清單</h3><div style="font-size: 11px; color: #888; display: flex; justify-content: space-between; margin-bottom:5px;"><span><input type="checkbox" id="selAllPl" checked onchange="toggleAllPl()"> 全選</span><span>特權解鎖數量上限</span></div><div class="modal-list" id="plItems"></div><div style="display:flex; gap:12px;"><button onclick="document.getElementById('playlistModal').style.display='none'" style="flex:1; padding:14px; background:#333; border:none; color:white; border-radius:50px; font-weight:bold;">取消</button><button onclick="batchAdd()" style="flex:1; padding:14px; background:var(--spotify-green); color:black; border-radius:50px; font-weight:bold;">確認匯入</button></div></div></div>
 
     <div id="hotModal" class="modal-overlay"><div class="modal-body"><h3 style="margin-top:0; color:#ff4b2b; text-align:center;">🌭 大香腸熱播榜 Top 10</h3><div class="modal-list" id="hotItems"></div><button onclick="document.getElementById('hotModal').style.display='none'" style="width:100%; padding:12px; background:#555; color:white; border:none; border-radius:50px; font-weight:bold; cursor:pointer;">關閉</button></div></div>
 
     <!-- 📜 修仙法則專屬彈窗 -->
     <div id="realmModal" class="modal-overlay">
         <div class="modal-body" style="max-width: 450px;">
-            <h3 style="margin-top:0; color:var(--gold); text-align:center;">📜 修仙法則與境界</h3>
+            <h3 style="margin-top:0; color:var(--gold); text-align:center;">📜 修仙法則與天劫</h3>
             <div class="modal-list" style="padding: 15px; font-size: 13px; color: #ddd; line-height: 1.5;">
-                <div style="margin-bottom: 15px;">
+                <div style="margin-bottom: 10px;">
                     <strong style="color: #fff;">【因果與吐納法】</strong><br>
                     🧘‍♂️ 頁面掛機：每滿 5 分鐘自動吐納 +1<br>
                     🎵 點歌 +1 | 👼 獲贈仙丹 +2<br>
                     😈 心魔纏身 -1 | ⚡ 累積 5 心魔直接天譴抹殺<br>
-                    🧭 每逢整點，可探尋秘境獲取機緣 (亦有隕落風險)
+                    🧭 每逢整點探尋秘境 (亦有極大殞落風險)
+                </div>
+                <div style="margin-bottom: 10px; border-top: 1px dashed #444; padding-top: 10px;">
+                    <strong style="color: #ff4b2b;">【⚡ 天劫突破法則】</strong><br>
+                    自金丹期起，達到修為門檻將進入「圓滿」瓶頸，須點擊按鈕引動天劫方可突破。天威難測，失敗將面臨嚴重反噬！(重修恢復點數後，無需再次渡劫)
                 </div>
                 <table class="rule-table">
-                    <tr><th>境界</th><th>修為需求</th><th>解鎖特權</th></tr>
-                    <tr><td style="color:#888;">煉氣期</td><td>0+</td><td>凡人。排隊點歌。</td></tr>
-                    <tr><td style="color:#1DB954;">築基期</td><td>100+</td><td>清單匯入上限提升(20首)</td></tr>
-                    <tr><td style="color:#ffd700;">金丹期</td><td>500+</td><td>【縮地成寸】每日 1 次插隊</td></tr>
-                    <tr><td style="color:#ff8c00;">元嬰期</td><td>1000+</td><td>【言出法隨】每日 1 次免密碼切歌</td></tr>
-                    <tr><td style="color:#ff4b2b;">化神期</td><td>3000+</td><td>【開闢洞府】解鎖寫入派對電台</td></tr>
-                    <tr><td style="color:#9400d3;">渡劫期</td><td>5000+</td><td>【天道庇護】免疫管理員禁言</td></tr>
-                    <tr><td style="color:#00ffff;">大乘仙尊</td><td>10000+</td><td>【天道主宰】匯入無上限</td></tr>
+                    <tr><th>境界</th><th>門檻</th><th>突破率</th><th>失敗反噬</th><th>特權</th></tr>
+                    <tr><td style="color:#888;">煉氣期</td><td>0+</td><td>-</td><td>-</td><td>凡人排隊</td></tr>
+                    <tr><td style="color:#1DB954;">築基期</td><td>100+</td><td>自動</td><td>-</td><td>清單匯入(20首)</td></tr>
+                    <tr><td style="color:#ffd700;">金丹期</td><td>500+</td><td>30%</td><td>-100</td><td>每日 1 次插隊</td></tr>
+                    <tr><td style="color:#ff8c00;">元嬰期</td><td>1000+</td><td>20%</td><td>-300</td><td>每日免密碼切歌</td></tr>
+                    <tr><td style="color:#ff4b2b;">化神期</td><td>3000+</td><td>15%</td><td>-500</td><td>寫入派對電台</td></tr>
+                    <tr><td style="color:#9400d3;">渡劫期</td><td>5000+</td><td>10%</td><td>-1000</td><td>免疫管理員禁言</td></tr>
+                    <tr><td style="color:#00ffff;">大乘仙尊</td><td>10000+</td><td>5%</td><td>-3000</td><td>匯入無上限</td></tr>
                 </table>
             </div>
             <button onclick="document.getElementById('realmModal').style.display='none'" style="width:100%; padding:12px; background:#555; color:white; border:none; border-radius:50px; font-weight:bold; cursor:pointer;">我已悟道</button>
@@ -205,6 +212,7 @@
 
         // 🔮 修仙變數
         let myPoints = 0;
+        let myBreakthroughs = {}; // 記錄已突破的境界
         let todayKey = new Date().toLocaleDateString().replace(/\//g, '-'); 
         let myDailyStats = { jump: 0, skip: 0 }; 
         
@@ -213,19 +221,42 @@
         let countdownTimer = null;
         let idleTimer = null;
 
-        function getRealm(points) {
-            if (!points || points < 0) return "煉氣期";
-            if (points < 100) return "煉氣期";
-            if (points < 500) return "築基期";
-            if (points < 1000) return "金丹期";
-            if (points < 3000) return "元嬰期";
-            if (points < 5000) return "化神期";
-            if (points < 10000) return "渡劫期";
-            return "大乘仙尊";
-        }
-        function getRealmColor(realm) {
-            const colors = {"煉氣期":"#888", "築基期":"#1DB954", "金丹期":"#ffd700", "元嬰期":"#ff8c00", "化神期":"#ff4b2b", "渡劫期":"#9400d3", "大乘仙尊":"#00ffff"};
-            return colors[realm] || "#fff";
+        const REALM_DATA = [
+            { id: 'lv0', name: "煉氣期", req: 0 },
+            { id: 'lv1', name: "築基期", req: 100 }, 
+            { id: 'lv2', name: "金丹期", req: 500, rate: 0.30, penalty: 100 },
+            { id: 'lv3', name: "元嬰期", req: 1000, rate: 0.20, penalty: 300 },
+            { id: 'lv4', name: "化神期", req: 3000, rate: 0.15, penalty: 500 },
+            { id: 'lv5', name: "渡劫期", req: 5000, rate: 0.10, penalty: 1000 },
+            { id: 'lv6', name: "大乘仙尊", req: 10000, rate: 0.05, penalty: 3000 }
+        ];
+        const REALM_COLORS = ["#888", "#1DB954", "#ffd700", "#ff8c00", "#ff4b2b", "#9400d3", "#00ffff"];
+
+        function getUserRealmState(points, btObj = {}) {
+            let currentLevel = 0;
+            let isBottleneck = false;
+            let nextTarget = null;
+
+            if (points >= 100) currentLevel = 1;
+            
+            if (points >= 500) {
+                if (btObj['lv2']) currentLevel = 2; else { isBottleneck = true; nextTarget = REALM_DATA[2]; }
+            }
+            if (points >= 1000 && currentLevel === 2) {
+                if (btObj['lv3']) currentLevel = 3; else { isBottleneck = true; nextTarget = REALM_DATA[3]; }
+            }
+            if (points >= 3000 && currentLevel === 3) {
+                if (btObj['lv4']) currentLevel = 4; else { isBottleneck = true; nextTarget = REALM_DATA[4]; }
+            }
+            if (points >= 5000 && currentLevel === 4) {
+                if (btObj['lv5']) currentLevel = 5; else { isBottleneck = true; nextTarget = REALM_DATA[5]; }
+            }
+            if (points >= 10000 && currentLevel === 5) {
+                if (btObj['lv6']) currentLevel = 6; else { isBottleneck = true; nextTarget = REALM_DATA[6]; }
+            }
+
+            const realmName = isBottleneck ? REALM_DATA[currentLevel].name.replace('期', '圓滿') : REALM_DATA[currentLevel].name;
+            return { realmName, currentLevel, isBottleneck, nextTarget };
         }
 
         async function joinRoom() {
@@ -256,7 +287,7 @@
             roomRef.child('isPaused').on('value', s => { document.getElementById('playPauseBtn').innerText = s.val() ? '▶️' : '⏸️'; });
         }
 
-        function setupPresence() {
+        function setupPresence(rName = "凡人", rColor = "#888", level = 0) {
             if (!currentRoomId) return;
             if (presenceRef) { presenceRef.remove(); presenceRef.onDisconnect().cancel(); }
             const isLog = !!currentUser;
@@ -265,14 +296,14 @@
             const photo = isLog ? currentUser.photoURL : 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
             
             presenceRef = roomRef.child(`online/${id}`);
-            pushPresence(id, name, photo, isLog, myPoints);
+            pushPresence(id, name, photo, isLog, myPoints, rName, rColor, level);
         }
         
-        function pushPresence(id, name, photo, isLog, points) {
+        function pushPresence(id, name, photo, isLog, points, rName, rColor, level) {
             db.ref('.info/connected').on('value', snap => {
                 if (snap.val() === true) {
                     presenceRef.onDisconnect().remove();
-                    presenceRef.set({ name, photo, isGuest: !isLog, uid: isLog ? id : null, points: points });
+                    presenceRef.set({ name, photo, isGuest: !isLog, uid: isLog ? id : null, points: points, realmName: rName, realmColor: rColor, level: level });
                 }
             });
         }
@@ -284,87 +315,102 @@
                 
                 db.ref(`users/${user.uid}/cultivation`).on('value', cultSnap => {
                     myPoints = cultSnap.val() || 0;
-                    const realm = getRealm(myPoints);
-                    const rColor = getRealmColor(realm);
-                    
-                    db.ref(`users/${user.uid}/nickname`).once('value', snap => {
-                        currentUser.customName = snap.val() || user.displayName;
-                        document.getElementById('user-info').innerHTML = `
-                            <img src="${user.photoURL}" class="avatar" referrerpolicy="no-referrer">
-                            <div style="display:flex; flex-direction:column;">
-                                <span style="font-size: 14px; font-weight: bold; color:#fff; display:flex; align-items:center; gap:5px;">
-                                    ${currentUser.customName}
-                                    <button onclick="editNickname()" style="background:none; border:none; cursor:pointer; font-size:12px; color:#888;">✏️</button>
-                                </span>
-                                <span style="font-size: 11px; color:${rColor}; font-weight:bold;">[${realm}] 點歌數: ${myPoints} 🧘‍♂️(吐納中)</span>
-                            </div>`;
-                        setupPresence(); 
-                    });
+                    updateMyProfileDisplay();
+                });
+                
+                db.ref(`users/${user.uid}/breakthroughs`).on('value', btSnap => {
+                    myBreakthroughs = btSnap.val() || {};
+                    updateMyProfileDisplay();
                 });
 
-                db.ref(`users/${user.uid}/dailyStats/${todayKey}`).on('value', s => {
-                    myDailyStats = s.val() || { jump: 0, skip: 0 };
-                });
-
-                db.ref(`users/${user.uid}/gachaHour`).on('value', s => {
-                    myGachaHour = s.val() || "";
-                });
+                db.ref(`users/${user.uid}/dailyStats/${todayKey}`).on('value', s => { myDailyStats = s.val() || { jump: 0, skip: 0 }; });
+                db.ref(`users/${user.uid}/gachaHour`).on('value', s => { myGachaHour = s.val() || ""; });
                 
                 startGachaCountdown(); 
                 startIdleCultivation(); 
                 db.ref(`users/${user.uid}/favorites`).on('value', s => { myFavorites = s.val() || {}; updateAllStars(); });
             } else {
-                myPoints = 0;
+                myPoints = 0; myBreakthroughs = {};
                 if (countdownTimer) clearInterval(countdownTimer);
                 if (idleTimer) clearInterval(idleTimer);
                 document.getElementById('userName').style.display = 'block'; document.getElementById('login-btn').style.display = 'inline-block'; document.getElementById('logout-btn').style.display = 'none'; document.getElementById('my-fav-btn').style.display = 'none'; document.getElementById('gacha-btn').style.display = 'none';
                 document.getElementById('user-info').innerHTML = `<div class="avatar" style="background: url('https://cdn-icons-png.flaticon.com/512/149/149071.png') center/cover;"></div><span style="font-size: 14px; color: #888;">凡人 (未登入)</span>`;
-                setupPresence();
+                setupPresence('凡人', '#888', 0);
             }
             renderQueueUI();
         }
 
-        // ==========================================
-        // 🧘‍♂️ 天地吐納 (每 5 分鐘掛機 +1 修為)
-        // ==========================================
+        function updateMyProfileDisplay() {
+            if (!currentUser) return;
+            const state = getUserRealmState(myPoints, myBreakthroughs);
+            const rColor = REALM_COLORS[state.currentLevel];
+            const rName = state.realmName;
+            
+            let breakthroughBtn = "";
+            if (state.isBottleneck) {
+                breakthroughBtn = `<button onclick="attemptBreakthrough()" style="background:linear-gradient(45deg, #ff4b2b, #ff416c); color:white; border:none; padding:2px 8px; border-radius:10px; font-weight:bold; cursor:pointer; font-size:11px; margin-left:5px; animation: pulse 1s infinite;">⚡ 突破</button>`;
+            }
+
+            db.ref(`users/${currentUser.uid}/nickname`).once('value', snap => {
+                currentUser.customName = snap.val() || currentUser.displayName;
+                document.getElementById('user-info').innerHTML = `
+                    <img src="${currentUser.photoURL}" class="avatar" referrerpolicy="no-referrer">
+                    <div style="display:flex; flex-direction:column;">
+                        <span style="font-size: 14px; font-weight: bold; color:#fff; display:flex; align-items:center; gap:5px;">
+                            ${currentUser.customName}
+                            <button onclick="editNickname()" style="background:none; border:none; cursor:pointer; font-size:12px; color:#888;">✏️</button>
+                        </span>
+                        <span style="font-size: 11px; color:${rColor}; font-weight:bold; display:flex; align-items:center;">[${rName}] 點歌數: ${myPoints} 🧘‍♂️ ${breakthroughBtn}</span>
+                    </div>`;
+                setupPresence(rName, rColor, state.currentLevel); 
+            });
+        }
+
+        function attemptBreakthrough() {
+            const state = getUserRealmState(myPoints, myBreakthroughs);
+            if (!state.isBottleneck) return;
+            const target = state.nextTarget;
+            
+            const successRate = (target.rate * 100).toFixed(0);
+            const msg = `⚡ 突破【${target.name}】天劫！\n\n成功機率：${successRate}%\n失敗代價：扣除 ${target.penalty} 點修為\n\n請問是否引動天雷強行突破？`;
+            
+            if(confirm(msg)) {
+                if (Math.random() < target.rate) {
+                    db.ref(`users/${currentUser.uid}/breakthroughs/${target.id}`).set(true);
+                    alert(`🎉 恭喜！天劫消散，你成功突破至【${target.name}】！`);
+                } else {
+                    db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(-target.penalty));
+                    alert(`💥 轟隆！你無法承受天雷之威，突破失敗，遭到反噬！\n\n修為重挫 -${target.penalty} 點！請重新吐納修練。`);
+                }
+            }
+        }
+
         function startIdleCultivation() {
             if (idleTimer) clearInterval(idleTimer);
             idleTimer = setInterval(() => {
                 if (currentUser) {
                     db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(1));
-                    console.log("🧘‍♂️ 天地吐納發動：掛機滿 5 分鐘，修為 +1");
                 }
             }, 300000);
         }
 
-        // ==========================================
-        // 🧭 整點秘境 (辦公室事件庫)
-        // ==========================================
         function startGachaCountdown() {
             if (countdownTimer) clearInterval(countdownTimer);
-            
             countdownTimer = setInterval(() => {
                 const now = new Date();
                 const currentHourKey = `${now.getFullYear()}-${now.getMonth()+1}-${now.getDate()}-${now.getHours()}`;
                 const gachaBtn = document.getElementById('gacha-btn');
-                
                 if (!gachaBtn) return;
 
                 if (myGachaHour === currentHourKey) {
-                    const nextHour = new Date(now);
-                    nextHour.setHours(now.getHours() + 1);
-                    nextHour.setMinutes(0, 0, 0);
-                    
+                    const nextHour = new Date(now); nextHour.setHours(now.getHours() + 1); nextHour.setMinutes(0, 0, 0);
                     const diffMs = nextHour - now;
                     const m = Math.floor(diffMs / 60000).toString().padStart(2, '0');
                     const s = Math.floor((diffMs % 60000) / 1000).toString().padStart(2, '0');
-                    
-                    gachaBtn.innerText = `⏳ 秘境關閉 (${m}:${s})`;
-                    gachaBtn.style.opacity = "0.5";
+                    gachaBtn.innerText = `⏳ 秘境關閉 (${m}:${s})`; gachaBtn.style.opacity = "0.5";
                     gachaBtn.onclick = () => alert("🛑 此時辰的秘境你已探索過，錯過就是錯過了！請等待下個整點重啟。");
                 } else {
-                    gachaBtn.innerText = "🧭 進入秘境探險";
-                    gachaBtn.style.opacity = "1";
+                    gachaBtn.innerText = "🧭 進入秘境探險"; gachaBtn.style.opacity = "1";
                     gachaBtn.onclick = spinRoulette;
                 }
             }, 1000);
@@ -375,82 +421,64 @@
             
             const now = new Date();
             const currentHourKey = `${now.getFullYear()}-${now.getMonth()+1}-${now.getDate()}-${now.getHours()}`;
-            
             if (myGachaHour === currentHourKey) return alert("🛑 此時辰的秘境你已探索過，請等待下個整點！");
 
             let rand = Math.random() * 100;
-            let diff = 0;
-            let msg = "";
+            let diff = 0; let msg = "";
 
             if (rand < 10) { 
-                // 大機緣 (10%)
                 const events = [
                     {d: 50, m: "✨ 下班去抽盲盒，竟然一發入魂抽中超稀有隱藏版！心境大突破，修為 +50！"},
                     {d: 40, m: "📊 月底的庫存與結帳報表一次對齊，帳目完美無瑕，被全公司膜拜，修為 +40！"},
                     {d: 30, m: "🀄 週末打牌連莊自摸，順便拍了超有梗的手機殼短影音，流量爆擊，修為 +30！"}
                 ];
-                let ev = events[Math.floor(Math.random() * events.length)];
-                diff = ev.d; msg = ev.m;
+                let ev = events[Math.floor(Math.random() * events.length)]; diff = ev.d; msg = ev.m;
             } else if (rand < 40) { 
-                // 中小機緣 (30%)
                 const events = [
-                    {d: 20, m: "🍱 中午負責幫大家訂精緻便當，沒算錯錢老闆還多送小菜，獲得同事感恩念力，修為 +20！"},
+                    {d: 20, m: "🍱 中午負責幫大家訂中和精緻便當，沒算錯錢老闆還多送小菜，獲得同事感恩念力，修為 +20！"},
                     {d: 15, m: "🧋 下午茶訂了手搖飲，不僅準時送達，珍珠還煮得特別軟Q，心情大好，修為 +15！"},
                     {d: 15, m: "📱 最新一季的 IP 聯名手機殼打樣送來了，顏色完美零色差，一次過稿免修改！修為 +15！"},
                     {d: 10, m: "💡 坐在辦公座位上，突然想出一句超洗腦的 3C 配件行銷腳本，修為 +10！"}
                 ];
-                let ev = events[Math.floor(Math.random() * events.length)];
-                diff = ev.d; msg = ev.m;
+                let ev = events[Math.floor(Math.random() * events.length)]; diff = ev.d; msg = ev.m;
             } else if (rand < 60) { 
-                // 微波動 (20%)
                 const events = [
                     {d: 5, m: "🍗 中午吃到一塊比手掌還大的超巨型雞排，氣血翻湧，修為 +5！"},
                     {d: 0, m: "😐 去茶水間裝水，望著窗外發呆了三分鐘，什麼事都沒發生。修為 +0。"},
                     {d: -5, m: "🔍 廠商寄來的樣品神秘消失，跟同事翻箱倒櫃找了半天才發現在紙箱最底層，修為 -5。"},
                     {d: -5, m: "🗑️ 發現今天要倒的垃圾特別多，原來是海苔精在搞鬼，心很累，修為 -5。"}
                 ];
-                let ev = events[Math.floor(Math.random() * events.length)];
-                diff = ev.d; msg = ev.m;
+                let ev = events[Math.floor(Math.random() * events.length)]; diff = ev.d; msg = ev.m;
             } else if (rand < 85) { 
-                // 日常厄運 (25%)
                 const events = [
                     {d: -10, m: "🥤 期待了一整個下午的手搖飲送來，結果你的「無糖微冰」變成了「全糖去冰」，當場走火入魔，修為 -10！"},
                     {d: -10, m: "⚡ 辦公室有人電鍋和微波爐一起用，整間公司瞬間跳電，你的報表沒存檔，心血白費，修為 -10！"},
                     {d: -20, m: "📦 點交門市配件庫存時，發現少了一箱盲盒，急忙去調監視器，心力交瘁，修為 -20！"}
                 ];
-                let ev = events[Math.floor(Math.random() * events.length)];
-                diff = ev.d; msg = ev.m;
+                let ev = events[Math.floor(Math.random() * events.length)]; diff = ev.d; msg = ev.m;
             } else { 
-                // 老闆戰 (15%)
-                let winRate = 0.1; // 煉氣/築基
-                if (myPoints >= 3000) winRate = 0.6; // 化神以上
-                else if (myPoints >= 500) winRate = 0.3; // 金丹/元嬰
+                const myState = getUserRealmState(myPoints, myBreakthroughs);
+                let winRate = 0.1; 
+                if (myState.currentLevel >= 4) winRate = 0.6; // 化神+
+                else if (myState.currentLevel >= 2) winRate = 0.3; // 金丹/元嬰
 
                 if (confirm(`💀 警告！你在走廊上遭遇了傳說中的兇獸（老闆）對你微笑！\n你要嘗試「閃避」還是「勇敢面對」？\n\n👉 按『確定』嘗試閃避 (50%機率無事)\n👉 按『取消』勇敢面對 (依據你的境界，勝率為 ${winRate*100}%)`)) {
-                    // 閃避
                     if (Math.random() < 0.5) {
-                        diff = 0;
-                        msg = "💨 你一個滑步躲進了廁所，成功逃過一劫！修為不變。";
+                        diff = 0; msg = "💨 你一個滑步躲進了廁所，成功逃過一劫！修為不變。";
                     } else {
-                        diff = -10;
-                        msg = "💥 你閃避不及，被老闆叫住問專案進度，當場走火入魔！修為 -10！";
+                        diff = -10; msg = "💥 你閃避不及，被老闆叫住問專案進度，當場走火入魔！修為 -10！";
                     }
                 } else {
-                    // 勇敢面對
                     if (Math.random() < winRate) {
-                        diff = 40;
-                        msg = "🎉 【戰勝兇獸！】你大聲且完美地匯報了當季聯名手機殼銷量與機台佈署進度，老闆龍心大悅！修為暴增 +40！";
+                        diff = 40; msg = "🎉 【戰勝兇獸！】你大聲且完美地匯報了當季聯名手機殼銷量與機台佈署進度，老闆龍心大悅！修為暴增 +40！";
                     } else {
-                        diff = -20;
-                        msg = "🩸 【戰敗！】你支支吾吾答不出來，承受了兇獸的恐怖威壓，神魂受創！修為重挫 -20！";
+                        diff = -20; msg = "🩸 【戰敗！】你支支吾吾答不出來，承受了兇獸的恐怖威壓，神魂受創！修為重挫 -20！";
                     }
                 }
             }
 
             db.ref(`users/${currentUser.uid}/gachaHour`).set(currentHourKey);
-            if (diff !== 0) {
-                db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(diff));
-            }
+            if (diff !== 0) db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(diff));
             alert(`🧭 秘境探索結果：\n\n${msg}`);
         }
 
@@ -458,8 +486,9 @@
         // 🔮 修仙特權控制與點歌
         // ==========================================
         function addToQueue(id, title) {
+            const myState = getUserRealmState(myPoints, myBreakthroughs);
             if (bannedList[currentUser ? currentUser.uid : localGuestId]) {
-                if (myPoints < 5000) return alert('🛑 業障太重，你已被禁言！');
+                if (myState.currentLevel < 5) return alert('🛑 業障太重，你已被禁言！(需達到 渡劫期 方可免疫)');
             }
 
             let name = currentUser ? (currentUser.customName || currentUser.displayName) : (document.getElementById('userName').value || '臭香腸');
@@ -468,7 +497,8 @@
 
             let finalTimestamp = Date.now();
             
-            if (currentUser && myPoints >= 500 && currentQueue.length > 1) {
+            // 👑 金丹期 (Level >= 2) 插隊特權
+            if (currentUser && myState.currentLevel >= 2 && currentQueue.length > 1) {
                 if (myDailyStats.jump === 0) {
                     if (confirm(`👑 金丹期特權：\n你今日還有 1 次「縮地成寸(插隊)」機會。要消耗它將此歌排到下一首嗎？`)) {
                         finalTimestamp = currentQueue[1].timestamp - 1; 
@@ -495,14 +525,14 @@
                 if(confirm("切除自己的歌？")) return roomRef.child('queue/'+s.key).remove(); 
             } 
             
-            if (currentUser && myPoints >= 1000) {
+            const myState = getUserRealmState(myPoints, myBreakthroughs);
+            // 👑 元嬰期 (Level >= 3) 強制切歌特權
+            if (currentUser && myState.currentLevel >= 3) {
                 if (myDailyStats.skip === 0) {
                     if (confirm(`👑 元嬰期特權：\n你今日還有 1 次「言出法隨」機會。要消耗它強制抹殺這首爛歌嗎？`)) {
                         db.ref(`users/${currentUser.uid}/dailyStats/${todayKey}/skip`).set(1);
                         return roomRef.child('queue/'+s.key).remove();
-                    } else {
-                        return; 
-                    }
+                    } else { return; }
                 }
             }
             
@@ -513,12 +543,12 @@
             const container = document.getElementById('onlineItems');
             container.innerHTML = Object.keys(onlineUsers).map(id => {
                 const u = onlineUsers[id], isMe = (currentUser && id === currentUser.uid) || (!currentUser && id === localGuestId), isB = bannedList[id];
-                const rName = getRealm(u.points || 0), rColor = getRealmColor(rName);
+                const rName = u.realmName || "凡人", rColor = u.realmColor || "#888", lv = u.level || 0;
                 
                 let btn = "";
                 if (isMe) {
                     btn = `<span style="color:var(--spotify-green);">(你)</span>`;
-                } else if (u.points >= 5000) {
+                } else if (lv >= 5) {
                     btn = `<span style="color:#9400d3; font-size:11px; font-weight:bold;">🛡️ 天道庇護</span>`;
                 } else {
                     btn = `<button class="member-btn" style="${isB?'color:#ff4b2b;border-color:#ff4b2b':''}" onclick="toggleBan('${id}', ${isB})">${isB?'解禁':'禁言'}</button>`;
@@ -583,12 +613,13 @@
         function render(data) { document.getElementById('results').innerHTML = (data.items || []).map(it => { const id = it.id.videoId || it.id; const t = it.snippet.title.replace(/'/g, "\\'").replace(/"/g, "&quot;"); const thumbUrl = it.snippet.thumbnails?.default?.url || ''; return `<div class="res-item" style="align-items: flex-start; padding: 12px;"><img src="${thumbUrl}" style="width: 80px; height: 60px; object-fit: cover; border-radius: 8px; margin-right: 12px; flex-shrink: 0;"><div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; min-height: 60px; overflow: hidden;"><span class="res-title" style="max-width: 100%; white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.4; margin-bottom: 8px; font-size: 13px;">${it.snippet.title}</span><div class="res-actions" style="justify-content: flex-end;">${currentUser ? `<button class="btn-fav star-btn" data-vid="${id}" onclick="toggleFav('${id}', '${t}')">☆</button>` : ''}<button onclick="addToRadio('${id}', '${t}')" style="background:#444; border:none; padding:8px 10px; border-radius:8px; font-weight:bold; cursor:pointer; font-size:12px; color:white; margin-right:5px;">📻</button><button onclick="addToQueue('${id}', '${t}')" style="background:var(--spotify-green); border:none; padding:8px 15px; border-radius:8px; font-weight:bold; cursor:pointer; font-size:12px; color:black;">點播</button></div></div></div>`; }).join(''); updateAllStars(); }
         
         function addToRadio(id, title) {
-            if (myPoints < 3000) return alert("❌ 境界不足！化神期以上方可將歌曲刻印至派對電台！");
+            const myState = getUserRealmState(myPoints, myBreakthroughs);
+            if (myState.currentLevel < 4) return alert("❌ 境界不足！【化神期】以上方可將歌曲刻印至派對電台！");
             roomRef.child('radioPlaylist').push(id); alert(`✅ 已將《${title}》永久加入電台！`);
         }
 
-        function batchAdd() { const chks = document.querySelectorAll('.pl-chk:checked'), now = Date.now(); if (chks.length > 20 && (myPoints < 10000)) return alert('❌ 境界不足！大乘仙尊才能匯入超過 20 首！'); let added = 0; chks.forEach((chk, i) => { const it = tempPlaylist[chk.value]; if (!currentQueue.some(s => s.videoId === it.id)) { roomRef.child('queue').push({ videoId: it.id, title: it.title, nickname: currentUser.customName, uid: currentUser.uid, timestamp: now + i }); roomRef.child(`songStats/${it.id}/count`).set(firebase.database.ServerValue.increment(1)); roomRef.child(`songStats/${it.id}/title`).set(it.title); db.ref(`users/${currentUser.uid}/history`).push({ videoId: it.id, title: it.title, timestamp: firebase.database.ServerValue.TIMESTAMP }); added++; } }); db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(added)); incrementScore(added); document.getElementById('playlistModal').style.display = 'none'; }
-        function batchAddFromFav() { const chks = document.querySelectorAll('.fav-chk:checked'), now = Date.now(); if (chks.length > 10 && (myPoints < 10000)) return alert('❌ 境界不足！大乘仙尊才能一次點超過 10 首！'); let added = 0; chks.forEach((chk, i) => { const vid = chk.getAttribute('data-vid'), t = chk.getAttribute('data-title'); if (!currentQueue.some(s => s.videoId === vid)) { roomRef.child('queue').push({ videoId: vid, title: t, nickname: currentUser.customName, uid: currentUser.uid, timestamp: now + i }); roomRef.child(`songStats/${vid}/count`).set(firebase.database.ServerValue.increment(1)); roomRef.child(`songStats/${vid}/title`).set(t); db.ref(`users/${currentUser.uid}/history`).push({ videoId: vid, title: t, timestamp: firebase.database.ServerValue.TIMESTAMP }); added++; } }); db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(added)); incrementScore(added); document.getElementById('favModal').style.display = 'none'; }
+        function batchAdd() { const myState = getUserRealmState(myPoints, myBreakthroughs); const chks = document.querySelectorAll('.pl-chk:checked'), now = Date.now(); if (chks.length > 20 && (myState.currentLevel < 6)) return alert('❌ 境界不足！【大乘仙尊】才能匯入超過 20 首！'); let added = 0; chks.forEach((chk, i) => { const it = tempPlaylist[chk.value]; if (!currentQueue.some(s => s.videoId === it.id)) { roomRef.child('queue').push({ videoId: it.id, title: it.title, nickname: currentUser.customName, uid: currentUser.uid, timestamp: now + i }); roomRef.child(`songStats/${it.id}/count`).set(firebase.database.ServerValue.increment(1)); roomRef.child(`songStats/${it.id}/title`).set(it.title); db.ref(`users/${currentUser.uid}/history`).push({ videoId: it.id, title: it.title, timestamp: firebase.database.ServerValue.TIMESTAMP }); added++; } }); db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(added)); incrementScore(added); document.getElementById('playlistModal').style.display = 'none'; }
+        function batchAddFromFav() { const myState = getUserRealmState(myPoints, myBreakthroughs); const chks = document.querySelectorAll('.fav-chk:checked'), now = Date.now(); if (chks.length > 10 && (myState.currentLevel < 6)) return alert('❌ 境界不足！【大乘仙尊】才能一次點超過 10 首！'); let added = 0; chks.forEach((chk, i) => { const vid = chk.getAttribute('data-vid'), t = chk.getAttribute('data-title'); if (!currentQueue.some(s => s.videoId === vid)) { roomRef.child('queue').push({ videoId: vid, title: t, nickname: currentUser.customName, uid: currentUser.uid, timestamp: now + i }); roomRef.child(`songStats/${vid}/count`).set(firebase.database.ServerValue.increment(1)); roomRef.child(`songStats/${vid}/title`).set(t); db.ref(`users/${currentUser.uid}/history`).push({ videoId: vid, title: t, timestamp: firebase.database.ServerValue.TIMESTAMP }); added++; } }); db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(added)); incrementScore(added); document.getElementById('favModal').style.display = 'none'; }
         
         function updateLeaderboard(s) { const data = s.val() || {}; let maxCount = 0; topKing = null; const today = new Date().toLocaleDateString(); Object.keys(data).forEach(uid => { if(data[uid].date === today && data[uid].count > maxCount) { maxCount = data[uid].count; topKing = data[uid]; } }); document.querySelector('.king-text').innerHTML = topKing ? `👑 本日大香腸之王：${topKing.name}` : "👑 尚未產生今日大香腸王"; document.querySelector('.king-count').innerText = `${maxCount} 首`; }
         function incrementScore(c) { if(!currentUser)return; const t = new Date().toLocaleDateString(), r = db.ref(`leaderboard/${currentUser.uid}`); r.once('value', s => { const d = s.val() || {}; r.set({ count: (d.date === t) ? (d.count || 0) + c : c, name: currentUser.customName, date: t }); }); }
@@ -605,7 +636,7 @@
         function changeVolume(v) { roomRef.child('volume').set(parseInt(v)); }
         function openHotModal() { const m = document.getElementById('hotModal'); if(!m)return; m.style.display='flex'; const c = document.getElementById('hotItems'); c.innerHTML='<p style="text-align:center; color:#888;">📊 統計中...</p>'; roomRef.child('songStats').once('value', snap => { const d = snap.val()||{}; const s = Object.keys(d).map(id=>({id,...d[id]})).sort((a,b)=>b.count-a.count).slice(0,10); if(s.length===0) return c.innerHTML='<p style="text-align:center; color:#555;">還沒有點歌紀錄喔！</p>'; c.innerHTML=s.map((it,i)=>{ let m = i===0?'🥇':i===1?'🥈':i===2?'🥉':`<span style="color:#888; font-size:12px;">${i+1}.</span>`; return `<div class="res-item" style="display:flex; align-items:center; border-bottom:1px solid #444; padding:10px 0; margin:0;"><div style="width:30px; text-align:center; font-size:18px;">${m}</div><div style="flex-grow:1; margin:0 10px; overflow:hidden;"><div style="font-size:13px; color:white; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${it.title}</div><div style="font-size:11px; color:#1DB954; font-weight:bold; margin-top:3px;">被點了 ${it.count} 次</div></div><button onclick="addToQueue('${it.id}', '${it.title.replace(/'/g, "\\'")}')" style="background:var(--spotify-green); border:none; padding:6px 12px; border-radius:8px; font-weight:bold; cursor:pointer; font-size:11px; color:black; flex-shrink:0;">點播</button></div>`; }).join(''); }); }
         function renderFavItems() { const c = document.getElementById('favItems'); const sortSelect = document.getElementById('favSortSelect'); const sortType = sortSelect ? sortSelect.value : 'dateDesc'; let sorted = Object.keys(myFavorites).map(id => ({ id, ...myFavorites[id] })); if (sortType === 'dateDesc') sorted.sort((a,b) => b.addedAt - a.addedAt); else if (sortType === 'dateAsc') sorted.sort((a,b) => a.addedAt - b.addedAt); else if (sortType === 'az') sorted.sort((a,b) => a.title.localeCompare(b.title)); let adminBtn = `<button onclick="syncFavToRadio()" style="width:100%; margin-bottom:15px; padding:12px; background:linear-gradient(45deg, #ff4b2b, #ff416c); color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-size:14px; box-shadow: 0 4px 10px rgba(255,75,43,0.3);">📻 將這份歌單設為大螢幕「派對電台」</button>`; if (sorted.length === 0) return c.innerHTML = adminBtn + '<p style="text-align:center; color:#555;">無收藏</p>'; c.innerHTML = adminBtn + sorted.map(s => `<div class="res-item" style="border:none; padding:8px 0; margin:0;"><input type="checkbox" class="fav-chk" data-vid="${s.id}" data-title="${s.title.replace(/'/g, "\\'")}" checked style="margin-right:10px;"><span class="res-title" style="flex-grow:1;">${s.title}</span><button onclick="toggleFav('${s.id}', '')" style="background:none; border:none; color:#ff4b2b; font-size:10px;">移除</button></div>`).join(''); }
-        function syncFavToRadio() { if (myPoints < 3000) return alert("❌ 境界不足！化神期以上方可發動此陣法！"); const ids = Object.keys(myFavorites); if (ids.length === 0) return alert("你的收藏是空的！"); ids.forEach(id => roomRef.child('radioPlaylist').push(id)); alert(`✅ 已成功擴充電台輪播池！`); }
+        function syncFavToRadio() { const myState = getUserRealmState(myPoints, myBreakthroughs); if (myState.currentLevel < 4) return alert("❌ 境界不足！【化神期】以上方可發動此陣法！"); const ids = Object.keys(myFavorites); if (ids.length === 0) return alert("你的收藏是空的！"); ids.forEach(id => roomRef.child('radioPlaylist').push(id)); alert(`✅ 已成功擴充電台輪播池！`); }
     </script>
 </body>
 </html>
