@@ -78,11 +78,11 @@
         .chat-system-bad { background: rgba(255, 75, 43, 0.1); border-left: 3px solid #ff4b2b; padding: 8px; border-radius: 5px; color: #ddd; }
         .chat-mega { background: rgba(255, 140, 0, 0.2); border-left: 3px solid #ff8c00; padding: 8px; border-radius: 5px; color: #fff; font-weight: bold; font-size: 14px; }
         
-        .chat-input-container { display: flex; gap: 8px; margin-top: 10px; align-items: center; flex-wrap: wrap; }
-        .chat-input-container input { flex-grow: 1; min-width: 150px; padding: 10px; background: #222; border: 1px solid #444; border-radius: 50px; color: white; font-size: 13px; outline: none; }
+        .chat-input-container { display: flex; gap: 8px; margin-top: 10px; align-items: center; flex-wrap: nowrap; }
+        .chat-input-container input { flex-grow: 1; min-width: 120px; padding: 10px; background: #222; border: 1px solid #444; border-radius: 50px; color: white; font-size: 13px; outline: none; }
         .chat-input-container button { padding: 10px 15px; background: var(--spotify-green); color: black; border: none; border-radius: 50px; font-weight: bold; cursor: pointer; flex-shrink: 0; }
-        
         .btn-mega { background: linear-gradient(45deg, #ff8c00, #ff4b2b) !important; color: white !important; font-size: 11px; padding: 8px 12px !important; }
+        .btn-admin { background: transparent !important; border: 1px solid var(--gold) !important; color: var(--gold) !important; padding: 8px 10px !important; font-size: 12px; }
     </style>
 </head>
 <body>
@@ -170,7 +170,7 @@
             <div class="modal-list" style="padding: 15px; font-size: 13px; color: #ddd; line-height: 1.5;">
                 <div style="margin-bottom: 10px;">
                     <strong style="color: #fff;">【因果與吐納法】</strong><br>
-                    🧘‍♂️ 頁面掛機：每滿 5 分鐘自動吐納 +1<br>
+                    🧘‍♂️ 頁面掛機：每滿 5 分鐘自動吐納 +1 (防護陣法已啟動，嚴禁分身多開！)<br>
                     🎵 點歌 +1 | 👼 獲贈仙丹 +2<br>
                     😈 心魔纏身 -1 | ⚡ 累積 5 心魔直接天譴抹殺<br>
                     🧭 每逢整點探尋秘境 (亦有極大殞落風險)<br>
@@ -204,8 +204,10 @@
             </div>
             <div class="chat-input-container">
                 <input type="text" id="chatInput" placeholder="在此輸入幹話..." onkeypress="if(event.key === 'Enter') sendChatMessage(false)">
-                <button class="btn-mega" onclick="sendChatMessage(true)" title="花費 2 點修為發送醒目廣播">📢廣播(-2)</button>
+                <button class="btn-mega" onclick="sendChatMessage(true)" title="花費 2 點修為發送醒目廣播">📢(-2)</button>
                 <button onclick="sendChatMessage(false)">一般</button>
+                <!-- 隱藏版管理員按鈕 -->
+                <button class="btn-admin" onclick="sendAdminBroadcast()" title="天道法旨(管理員)">👑</button>
             </div>
             <button onclick="document.getElementById('chatModal').style.display='none'" style="width:100%; margin-top:10px; padding:10px; background:#333; border:none; color:white; border-radius:50px; cursor:pointer;">隱藏頻道</button>
         </div>
@@ -321,7 +323,6 @@
             roomRef.child('volume').on('value', s => { if(s.val()!==null) { document.getElementById('volumeSlider').value=s.val(); document.getElementById('vol-label').innerText=s.val(); }});
             roomRef.child('isPaused').on('value', s => { document.getElementById('playPauseBtn').innerText = s.val() ? '▶️' : '⏸️'; });
             
-            // 監聽聊天室
             roomRef.child('chat').limitToLast(50).on('child_added', snap => {
                 renderChatMessage(snap.val());
             });
@@ -427,7 +428,7 @@
         }
 
         // ==========================================
-        // 💬 聊天室功能 (含廣播)
+        // 💬 聊天室功能 (含廣播與 GM 天道法旨)
         // ==========================================
         function openChatModal() {
             document.getElementById('chatModal').style.display = 'flex';
@@ -445,16 +446,14 @@
             
             if(!currentUser && !document.getElementById('userName').value) return alert("訪客請先填寫上方稱號才能發言！");
             
-            // 判斷是否為「付費廣播」
             if (isMega) {
                 if (!currentUser) return alert("⚠️ 登入後才能使用傳音符！");
                 if (myPoints < 2) return alert("⚠️ 你的修為不足 2 點，無法使用傳音符！");
                 
                 if (confirm(`📢 確認花費 2 點修為，發送【傳音符廣播】嗎？\n\n廣播內容：\n${msg}`)) {
-                    // 扣除 2 點修為
                     db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(-2));
                 } else {
-                    return; // 取消發送
+                    return; 
                 }
             }
             
@@ -463,7 +462,7 @@
             const color = myCurrentRealmColor;
             
             roomRef.child('chat').push({
-                type: isMega ? 'mega' : 'user', // mega 代表付費廣播
+                type: isMega ? 'mega' : 'user', 
                 name: name,
                 realm: realm,
                 color: color,
@@ -471,6 +470,25 @@
                 timestamp: Date.now()
             });
             input.value = "";
+        }
+
+        // 👑 隱藏版 GM 廣播 (輸入管理員密碼觸發)
+        function sendAdminBroadcast() {
+            const input = document.getElementById('chatInput');
+            const msg = input.value.trim();
+            if (!msg) return alert("請先在輸入框打好你要發佈的【天道法旨】，再按這個按鈕！");
+
+            if (prompt("請輸入天道密碼 (管理員專用)：") === "1234") {
+                roomRef.child('chat').push({
+                    type: 'system',
+                    sysType: 'good', 
+                    msg: `📢 【天道法旨】${msg}`,
+                    timestamp: Date.now()
+                });
+                input.value = ""; // 清空輸入框
+            } else {
+                alert("❌ 密碼錯誤！凡人休得妄動天道法則！");
+            }
         }
 
         function sendSystemMsg(msg, type = 'good') {
@@ -507,13 +525,33 @@
             }
         }
 
+        // ==========================================
+        // 🛑 防多開外掛 (資料庫 Transaction 鎖)
+        // ==========================================
         function startIdleCultivation() {
             if (idleTimer) clearInterval(idleTimer);
             idleTimer = setInterval(() => {
                 if (currentUser) {
-                    db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(1));
+                    const now = Date.now();
+                    const idleRef = db.ref(`users/${currentUser.uid}/lastIdleTime`);
+                    
+                    idleRef.transaction(function(currentData) {
+                        if (currentData === null || (now - currentData) >= 270000) {
+                            return now; 
+                        }
+                        return undefined;
+                    }, function(error, committed, snapshot) {
+                        if (error) {
+                            console.error("掛機判定異常", error);
+                        } else if (committed) {
+                            db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(1));
+                        } else {
+                            db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(-5));
+                            alert("⚠️ 天道警告：偵測到你試圖使用「分身魔功」！\n天地靈氣逆流，心魔反噬，修為 -5！");
+                        }
+                    });
                 }
-            }, 300000);
+            }, 300000); 
         }
 
         function startGachaCountdown() {
@@ -704,18 +742,30 @@
             const voteRef = roomRef.child(`queue/${curSong.key}/votes/${currentUser.uid}`);
             voteRef.once('value', snap => {
                 const prevVote = snap.val(); 
-                let diff = 0, newVote = null;
+                let diff = 0, newVote = null, giverDiff = 0;
+                
                 if (type === 'like') {
-                    if (prevVote === 'like') { diff = -2; } 
-                    else if (prevVote === 'dislike') { diff = 3; newVote = 'like'; } 
-                    else { diff = 2; newVote = 'like'; } 
+                    if (prevVote === 'like') { 
+                        diff = -2; giverDiff = -10; 
+                    } else if (prevVote === 'dislike') { 
+                        diff = 3; newVote = 'like'; giverDiff = 10; 
+                    } else { 
+                        diff = 2; newVote = 'like'; giverDiff = 10; 
+                    } 
                 } else if (type === 'dislike') {
-                    if (prevVote === 'dislike') { diff = 1; newVote = null; } 
-                    else if (prevVote === 'like') { diff = -3; newVote = 'dislike'; } 
-                    else { diff = -1; newVote = 'dislike'; } 
+                    if (prevVote === 'dislike') { 
+                        diff = 1; newVote = null; 
+                    } else if (prevVote === 'like') { 
+                        diff = -3; newVote = 'dislike'; giverDiff = -10; 
+                    } else { 
+                        diff = -1; newVote = 'dislike'; 
+                    } 
                 }
+                
                 if (newVote) voteRef.set(newVote); else voteRef.remove();
+                
                 if (diff !== 0) db.ref(`users/${curSong.uid}/cultivation`).set(firebase.database.ServerValue.increment(diff));
+                if (giverDiff !== 0) db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(giverDiff));
             });
         }
 
