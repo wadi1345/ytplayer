@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>大香腸修仙點歌系統 v8.7</title>
+    <title>大香腸修仙點歌系統</title>
     <style>
         :root { --spotify-green: #1DB954; --bg-black: #121212; --card-gray: #181818; --text-gray: #b3b3b3; --gold: #ffd700; }
         ::-webkit-scrollbar { width: 6px; }
@@ -69,8 +69,16 @@
         .rule-table th, .rule-table td { border: 1px solid #444; padding: 6px; text-align: left; font-size: 11px; }
         .rule-table th { background: #222; color: var(--spotify-green); }
         
-        /* 突破按鈕專屬特效 */
         @keyframes pulse { 0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 75, 43, 0.7); } 70% { transform: scale(1.05); box-shadow: 0 0 0 5px rgba(255, 75, 43, 0); } 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 75, 43, 0); } }
+
+        /* 聊天室專屬樣式 */
+        .chat-msg { margin-bottom: 10px; font-size: 13px; line-height: 1.4; word-wrap: break-word; }
+        .chat-time { font-size: 10px; color: #666; margin-right: 5px; }
+        .chat-system { background: rgba(255, 215, 0, 0.1); border-left: 3px solid var(--gold); padding: 8px; border-radius: 5px; color: #ddd; }
+        .chat-system-bad { background: rgba(255, 75, 43, 0.1); border-left: 3px solid #ff4b2b; padding: 8px; border-radius: 5px; color: #ddd; }
+        .chat-input-container { display: flex; gap: 8px; margin-top: 10px; }
+        .chat-input-container input { flex-grow: 1; padding: 10px; background: #222; border: 1px solid #444; border-radius: 50px; color: white; font-size: 13px; outline: none; }
+        .chat-input-container button { padding: 10px 15px; background: var(--spotify-green); color: black; border: none; border-radius: 50px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -182,10 +190,28 @@
         </div>
     </div>
 
-    <!-- 右下角雙按鈕 -->
-    <div style="position:fixed; bottom:20px; right:20px; display:flex; gap:10px; z-index:9998;">
-        <button onclick="document.getElementById('realmModal').style.display='flex'" style="background:linear-gradient(45deg, #ffd700, #daa520); color:black; border:none; padding:12px 18px; border-radius:50px; font-weight:bold; box-shadow:0 4px 15px rgba(0,0,0,0.5); cursor:pointer; font-size:14px;">📜 修仙法則</button>
-        <button onclick="openHotModal()" style="background:linear-gradient(45deg, #ff4b2b, #ff416c); color:white; border:none; padding:12px 18px; border-radius:50px; font-weight:bold; box-shadow:0 4px 15px rgba(0,0,0,0.5); cursor:pointer; font-size:14px;">🌭 香腸榜</button>
+    <!-- 💬 宗門聊天室彈窗 -->
+    <div id="chatModal" class="modal-overlay">
+        <div class="modal-body" style="padding: 15px;">
+            <h3 style="color:#fff; margin-top:0; text-align:center;">💬 宗門頻道</h3>
+            <div class="modal-list" id="chatBox" style="height: 300px; display: flex; flex-direction: column;">
+                <!-- 訊息會塞在這裡 -->
+            </div>
+            <div class="chat-input-container">
+                <input type="text" id="chatInput" placeholder="在此輸入幹話..." onkeypress="if(event.key === 'Enter') sendChatMessage()">
+                <button onclick="sendChatMessage()">發送</button>
+            </div>
+            <button onclick="document.getElementById('chatModal').style.display='none'" style="width:100%; margin-top:10px; padding:10px; background:#333; border:none; color:white; border-radius:50px; cursor:pointer;">隱藏頻道</button>
+        </div>
+    </div>
+
+    <!-- 右下角多按鈕 (加入聊天室) -->
+    <div style="position:fixed; bottom:20px; right:20px; display:flex; flex-direction:column; gap:10px; z-index:9998;">
+        <button onclick="openChatModal()" id="chatBtnNotification" style="background:linear-gradient(45deg, #1DB954, #128C7E); color:white; border:none; padding:12px 18px; border-radius:50px; font-weight:bold; box-shadow:0 4px 15px rgba(0,0,0,0.5); cursor:pointer; font-size:14px; position:relative;">💬 宗門頻道</button>
+        <div style="display:flex; gap:10px;">
+            <button onclick="document.getElementById('realmModal').style.display='flex'" style="background:linear-gradient(45deg, #ffd700, #daa520); color:black; border:none; padding:12px 18px; border-radius:50px; font-weight:bold; box-shadow:0 4px 15px rgba(0,0,0,0.5); cursor:pointer; font-size:14px;">📜 法則</button>
+            <button onclick="openHotModal()" style="background:linear-gradient(45deg, #ff4b2b, #ff416c); color:white; border:none; padding:12px 18px; border-radius:50px; font-weight:bold; box-shadow:0 4px 15px rgba(0,0,0,0.5); cursor:pointer; font-size:14px;">🌭 排行</button>
+        </div>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -212,14 +238,17 @@
 
         // 🔮 修仙變數
         let myPoints = 0;
-        let myBreakthroughs = {}; // 記錄已突破的境界
+        let myBreakthroughs = {};
         let todayKey = new Date().toLocaleDateString().replace(/\//g, '-'); 
         let myDailyStats = { jump: 0, skip: 0 }; 
+        let myCurrentRealm = "凡人";
+        let myCurrentRealmColor = "#888";
         
-        // 🧭 秘境系統變數
+        // 🧭 秘境與掛機
         let myGachaHour = ""; 
         let countdownTimer = null;
         let idleTimer = null;
+        let hasUnreadChat = false;
 
         const REALM_DATA = [
             { id: 'lv0', name: "煉氣期", req: 0 },
@@ -285,6 +314,11 @@
             roomRef.child('queue').on('value', syncQueue);
             roomRef.child('volume').on('value', s => { if(s.val()!==null) { document.getElementById('volumeSlider').value=s.val(); document.getElementById('vol-label').innerText=s.val(); }});
             roomRef.child('isPaused').on('value', s => { document.getElementById('playPauseBtn').innerText = s.val() ? '▶️' : '⏸️'; });
+            
+            // 監聽聊天室
+            roomRef.child('chat').limitToLast(50).on('child_added', snap => {
+                renderChatMessage(snap.val());
+            });
         }
 
         function setupPresence(rName = "凡人", rColor = "#888", level = 0) {
@@ -343,8 +377,8 @@
         function updateMyProfileDisplay() {
             if (!currentUser) return;
             const state = getUserRealmState(myPoints, myBreakthroughs);
-            const rColor = REALM_COLORS[state.currentLevel];
-            const rName = state.realmName;
+            myCurrentRealm = state.realmName;
+            myCurrentRealmColor = REALM_COLORS[state.currentLevel];
             
             let breakthroughBtn = "";
             if (state.isBottleneck) {
@@ -360,9 +394,9 @@
                             ${currentUser.customName}
                             <button onclick="editNickname()" style="background:none; border:none; cursor:pointer; font-size:12px; color:#888;">✏️</button>
                         </span>
-                        <span style="font-size: 11px; color:${rColor}; font-weight:bold; display:flex; align-items:center;">[${rName}] 點歌數: ${myPoints} 🧘‍♂️ ${breakthroughBtn}</span>
+                        <span style="font-size: 11px; color:${myCurrentRealmColor}; font-weight:bold; display:flex; align-items:center;">[${myCurrentRealm}] 點歌數: ${myPoints} 🧘‍♂️ ${breakthroughBtn}</span>
                     </div>`;
-                setupPresence(rName, rColor, state.currentLevel); 
+                setupPresence(myCurrentRealm, myCurrentRealmColor, state.currentLevel); 
             });
         }
 
@@ -370,18 +404,86 @@
             const state = getUserRealmState(myPoints, myBreakthroughs);
             if (!state.isBottleneck) return;
             const target = state.nextTarget;
+            const myName = currentUser.customName || "某修士";
             
             const successRate = (target.rate * 100).toFixed(0);
-            const msg = `⚡ 突破【${target.name}】天劫！\n\n成功機率：${successRate}%\n失敗代價：扣除 ${target.penalty} 點修為\n\n請問是否引動天雷強行突破？`;
-            
-            if(confirm(msg)) {
+            if(confirm(`⚡ 突破【${target.name}】天劫！\n\n成功機率：${successRate}%\n失敗代價：扣除 ${target.penalty} 點修為\n\n請問是否引動天雷強行突破？`)) {
                 if (Math.random() < target.rate) {
                     db.ref(`users/${currentUser.uid}/breakthroughs/${target.id}`).set(true);
                     alert(`🎉 恭喜！天劫消散，你成功突破至【${target.name}】！`);
+                    sendSystemMsg(`🎉 【天道廣播】恭喜 ${myName} 渡劫成功，強勢晉升為【${target.name}】！`, 'good');
                 } else {
                     db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(-target.penalty));
                     alert(`💥 轟隆！你無法承受天雷之威，突破失敗，遭到反噬！\n\n修為重挫 -${target.penalty} 點！請重新吐納修練。`);
+                    sendSystemMsg(`⚡ 【天道廣播】${myName} 遭到天譴！渡劫【${target.name}】失敗，慘遭雷劈扣除 ${target.penalty} 點修為！`, 'bad');
                 }
+            }
+        }
+
+        // ==========================================
+        // 💬 聊天室功能
+        // ==========================================
+        function openChatModal() {
+            document.getElementById('chatModal').style.display = 'flex';
+            hasUnreadChat = false;
+            document.getElementById('chatBtnNotification').innerText = "💬 宗門頻道";
+            document.getElementById('chatBtnNotification').style.background = "linear-gradient(45deg, #1DB954, #128C7E)";
+            // 捲動到底部
+            const cb = document.getElementById('chatBox');
+            cb.scrollTop = cb.scrollHeight;
+        }
+
+        function sendChatMessage() {
+            const input = document.getElementById('chatInput');
+            const msg = input.value.trim();
+            if(!msg) return;
+            if(!currentUser && !document.getElementById('userName').value) return alert("訪客請先填寫上方稱號才能發言！");
+            
+            const name = currentUser ? currentUser.customName : document.getElementById('userName').value;
+            const realm = myCurrentRealm;
+            const color = myCurrentRealmColor;
+            
+            roomRef.child('chat').push({
+                type: 'user',
+                name: name,
+                realm: realm,
+                color: color,
+                msg: msg,
+                timestamp: Date.now()
+            });
+            input.value = "";
+        }
+
+        function sendSystemMsg(msg, type = 'good') {
+            roomRef.child('chat').push({
+                type: 'system',
+                sysType: type, // 'good' 或 'bad'
+                msg: msg,
+                timestamp: Date.now()
+            });
+        }
+
+        function renderChatMessage(data) {
+            const cb = document.getElementById('chatBox');
+            const timeStr = new Date(data.timestamp).toLocaleTimeString('zh-TW', {hour: '2-digit', minute:'2-digit'});
+            
+            let html = "";
+            if (data.type === 'system') {
+                const styleClass = data.sysType === 'bad' ? 'chat-system-bad' : 'chat-system';
+                html = `<div class="chat-msg ${styleClass}"><span class="chat-time">${timeStr}</span> <b>${data.msg}</b></div>`;
+            } else {
+                html = `<div class="chat-msg"><span class="chat-time">${timeStr}</span> <strong style="color:${data.color};">[${data.realm}] ${data.name}:</strong> <span style="color:#eee;">${data.msg.replace(/</g, "&lt;")}</span></div>`;
+            }
+            
+            cb.innerHTML += html;
+            cb.scrollTop = cb.scrollHeight;
+
+            // 處理未讀通知 (如果聊天室沒打開)
+            if (document.getElementById('chatModal').style.display !== 'flex') {
+                hasUnreadChat = true;
+                const btn = document.getElementById('chatBtnNotification');
+                btn.innerText = "💬 頻道 (有新訊息)";
+                btn.style.background = "linear-gradient(45deg, #ff4b2b, #ff416c)";
             }
         }
 
@@ -425,6 +527,9 @@
 
             let rand = Math.random() * 100;
             let diff = 0; let msg = "";
+            let triggerBroadcast = null; // 廣播文案
+
+            const myName = currentUser.customName || "某修士";
 
             if (rand < 10) { 
                 const events = [
@@ -433,6 +538,7 @@
                     {d: 30, m: "🀄 週末打牌連莊自摸，順便拍了超有梗的手機殼短影音，流量爆擊，修為 +30！"}
                 ];
                 let ev = events[Math.floor(Math.random() * events.length)]; diff = ev.d; msg = ev.m;
+                triggerBroadcast = { msg: `✨ 【天道廣播】氣運之子降臨！${myName} 在秘境獲得大機緣，修為暴漲！`, type: 'good' };
             } else if (rand < 40) { 
                 const events = [
                     {d: 20, m: "🍱 中午負責幫大家訂中和精緻便當，沒算錯錢老闆還多送小菜，獲得同事感恩念力，修為 +20！"},
@@ -456,11 +562,12 @@
                     {d: -20, m: "📦 點交門市配件庫存時，發現少了一箱盲盒，急忙去調監視器，心力交瘁，修為 -20！"}
                 ];
                 let ev = events[Math.floor(Math.random() * events.length)]; diff = ev.d; msg = ev.m;
+                triggerBroadcast = { msg: `🐾 【天道廣播】業障引爆！${myName} 遭遇日常厄運，損失了 ${Math.abs(diff)} 點修為！`, type: 'bad' };
             } else { 
                 const myState = getUserRealmState(myPoints, myBreakthroughs);
                 let winRate = 0.1; 
-                if (myState.currentLevel >= 4) winRate = 0.6; // 化神+
-                else if (myState.currentLevel >= 2) winRate = 0.3; // 金丹/元嬰
+                if (myState.currentLevel >= 4) winRate = 0.6; 
+                else if (myState.currentLevel >= 2) winRate = 0.3; 
 
                 if (confirm(`💀 警告！你在走廊上遭遇了傳說中的兇獸（老闆）對你微笑！\n你要嘗試「閃避」還是「勇敢面對」？\n\n👉 按『確定』嘗試閃避 (50%機率無事)\n👉 按『取消』勇敢面對 (依據你的境界，勝率為 ${winRate*100}%)`)) {
                     if (Math.random() < 0.5) {
@@ -471,8 +578,10 @@
                 } else {
                     if (Math.random() < winRate) {
                         diff = 40; msg = "🎉 【戰勝兇獸！】你大聲且完美地匯報了當季聯名手機殼銷量與機台佈署進度，老闆龍心大悅！修為暴增 +40！";
+                        triggerBroadcast = { msg: `👑 【天道廣播】太神啦！${myName} 竟然正面戰勝了傳說兇獸(老闆)，修為狂飆 40 點！`, type: 'good' };
                     } else {
                         diff = -20; msg = "🩸 【戰敗！】你支支吾吾答不出來，承受了兇獸的恐怖威壓，神魂受創！修為重挫 -20！";
+                        triggerBroadcast = { msg: `💀 【天道廣播】悲劇！${myName} 不自量力挑戰傳說兇獸(老闆)失敗，被噴到神魂受創，扣除 20 點修為！`, type: 'bad' };
                     }
                 }
             }
@@ -480,6 +589,11 @@
             db.ref(`users/${currentUser.uid}/gachaHour`).set(currentHourKey);
             if (diff !== 0) db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(diff));
             alert(`🧭 秘境探索結果：\n\n${msg}`);
+            
+            // 觸發廣播
+            if (triggerBroadcast) {
+                sendSystemMsg(triggerBroadcast.msg, triggerBroadcast.type);
+            }
         }
 
         // ==========================================
@@ -497,7 +611,6 @@
 
             let finalTimestamp = Date.now();
             
-            // 👑 金丹期 (Level >= 2) 插隊特權
             if (currentUser && myState.currentLevel >= 2 && currentQueue.length > 1) {
                 if (myDailyStats.jump === 0) {
                     if (confirm(`👑 金丹期特權：\n你今日還有 1 次「縮地成寸(插隊)」機會。要消耗它將此歌排到下一首嗎？`)) {
@@ -526,11 +639,11 @@
             } 
             
             const myState = getUserRealmState(myPoints, myBreakthroughs);
-            // 👑 元嬰期 (Level >= 3) 強制切歌特權
             if (currentUser && myState.currentLevel >= 3) {
                 if (myDailyStats.skip === 0) {
                     if (confirm(`👑 元嬰期特權：\n你今日還有 1 次「言出法隨」機會。要消耗它強制抹殺這首爛歌嗎？`)) {
                         db.ref(`users/${currentUser.uid}/dailyStats/${todayKey}/skip`).set(1);
+                        sendSystemMsg(`🔪 【天道廣播】大能出手！${currentUser.customName} 發動了【言出法隨】強制切除了歌曲。`, 'bad');
                         return roomRef.child('queue/'+s.key).remove();
                     } else { return; }
                 }
