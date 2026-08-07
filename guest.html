@@ -211,7 +211,7 @@
         // 🧭 秘境系統變數
         let myGachaHour = ""; 
         let countdownTimer = null;
-        let idleTimer = null; // 🧘‍♂️ 掛機吐納計時器
+        let idleTimer = null;
 
         function getRealm(points) {
             if (!points || points < 0) return "煉氣期";
@@ -311,7 +311,7 @@
                 });
                 
                 startGachaCountdown(); 
-                startIdleCultivation(); // 啟動掛機吐納計時器 (每 5 分鐘 +1)
+                startIdleCultivation(); 
                 db.ref(`users/${user.uid}/favorites`).on('value', s => { myFavorites = s.val() || {}; updateAllStars(); });
             } else {
                 myPoints = 0;
@@ -329,7 +329,6 @@
         // ==========================================
         function startIdleCultivation() {
             if (idleTimer) clearInterval(idleTimer);
-            // 5 分鐘 = 300,000 毫秒
             idleTimer = setInterval(() => {
                 if (currentUser) {
                     db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(1));
@@ -339,7 +338,7 @@
         }
 
         // ==========================================
-        // 🧭 整點秘境 (動態倒數與抽取)
+        // 🧭 整點秘境 (辦公室事件庫)
         // ==========================================
         function startGachaCountdown() {
             if (countdownTimer) clearInterval(countdownTimer);
@@ -383,16 +382,52 @@
             let diff = 0;
             let msg = "";
 
-            if (rand < 10) {
-                diff = 50; msg = "✨ 你在秘境深處發現上古法寶，修為大增 +50！";
-            } else if (rand < 35) {
-                diff = 15; msg = "📜 你撿到一本殘破的樂譜，吸收後修為 +15！";
-            } else if (rand < 60) {
-                diff = 10; msg = "💧 你在茶水間頓悟，修為 +10！";
-            } else if (rand < 85) {
-                diff = -5; msg = "🐾 你遭遇了不知名兇獸的襲擊，受了點輕傷，修為 -5！";
-            } else {
-                if (confirm("💀 警告！你遭遇了傳說中的兇獸（老闆）對你微笑！\n你要嘗試「閃避」嗎？(50% 成功率)\n\n👉 按『確定』嘗試閃避\n👉 按『取消』勇敢面對")) {
+            if (rand < 10) { 
+                // 大機緣 (10%)
+                const events = [
+                    {d: 50, m: "✨ 下班去抽盲盒，竟然一發入魂抽中超稀有隱藏版！心境大突破，修為 +50！"},
+                    {d: 40, m: "📊 月底的庫存與結帳報表一次對齊，帳目完美無瑕，被全公司膜拜，修為 +40！"},
+                    {d: 30, m: "🀄 週末打牌連莊自摸，順便拍了超有梗的手機殼短影音，流量爆擊，修為 +30！"}
+                ];
+                let ev = events[Math.floor(Math.random() * events.length)];
+                diff = ev.d; msg = ev.m;
+            } else if (rand < 40) { 
+                // 中小機緣 (30%)
+                const events = [
+                    {d: 20, m: "🍱 中午負責幫大家訂精緻便當，沒算錯錢老闆還多送小菜，獲得同事感恩念力，修為 +20！"},
+                    {d: 15, m: "🧋 下午茶訂了手搖飲，不僅準時送達，珍珠還煮得特別軟Q，心情大好，修為 +15！"},
+                    {d: 15, m: "📱 最新一季的 IP 聯名手機殼打樣送來了，顏色完美零色差，一次過稿免修改！修為 +15！"},
+                    {d: 10, m: "💡 坐在辦公座位上，突然想出一句超洗腦的 3C 配件行銷腳本，修為 +10！"}
+                ];
+                let ev = events[Math.floor(Math.random() * events.length)];
+                diff = ev.d; msg = ev.m;
+            } else if (rand < 60) { 
+                // 微波動 (20%)
+                const events = [
+                    {d: 5, m: "🍗 中午吃到一塊比手掌還大的超巨型雞排，氣血翻湧，修為 +5！"},
+                    {d: 0, m: "😐 去茶水間裝水，望著窗外發呆了三分鐘，什麼事都沒發生。修為 +0。"},
+                    {d: -5, m: "🔍 廠商寄來的樣品神秘消失，跟同事翻箱倒櫃找了半天才發現在紙箱最底層，修為 -5。"},
+                    {d: -5, m: "🗑️ 發現今天要倒的垃圾特別多，原來是海苔精在搞鬼，心很累，修為 -5。"}
+                ];
+                let ev = events[Math.floor(Math.random() * events.length)];
+                diff = ev.d; msg = ev.m;
+            } else if (rand < 85) { 
+                // 日常厄運 (25%)
+                const events = [
+                    {d: -10, m: "🥤 期待了一整個下午的手搖飲送來，結果你的「無糖微冰」變成了「全糖去冰」，當場走火入魔，修為 -10！"},
+                    {d: -10, m: "⚡ 辦公室有人電鍋和微波爐一起用，整間公司瞬間跳電，你的報表沒存檔，心血白費，修為 -10！"},
+                    {d: -20, m: "📦 點交門市配件庫存時，發現少了一箱盲盒，急忙去調監視器，心力交瘁，修為 -20！"}
+                ];
+                let ev = events[Math.floor(Math.random() * events.length)];
+                diff = ev.d; msg = ev.m;
+            } else { 
+                // 老闆戰 (15%)
+                let winRate = 0.1; // 煉氣/築基
+                if (myPoints >= 3000) winRate = 0.6; // 化神以上
+                else if (myPoints >= 500) winRate = 0.3; // 金丹/元嬰
+
+                if (confirm(`💀 警告！你在走廊上遭遇了傳說中的兇獸（老闆）對你微笑！\n你要嘗試「閃避」還是「勇敢面對」？\n\n👉 按『確定』嘗試閃避 (50%機率無事)\n👉 按『取消』勇敢面對 (依據你的境界，勝率為 ${winRate*100}%)`)) {
+                    // 閃避
                     if (Math.random() < 0.5) {
                         diff = 0;
                         msg = "💨 你一個滑步躲進了廁所，成功逃過一劫！修為不變。";
@@ -401,8 +436,14 @@
                         msg = "💥 你閃避不及，被老闆叫住問專案進度，當場走火入魔！修為 -10！";
                     }
                 } else {
-                    diff = -10;
-                    msg = "🩸 你選擇勇敢面對，承受了老闆的威壓，修為 -10！";
+                    // 勇敢面對
+                    if (Math.random() < winRate) {
+                        diff = 40;
+                        msg = "🎉 【戰勝兇獸！】你大聲且完美地匯報了當季聯名手機殼銷量與機台佈署進度，老闆龍心大悅！修為暴增 +40！";
+                    } else {
+                        diff = -20;
+                        msg = "🩸 【戰敗！】你支支吾吾答不出來，承受了兇獸的恐怖威壓，神魂受創！修為重挫 -20！";
+                    }
                 }
             }
 
@@ -491,9 +532,6 @@
         function signIn() { auth.signInWithPopup(provider); }
         function signOut() { auth.signOut(); }
 
-        // ==========================================
-        // 🔮 心魔扣分改為 -1 點
-        // ==========================================
         function castVote(type) {
             if (!currentUser) return alert("⚠️ 登入後才能動用仙丹與心魔！");
             if (currentQueue.length === 0) return;
@@ -507,12 +545,12 @@
                 let diff = 0, newVote = null;
                 if (type === 'like') {
                     if (prevVote === 'like') { diff = -2; } 
-                    else if (prevVote === 'dislike') { diff = 3; newVote = 'like'; } // 從 -5 改回對應扣除的補償
+                    else if (prevVote === 'dislike') { diff = 3; newVote = 'like'; } 
                     else { diff = 2; newVote = 'like'; } 
                 } else if (type === 'dislike') {
-                    if (prevVote === 'dislike') { diff = 1; newVote = null; } // 取消心魔時把 -1 加回來
+                    if (prevVote === 'dislike') { diff = 1; newVote = null; } 
                     else if (prevVote === 'like') { diff = -3; newVote = 'dislike'; } 
-                    else { diff = -1; newVote = 'dislike'; } // 😈 心魔扣分改為 -1
+                    else { diff = -1; newVote = 'dislike'; } 
                 }
                 if (newVote) voteRef.set(newVote); else voteRef.remove();
                 if (diff !== 0) db.ref(`users/${curSong.uid}/cultivation`).set(firebase.database.ServerValue.increment(diff));
