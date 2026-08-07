@@ -171,8 +171,8 @@
                 <div style="margin-bottom: 10px;">
                     <strong style="color: #fff;">【因果與吐納法】</strong><br>
                     🧘‍♂️ 頁面掛機：每滿 5 分鐘自動吐納 +1 (防護陣法已啟動，嚴禁分身多開！)<br>
-                    🎵 點歌 +1 | 👼 獲贈仙丹 +2<br>
-                    😈 心魔纏身 -1 | ⚡ 累積 5 心魔直接天譴抹殺<br>
+                    🎵 點歌 +1 | 🔪 刪除歌曲 -1 (點了又切會扣除點數喔！)<br>
+                    👼 獲贈仙丹 +2 | 😈 心魔纏身 -1<br>
                     🧭 每逢整點探尋秘境 (亦有極大殞落風險)<br>
                     📢 宗門頻道使用「傳音符廣播」：每次扣除 2 點修為
                 </div>
@@ -186,7 +186,7 @@
                     <tr><td style="color:#1DB954;">築基期</td><td>100+</td><td>自動</td><td>-</td><td>清單匯入(20首)</td></tr>
                     <tr><td style="color:#ffd700;">金丹期</td><td>500+</td><td>30%</td><td>-100</td><td>每日 1 次插隊</td></tr>
                     <tr><td style="color:#ff8c00;">元嬰期</td><td>1000+</td><td>20%</td><td>-300</td><td>每日免密碼切歌</td></tr>
-                    <tr><td style="color:#ff4b2b;">化神期</td><td>3000+</td><td>15%</td><td>-500</td><td>寫入派對電台</td></tr>
+                    <tr><td style="color:#ff4b2b;">化神期</td><td>3000+</td><td>15%</td><td>-500</td><td>寫入派驚電台</td></tr>
                     <tr><td style="color:#9400d3;">渡劫期</td><td>5000+</td><td>10%</td><td>-1000</td><td>免疫管理員禁言</td></tr>
                     <tr><td style="color:#00ffff;">大乘仙尊</td><td>10000+</td><td>5%</td><td>-3000</td><td>匯入無上限</td></tr>
                 </table>
@@ -275,22 +275,11 @@
             let nextTarget = null;
 
             if (points >= 100) currentLevel = 1;
-            
-            if (points >= 500) {
-                if (btObj['lv2']) currentLevel = 2; else { isBottleneck = true; nextTarget = REALM_DATA[2]; }
-            }
-            if (points >= 1000 && currentLevel === 2) {
-                if (btObj['lv3']) currentLevel = 3; else { isBottleneck = true; nextTarget = REALM_DATA[3]; }
-            }
-            if (points >= 3000 && currentLevel === 3) {
-                if (btObj['lv4']) currentLevel = 4; else { isBottleneck = true; nextTarget = REALM_DATA[4]; }
-            }
-            if (points >= 5000 && currentLevel === 4) {
-                if (btObj['lv5']) currentLevel = 5; else { isBottleneck = true; nextTarget = REALM_DATA[5]; }
-            }
-            if (points >= 10000 && currentLevel === 5) {
-                if (btObj['lv6']) currentLevel = 6; else { isBottleneck = true; nextTarget = REALM_DATA[6]; }
-            }
+            if (points >= 500) { if (btObj['lv2']) currentLevel = 2; else { isBottleneck = true; nextTarget = REALM_DATA[2]; } }
+            if (points >= 1000 && currentLevel === 2) { if (btObj['lv3']) currentLevel = 3; else { isBottleneck = true; nextTarget = REALM_DATA[3]; } }
+            if (points >= 3000 && currentLevel === 3) { if (btObj['lv4']) currentLevel = 4; else { isBottleneck = true; nextTarget = REALM_DATA[4]; } }
+            if (points >= 5000 && currentLevel === 4) { if (btObj['lv5']) currentLevel = 5; else { isBottleneck = true; nextTarget = REALM_DATA[5]; } }
+            if (points >= 10000 && currentLevel === 5) { if (btObj['lv6']) currentLevel = 6; else { isBottleneck = true; nextTarget = REALM_DATA[6]; } }
 
             const realmName = isBottleneck ? REALM_DATA[currentLevel].name.replace('期', '圓滿') : REALM_DATA[currentLevel].name;
             return { realmName, currentLevel, isBottleneck, nextTarget };
@@ -449,12 +438,9 @@
             if (isMega) {
                 if (!currentUser) return alert("⚠️ 登入後才能使用傳音符！");
                 if (myPoints < 2) return alert("⚠️ 你的修為不足 2 點，無法使用傳音符！");
-                
                 if (confirm(`📢 確認花費 2 點修為，發送【傳音符廣播】嗎？\n\n廣播內容：\n${msg}`)) {
                     db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(-2));
-                } else {
-                    return; 
-                }
+                } else { return; }
             }
             
             const name = currentUser ? currentUser.customName : document.getElementById('userName').value;
@@ -472,7 +458,6 @@
             input.value = "";
         }
 
-        // 👑 隱藏版 GM 廣播 (輸入管理員密碼觸發)
         function sendAdminBroadcast() {
             const input = document.getElementById('chatInput');
             const msg = input.value.trim();
@@ -485,19 +470,14 @@
                     msg: `📢 【天道法旨】${msg}`,
                     timestamp: Date.now()
                 });
-                input.value = ""; // 清空輸入框
+                input.value = ""; 
             } else {
                 alert("❌ 密碼錯誤！凡人休得妄動天道法則！");
             }
         }
 
         function sendSystemMsg(msg, type = 'good') {
-            roomRef.child('chat').push({
-                type: 'system',
-                sysType: type, 
-                msg: msg,
-                timestamp: Date.now()
-            });
+            roomRef.child('chat').push({ type: 'system', sysType: type, msg: msg, timestamp: Date.now() });
         }
 
         function renderChatMessage(data) {
@@ -534,18 +514,13 @@
                 if (currentUser) {
                     const now = Date.now();
                     const idleRef = db.ref(`users/${currentUser.uid}/lastIdleTime`);
-                    
                     idleRef.transaction(function(currentData) {
-                        if (currentData === null || (now - currentData) >= 270000) {
-                            return now; 
-                        }
+                        if (currentData === null || (now - currentData) >= 270000) return now; 
                         return undefined;
                     }, function(error, committed, snapshot) {
-                        if (error) {
-                            console.error("掛機判定異常", error);
-                        } else if (committed) {
-                            db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(1));
-                        } else {
+                        if (error) { console.error("掛機判定異常", error); } 
+                        else if (committed) { db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(1)); } 
+                        else {
                             db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(-5));
                             alert("⚠️ 天道警告：偵測到你試圖使用「分身魔功」！\n天地靈氣逆流，心魔反噬，修為 -5！");
                         }
@@ -647,14 +622,11 @@
             db.ref(`users/${currentUser.uid}/gachaHour`).set(currentHourKey);
             if (diff !== 0) db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(diff));
             alert(`🧭 秘境探索結果：\n\n${msg}`);
-            
-            if (triggerBroadcast) {
-                sendSystemMsg(triggerBroadcast.msg, triggerBroadcast.type);
-            }
+            if (triggerBroadcast) sendSystemMsg(triggerBroadcast.msg, triggerBroadcast.type);
         }
 
         // ==========================================
-        // 🔮 修仙特權控制與點歌
+        // 🔮 點歌與因果平衡機制 (點歌+1，切歌-1)
         // ==========================================
         function addToQueue(id, title) {
             const myState = getUserRealmState(myPoints, myBreakthroughs);
@@ -688,25 +660,59 @@
             incrementScore(1); document.getElementById('results').innerHTML = ''; document.getElementById('searchInput').value = ''; 
         }
 
+        // 切換正在播放的歌曲 (切歌)
         function disguisedSkip() { 
             if(currentQueue.length===0)return; 
             const s = currentQueue[0]; 
+            
+            // 1. 自己切除自己的歌
             if(currentUser && s.uid === currentUser.uid){ 
-                if(confirm("切除自己的歌？")) return roomRef.child('queue/'+s.key).remove(); 
+                if(confirm("切除自己的歌？\n(⚠️ 注意：將倒扣回原本點歌獲得的 1 點修為)")) {
+                    db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(-1));
+                    return roomRef.child('queue/'+s.key).remove(); 
+                } else {
+                    return; // 放棄切歌就直接中止
+                }
             } 
             
+            // 2. 特權切除別人的歌 (元嬰期 言出法隨)
             const myState = getUserRealmState(myPoints, myBreakthroughs);
             if (currentUser && myState.currentLevel >= 3) {
                 if (myDailyStats.skip === 0) {
                     if (confirm(`👑 元嬰期特權：\n你今日還有 1 次「言出法隨」機會。要消耗它強制抹殺這首爛歌嗎？`)) {
                         db.ref(`users/${currentUser.uid}/dailyStats/${todayKey}/skip`).set(1);
                         sendSystemMsg(`🔪 【天道廣播】大能出手！${currentUser.customName} 發動了【言出法隨】強制切除了歌曲。`, 'bad');
+                        // 倒扣被切歌者的點數
+                        if (s.uid) db.ref(`users/${s.uid}/cultivation`).set(firebase.database.ServerValue.increment(-1));
                         return roomRef.child('queue/'+s.key).remove();
                     } else { return; }
                 }
             }
             
-            if(prompt("請輸入管理員按讚切歌密碼：")==="1234") roomRef.child('queue/'+s.key).remove(); 
+            // 3. 管理員輸入密碼切歌
+            if(prompt("請輸入管理員按讚切歌密碼：")==="1234") {
+                // 倒扣被切歌者的點數
+                if (s.uid) db.ref(`users/${s.uid}/cultivation`).set(firebase.database.ServerValue.increment(-1));
+                roomRef.child('queue/'+s.key).remove(); 
+            }
+        }
+
+        // 在待播清單按垃圾桶刪除歌曲
+        function removeSong(k, uid) { 
+            if (currentUser && uid === currentUser.uid) { 
+                if(confirm("取消點歌？\n(⚠️ 注意：將倒扣回原本點歌獲得的 1 點修為)")) {
+                    db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(-1));
+                    roomRef.child('queue/'+k).remove(); 
+                }
+            } else { 
+                if(prompt("密碼：")==="1234") {
+                    // 如果管理員刪除別人的歌，被刪除的人一樣要倒扣
+                    if (uid && uid !== 'null' && uid !== 'undefined') {
+                        db.ref(`users/${uid}/cultivation`).set(firebase.database.ServerValue.increment(-1));
+                    }
+                    roomRef.child('queue/'+k).remove(); 
+                }
+            } 
         }
 
         function renderOnlineModal() {
@@ -745,25 +751,16 @@
                 let diff = 0, newVote = null, giverDiff = 0;
                 
                 if (type === 'like') {
-                    if (prevVote === 'like') { 
-                        diff = -2; giverDiff = -10; 
-                    } else if (prevVote === 'dislike') { 
-                        diff = 3; newVote = 'like'; giverDiff = 10; 
-                    } else { 
-                        diff = 2; newVote = 'like'; giverDiff = 10; 
-                    } 
+                    if (prevVote === 'like') { diff = -2; giverDiff = -10; } 
+                    else if (prevVote === 'dislike') { diff = 3; newVote = 'like'; giverDiff = 10; } 
+                    else { diff = 2; newVote = 'like'; giverDiff = 10; } 
                 } else if (type === 'dislike') {
-                    if (prevVote === 'dislike') { 
-                        diff = 1; newVote = null; 
-                    } else if (prevVote === 'like') { 
-                        diff = -3; newVote = 'dislike'; giverDiff = -10; 
-                    } else { 
-                        diff = -1; newVote = 'dislike'; 
-                    } 
+                    if (prevVote === 'dislike') { diff = 1; newVote = null; } 
+                    else if (prevVote === 'like') { diff = -3; newVote = 'dislike'; giverDiff = -10; } 
+                    else { diff = -1; newVote = 'dislike'; } 
                 }
                 
                 if (newVote) voteRef.set(newVote); else voteRef.remove();
-                
                 if (diff !== 0) db.ref(`users/${curSong.uid}/cultivation`).set(firebase.database.ServerValue.increment(diff));
                 if (giverDiff !== 0) db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(giverDiff));
             });
@@ -796,7 +793,7 @@
         
         function addToRadio(id, title) {
             const myState = getUserRealmState(myPoints, myBreakthroughs);
-            if (myState.currentLevel < 4) return alert("❌ 境界不足！【化神期】以上方可將歌曲刻印至派對電台！");
+            if (myState.currentLevel < 4) return alert("❌ 境界不足！【化神期】以上方可將歌曲刻印至派驚電台！");
             roomRef.child('radioPlaylist').push(id); alert(`✅ 已將《${title}》永久加入電台！`);
         }
 
@@ -813,7 +810,6 @@
         function toggleAllFav() { const s = document.getElementById('selAllFav').checked; document.querySelectorAll('.fav-chk').forEach(c => c.checked = s); }
         function openOnlineModal() { document.getElementById('onlineModal').style.display = 'flex'; renderOnlineModal(); }
         function toggleBan(id, isB) { if(prompt("密碼：")==="1234") isB ? roomRef.child(`banned/${id}`).remove() : roomRef.child(`banned/${id}`).set(true); }
-        function removeSong(k, uid) { if (currentUser && uid === currentUser.uid) { if(confirm("取消點歌？")) roomRef.child('queue/'+k).remove(); } else { if(prompt("密碼：")==="1234") roomRef.child('queue/'+k).remove(); } }
         function togglePlayPause() { roomRef.child('isPaused').once('value', s => roomRef.child('isPaused').set(!s.val())); }
         function changeVolume(v) { roomRef.child('volume').set(parseInt(v)); }
         function openHotModal() { const m = document.getElementById('hotModal'); if(!m)return; m.style.display='flex'; const c = document.getElementById('hotItems'); c.innerHTML='<p style="text-align:center; color:#888;">📊 統計中...</p>'; roomRef.child('songStats').once('value', snap => { const d = snap.val()||{}; const s = Object.keys(d).map(id=>({id,...d[id]})).sort((a,b)=>b.count-a.count).slice(0,10); if(s.length===0) return c.innerHTML='<p style="text-align:center; color:#555;">還沒有點歌紀錄喔！</p>'; c.innerHTML=s.map((it,i)=>{ let m = i===0?'🥇':i===1?'🥈':i===2?'🥉':`<span style="color:#888; font-size:12px;">${i+1}.</span>`; return `<div class="res-item" style="display:flex; align-items:center; border-bottom:1px solid #444; padding:10px 0; margin:0;"><div style="width:30px; text-align:center; font-size:18px;">${m}</div><div style="flex-grow:1; margin:0 10px; overflow:hidden;"><div style="font-size:13px; color:white; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${it.title}</div><div style="font-size:11px; color:#1DB954; font-weight:bold; margin-top:3px;">被點了 ${it.count} 次</div></div><button onclick="addToQueue('${it.id}', '${it.title.replace(/'/g, "\\'")}')" style="background:var(--spotify-green); border:none; padding:6px 12px; border-radius:8px; font-weight:bold; cursor:pointer; font-size:11px; color:black; flex-shrink:0;">點播</button></div>`; }).join(''); }); }
