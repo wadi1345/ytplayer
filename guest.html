@@ -76,9 +76,13 @@
         .chat-time { font-size: 10px; color: #666; margin-right: 5px; }
         .chat-system { background: rgba(255, 215, 0, 0.1); border-left: 3px solid var(--gold); padding: 8px; border-radius: 5px; color: #ddd; }
         .chat-system-bad { background: rgba(255, 75, 43, 0.1); border-left: 3px solid #ff4b2b; padding: 8px; border-radius: 5px; color: #ddd; }
-        .chat-input-container { display: flex; gap: 8px; margin-top: 10px; }
-        .chat-input-container input { flex-grow: 1; padding: 10px; background: #222; border: 1px solid #444; border-radius: 50px; color: white; font-size: 13px; outline: none; }
-        .chat-input-container button { padding: 10px 15px; background: var(--spotify-green); color: black; border: none; border-radius: 50px; font-weight: bold; cursor: pointer; }
+        .chat-mega { background: rgba(255, 140, 0, 0.2); border-left: 3px solid #ff8c00; padding: 8px; border-radius: 5px; color: #fff; font-weight: bold; font-size: 14px; }
+        
+        .chat-input-container { display: flex; gap: 8px; margin-top: 10px; align-items: center; flex-wrap: wrap; }
+        .chat-input-container input { flex-grow: 1; min-width: 150px; padding: 10px; background: #222; border: 1px solid #444; border-radius: 50px; color: white; font-size: 13px; outline: none; }
+        .chat-input-container button { padding: 10px 15px; background: var(--spotify-green); color: black; border: none; border-radius: 50px; font-weight: bold; cursor: pointer; flex-shrink: 0; }
+        
+        .btn-mega { background: linear-gradient(45deg, #ff8c00, #ff4b2b) !important; color: white !important; font-size: 11px; padding: 8px 12px !important; }
     </style>
 </head>
 <body>
@@ -169,7 +173,8 @@
                     🧘‍♂️ 頁面掛機：每滿 5 分鐘自動吐納 +1<br>
                     🎵 點歌 +1 | 👼 獲贈仙丹 +2<br>
                     😈 心魔纏身 -1 | ⚡ 累積 5 心魔直接天譴抹殺<br>
-                    🧭 每逢整點探尋秘境 (亦有極大殞落風險)
+                    🧭 每逢整點探尋秘境 (亦有極大殞落風險)<br>
+                    📢 宗門頻道使用「傳音符廣播」：每次扣除 2 點修為
                 </div>
                 <div style="margin-bottom: 10px; border-top: 1px dashed #444; padding-top: 10px;">
                     <strong style="color: #ff4b2b;">【⚡ 天劫突破法則】</strong><br>
@@ -198,8 +203,9 @@
                 <!-- 訊息會塞在這裡 -->
             </div>
             <div class="chat-input-container">
-                <input type="text" id="chatInput" placeholder="在此輸入幹話..." onkeypress="if(event.key === 'Enter') sendChatMessage()">
-                <button onclick="sendChatMessage()">發送</button>
+                <input type="text" id="chatInput" placeholder="在此輸入幹話..." onkeypress="if(event.key === 'Enter') sendChatMessage(false)">
+                <button class="btn-mega" onclick="sendChatMessage(true)" title="花費 2 點修為發送醒目廣播">📢廣播(-2)</button>
+                <button onclick="sendChatMessage(false)">一般</button>
             </div>
             <button onclick="document.getElementById('chatModal').style.display='none'" style="width:100%; margin-top:10px; padding:10px; background:#333; border:none; color:white; border-radius:50px; cursor:pointer;">隱藏頻道</button>
         </div>
@@ -421,30 +427,43 @@
         }
 
         // ==========================================
-        // 💬 聊天室功能
+        // 💬 聊天室功能 (含廣播)
         // ==========================================
         function openChatModal() {
             document.getElementById('chatModal').style.display = 'flex';
             hasUnreadChat = false;
             document.getElementById('chatBtnNotification').innerText = "💬 宗門頻道";
             document.getElementById('chatBtnNotification').style.background = "linear-gradient(45deg, #1DB954, #128C7E)";
-            // 捲動到底部
             const cb = document.getElementById('chatBox');
             cb.scrollTop = cb.scrollHeight;
         }
 
-        function sendChatMessage() {
+        function sendChatMessage(isMega = false) {
             const input = document.getElementById('chatInput');
             const msg = input.value.trim();
             if(!msg) return;
+            
             if(!currentUser && !document.getElementById('userName').value) return alert("訪客請先填寫上方稱號才能發言！");
+            
+            // 判斷是否為「付費廣播」
+            if (isMega) {
+                if (!currentUser) return alert("⚠️ 登入後才能使用傳音符！");
+                if (myPoints < 2) return alert("⚠️ 你的修為不足 2 點，無法使用傳音符！");
+                
+                if (confirm(`📢 確認花費 2 點修為，發送【傳音符廣播】嗎？\n\n廣播內容：\n${msg}`)) {
+                    // 扣除 2 點修為
+                    db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(-2));
+                } else {
+                    return; // 取消發送
+                }
+            }
             
             const name = currentUser ? currentUser.customName : document.getElementById('userName').value;
             const realm = myCurrentRealm;
             const color = myCurrentRealmColor;
             
             roomRef.child('chat').push({
-                type: 'user',
+                type: isMega ? 'mega' : 'user', // mega 代表付費廣播
                 name: name,
                 realm: realm,
                 color: color,
@@ -457,7 +476,7 @@
         function sendSystemMsg(msg, type = 'good') {
             roomRef.child('chat').push({
                 type: 'system',
-                sysType: type, // 'good' 或 'bad'
+                sysType: type, 
                 msg: msg,
                 timestamp: Date.now()
             });
@@ -471,6 +490,8 @@
             if (data.type === 'system') {
                 const styleClass = data.sysType === 'bad' ? 'chat-system-bad' : 'chat-system';
                 html = `<div class="chat-msg ${styleClass}"><span class="chat-time">${timeStr}</span> <b>${data.msg}</b></div>`;
+            } else if (data.type === 'mega') {
+                html = `<div class="chat-msg chat-mega"><span class="chat-time" style="color:#eee;">${timeStr}</span> [傳音符] <strong style="color:#fff;">[${data.realm}] ${data.name}:</strong> <span style="color:#fff;">${data.msg.replace(/</g, "&lt;")}</span></div>`;
             } else {
                 html = `<div class="chat-msg"><span class="chat-time">${timeStr}</span> <strong style="color:${data.color};">[${data.realm}] ${data.name}:</strong> <span style="color:#eee;">${data.msg.replace(/</g, "&lt;")}</span></div>`;
             }
@@ -478,7 +499,6 @@
             cb.innerHTML += html;
             cb.scrollTop = cb.scrollHeight;
 
-            // 處理未讀通知 (如果聊天室沒打開)
             if (document.getElementById('chatModal').style.display !== 'flex') {
                 hasUnreadChat = true;
                 const btn = document.getElementById('chatBtnNotification');
@@ -527,7 +547,7 @@
 
             let rand = Math.random() * 100;
             let diff = 0; let msg = "";
-            let triggerBroadcast = null; // 廣播文案
+            let triggerBroadcast = null;
 
             const myName = currentUser.customName || "某修士";
 
@@ -590,7 +610,6 @@
             if (diff !== 0) db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(diff));
             alert(`🧭 秘境探索結果：\n\n${msg}`);
             
-            // 觸發廣播
             if (triggerBroadcast) {
                 sendSystemMsg(triggerBroadcast.msg, triggerBroadcast.type);
             }
