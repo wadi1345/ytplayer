@@ -79,7 +79,7 @@
         .chat-mega { background: rgba(255, 140, 0, 0.2); border-left: 3px solid #ff8c00; padding: 8px; border-radius: 5px; color: #fff; font-weight: bold; font-size: 14px; }
         
         .chat-input-container { display: flex; gap: 8px; margin-top: 10px; align-items: center; flex-wrap: nowrap; }
-        .chat-input-container input { flex-grow: 1; min-width: 120px; padding: 10px; background: #222; border: 1px solid #444; border-radius: 50px; color: white; font-size: 13px; outline: none; }
+        .chat-input-container input { flex-grow: 1; min-width: 100px; padding: 10px; background: #222; border: 1px solid #444; border-radius: 50px; color: white; font-size: 13px; outline: none; }
         .chat-input-container button { padding: 10px 12px; background: var(--spotify-green); color: black; border: none; border-radius: 50px; font-weight: bold; cursor: pointer; flex-shrink: 0; }
         .btn-mega { background: linear-gradient(45deg, #ff8c00, #ff4b2b) !important; color: white !important; font-size: 11px; padding: 8px 10px !important; }
         .btn-admin { background: transparent !important; border: 1px solid var(--gold) !important; color: var(--gold) !important; padding: 8px 10px !important; font-size: 12px; }
@@ -179,9 +179,9 @@
     <!-- 🔍 專屬天道照妖鏡 (查水表後台彈窗) -->
     <div id="auditModal" class="modal-overlay">
         <div class="modal-body" style="max-width: 500px;">
-            <h3 style="margin-top:0; color:var(--gold); text-align:center;">🔍 天道照妖鏡 (後台紀錄)</h3>
-            <div style="text-align:center; font-size:11px; color:#aaa; margin-bottom:10px;">(此畫面僅管理員可見，其他修士無法察覺)</div>
-            <div class="modal-list" id="auditItems" style="height: 350px; padding: 10px; font-size: 13px; line-height: 1.6; background:#111;">
+            <h3 style="margin-top:0; color:var(--gold); text-align:center;">👁️ 天道之眼 (全服數據)</h3>
+            <div style="text-align:center; font-size:11px; color:#aaa; margin-bottom:10px;">(此畫面僅管理員可見，即時調閱底層數據)</div>
+            <div class="modal-list" id="auditItems" style="height: 400px; padding: 10px; font-size: 13px; line-height: 1.6; background:#111;">
                 讀取中...
             </div>
             <button onclick="document.getElementById('auditModal').style.display='none'" style="width:100%; padding:12px; background:#555; color:white; border:none; border-radius:50px; font-weight:bold; cursor:pointer;">關閉後台</button>
@@ -194,12 +194,12 @@
             <h3 style="margin-top:0; color:var(--gold); text-align:center;">📜 修仙法則與天劫</h3>
             <div class="modal-list" style="padding: 15px; font-size: 13px; color: #ddd; line-height: 1.5;">
                 <div style="margin-bottom: 10px;">
-                    <strong style="color: #fff;">【因果與吐納法】</strong><br>
-                    🧘‍♂️ 頁面掛機：每滿 5 分鐘自動吐納 +1 (防護陣法已啟動，嚴禁分身多開！)<br>
+                    <strong style="color: #fff;">【因果與修練】</strong><br>
                     🎵 點歌 +1 | 🔪 刪除歌曲 -1 (點了又切會扣除點數喔！)<br>
                     👼 獲贈仙丹 +2 | 😈 心魔纏身 -1<br>
                     🧭 每逢整點探尋秘境 (亦有極大殞落風險)<br>
-                    📢 宗門頻道使用「傳音符廣播」：每次扣除 2 點修為
+                    📢 宗門頻道使用「傳音符廣播」：每次扣除 2 點修為<br>
+                    <span style="color:#aaa; font-size:11px;">※ 天地靈氣枯竭，已停止自動掛機吐納。</span>
                 </div>
                 <div style="margin-bottom: 10px; border-top: 1px dashed #444; padding-top: 10px;">
                     <strong style="color: #ff4b2b;">【⚡ 天劫突破法則】</strong><br>
@@ -231,9 +231,6 @@
                 <input type="text" id="chatInput" placeholder="在此輸入幹話..." onkeypress="if(event.key === 'Enter') sendChatMessage(false)">
                 <button class="btn-mega" onclick="sendChatMessage(true)" title="花費 2 點修為發送醒目廣播">📢(-2)</button>
                 <button onclick="sendChatMessage(false)">一般</button>
-                <!-- 在聊天室也留一份方便你點 -->
-                <button class="btn-admin" onclick="sendAdminBroadcast()" title="天道法旨(廣播)">👑</button>
-                <button class="btn-admin" onclick="viewAuditLogs()" title="天道照妖鏡(查水表)">🔍</button>
             </div>
             <button onclick="document.getElementById('chatModal').style.display='none'" style="width:100%; margin-top:10px; padding:10px; background:#333; border:none; color:white; border-radius:50px; cursor:pointer;">隱藏頻道</button>
         </div>
@@ -278,10 +275,9 @@
         let myCurrentRealm = "凡人";
         let myCurrentRealmColor = "#888";
         
-        // 🧭 秘境與掛機
+        // 🧭 秘境
         let myGachaHour = ""; 
         let countdownTimer = null;
-        let idleTimer = null;
         let hasUnreadChat = false;
 
         const REALM_DATA = [
@@ -399,12 +395,11 @@
                 db.ref(`users/${user.uid}/gachaHour`).on('value', s => { myGachaHour = s.val() || ""; });
                 
                 startGachaCountdown(); 
-                startIdleCultivation(); 
+                // 注意：startIdleCultivation() 已被移除
                 db.ref(`users/${user.uid}/favorites`).on('value', s => { myFavorites = s.val() || {}; updateAllStars(); });
             } else {
                 myPoints = 0; myBreakthroughs = {};
                 if (countdownTimer) clearInterval(countdownTimer);
-                if (idleTimer) clearInterval(idleTimer);
                 document.getElementById('userName').style.display = 'block'; document.getElementById('login-btn').style.display = 'inline-block'; document.getElementById('logout-btn').style.display = 'none'; document.getElementById('my-fav-btn').style.display = 'none'; document.getElementById('gacha-btn').style.display = 'none';
                 document.getElementById('user-info').innerHTML = `<div class="avatar" style="background: url('https://cdn-icons-png.flaticon.com/512/149/149071.png') center/cover;"></div><span style="font-size: 14px; color: #888;">凡人 (未登入)</span>`;
                 setupPresence('凡人', '#888', 0);
@@ -520,32 +515,63 @@
             }
         }
 
-        // 🔍 查水表 (GM 限定) 專屬獨立彈窗
+        // 👁️ 查水表 (GM 限定) - 全服即時修為雷達
         function viewAuditLogs() {
             if (prompt("請輸入天道密碼以開啟照妖鏡：") === "1234") {
                 document.getElementById('hotModal').style.display = 'none'; 
                 document.getElementById('chatModal').style.display = 'none'; 
                 document.getElementById('auditModal').style.display = 'flex';
                 
-                roomRef.child('auditLogs').limitToLast(50).once('value', snap => {
-                    const logs = snap.val() || {};
-                    const container = document.getElementById('auditItems');
+                const container = document.getElementById('auditItems');
+                container.innerHTML = `<div style="text-align:center; color:#aaa; margin-top:20px;">讀取全服修士數據中...</div>`;
+
+                // 1. 撈取底層所有 user 真實分數
+                db.ref('users').once('value', snap => {
+                    const usersData = snap.val() || {};
+                    let userList = [];
+                    Object.keys(usersData).forEach(uid => {
+                        const u = usersData[uid];
+                        userList.push({
+                            name: u.nickname || '神秘修士',
+                            points: u.cultivation || 0
+                        });
+                    });
                     
-                    if (Object.keys(logs).length === 0) {
-                        container.innerHTML = `<div style="text-align:center; color:#aaa; margin-top:20px;">尚無任何修為異動紀錄。</div>`;
-                    } else {
-                        const logArray = Object.values(logs).reverse();
-                        container.innerHTML = logArray.map(l => {
-                            let t = new Date(l.time).toLocaleTimeString('zh-TW', {hour: '2-digit', minute:'2-digit', second:'2-digit'});
-                            let color = l.points > 0 ? '#1DB954' : '#ff4b2b';
-                            let sign = l.points > 0 ? '+' : '';
-                            return `<div style="border-bottom:1px solid #333; padding:8px 0; display:flex; justify-content:space-between; align-items:center;">
-                                        <span style="color:#888; font-size:11px; white-space:nowrap;">[${t}]</span>
-                                        <span style="flex-grow:1; margin:0 10px; color:#ddd; word-break:break-all;"><b>${l.name}</b> 透過「${l.action}」</span>
-                                        <strong style="color:${color}; font-size:14px; white-space:nowrap;">${sign}${l.points}</strong>
-                                    </div>`;
-                        }).join('');
-                    }
+                    userList.sort((a, b) => b.points - a.points);
+
+                    let html = `<h4 style="color:#1DB954; margin:5px 0 10px 0; text-align:center;">📊 全服真實修為排行榜</h4>`;
+                    html += `<table style="width:100%; border-collapse: collapse; font-size:12px; margin-bottom: 20px;">
+                                <tr style="background:#222;"><th style="padding:6px; border:1px solid #444;">排名</th><th style="padding:6px; border:1px solid #444;">修士稱號</th><th style="padding:6px; border:1px solid #444;">真實修為 (點數)</th></tr>`;
+
+                    userList.forEach((u, idx) => {
+                        html += `<tr><td style="padding:6px; border:1px solid #444; text-align:center;">${idx+1}</td>
+                                     <td style="padding:6px; border:1px solid #444;">${u.name}</td>
+                                     <td style="padding:6px; border:1px solid #444; text-align:center; color:var(--gold); font-weight:bold;">${u.points}</td></tr>`;
+                    });
+                    html += `</table>`;
+
+                    // 2. 撈取最近的動作紀錄 (只抓最近 30 筆)
+                    roomRef.child('auditLogs').limitToLast(30).once('value', logSnap => {
+                        const logs = logSnap.val() || {};
+                        html += `<h4 style="color:#ff4b2b; margin:15px 0 10px 0; text-align:center;">🔍 近期行為追蹤 (需更新網頁)</h4>`;
+                        
+                        if (Object.keys(logs).length === 0) {
+                            html += `<div style="text-align:center; color:#aaa; font-size:11px;">尚無紀錄。等他們重新整理網頁後才會開始紀錄！</div>`;
+                        } else {
+                            const logArray = Object.values(logs).reverse();
+                            html += logArray.map(l => {
+                                let t = new Date(l.time).toLocaleTimeString('zh-TW', {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+                                let color = l.points > 0 ? '#1DB954' : '#ff4b2b';
+                                let sign = l.points > 0 ? '+' : '';
+                                return `<div style="border-bottom:1px solid #333; padding:6px 0; display:flex; justify-content:space-between; align-items:center;">
+                                            <span style="color:#888; font-size:10px;">[${t}]</span>
+                                            <span style="flex-grow:1; margin:0 10px; color:#ddd; font-size:12px;"><b>${l.name}</b>: ${l.action}</span>
+                                            <strong style="color:${color}; font-size:13px;">${sign}${l.points}</strong>
+                                        </div>`;
+                            }).join('');
+                        }
+                        container.innerHTML = html;
+                    });
                 });
             } else {
                 alert("❌ 密碼錯誤！");
@@ -579,32 +605,6 @@
                 btn.innerText = "💬 頻道 (有新訊息)";
                 btn.style.background = "linear-gradient(45deg, #ff4b2b, #ff416c)";
             }
-        }
-
-        // ==========================================
-        // 🛑 防多開外掛 (資料庫 Transaction 鎖)
-        // ==========================================
-        function startIdleCultivation() {
-            if (idleTimer) clearInterval(idleTimer);
-            idleTimer = setInterval(() => {
-                if (currentUser) {
-                    const now = Date.now();
-                    const idleRef = db.ref(`users/${currentUser.uid}/lastIdleTime`);
-                    idleRef.transaction(function(currentData) {
-                        if (currentData === null || (now - currentData) >= 270000) return now; 
-                        return undefined;
-                    }, function(error, committed, snapshot) {
-                        if (error) { console.error("掛機判定異常", error); } 
-                        else if (committed) { 
-                            db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(1)); 
-                        } else {
-                            db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(-5));
-                            logAction(currentUser.uid, currentUser.customName, "分身魔功反噬", -5);
-                            alert("⚠️ 天道警告：偵測到你試圖使用「分身魔功」！\n天地靈氣逆流，心魔反噬，修為 -5！");
-                        }
-                    });
-                }
-            }, 300000); 
         }
 
         function startGachaCountdown() {
