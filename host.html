@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <title>播放大螢幕</title>
     <style>
-       
         body { font-family: sans-serif; text-align: center; background-color: #000; color: white; padding: 20px; }
         .container { max-width: 800px; margin: 0 auto; }
         #startBtn { font-size: 18px; padding: 12px 30px; background: #ff4b2b; color: white; border: none; border-radius: 50px; cursor: pointer; }
@@ -14,7 +13,7 @@
         .queue-item { padding: 15px; border-bottom: 1px solid #2a2a2a; display: flex; justify-content: space-between; align-items: center; }
         .remove-btn { background: #ff4b2b; color: white; border: none; width: 80px; height: 36px; border-radius: 6px; cursor: pointer; font-weight: bold; flex-shrink: 0; margin-left: 15px;}
         
-        /* 🔥 新增：自製密碼視窗的樣式 */
+        /* 🔥 自製密碼視窗的樣式 */
         #customModal {
             display: none; /* 預設隱藏 */
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -57,9 +56,26 @@
         </div>
     </div>
 
+    <!-- 載入外部 SDK -->
     <script src="https://www.youtube.com/iframe_api"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    
+    <!-- 🔥 在此處寫入新宇宙的天道鑰匙 -->
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAFL63CNYEkzZ46OmHMyGc0Nhtpkcy-_EI",
+            authDomain: "sausage-new-era.firebaseapp.com",
+            databaseURL: "https://sausage-new-era-default-rtdb.firebaseio.com",
+            projectId: "sausage-new-era"
+        };
+        // 確保不重複初始化
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+    </script>
+
+    <!-- 載入你原本的播放器邏輯 -->
     <script src="host.js"></script>
 </body>
 </html>
