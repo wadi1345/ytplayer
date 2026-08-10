@@ -287,6 +287,7 @@
 
         // 🛡️ 物理冷卻陣法 (帶有視覺倒數)
         let lastActionTime = 0;
+        let legitActionTime = 0; // 🌟 新增：紀錄合法點擊的時間
         let cdTimer = null;
 
         function checkCooldown() {
@@ -302,6 +303,7 @@
             }
 
             lastActionTime = now;
+            legitActionTime = now; // 🌟 每次合法按按鈕，就記錄當下時間
             startCooldownUI(CD_TIME);
             return true;
         }
@@ -427,8 +429,51 @@
             if (user) {
                 document.getElementById('userName').style.display = 'none'; document.getElementById('login-btn').style.display = 'none'; document.getElementById('logout-btn').style.display = 'inline-block'; document.getElementById('my-fav-btn').style.display = 'flex'; document.getElementById('gacha-btn').style.display = 'flex';
                 
+                // 🕵️‍♂️ 天道糾察隊 (防外掛暗樁)
+                let myLastPoints = null;
+                let myLastGainTime = 0;
+
                 db.ref(`users/${user.uid}/cultivation`).on('value', cultSnap => {
-                    myPoints = cultSnap.val() || 0;
+                    const currentPoints = cultSnap.val() || 0;
+
+                    if (myLastPoints !== null) {
+                        const diff = currentPoints - myLastPoints;
+                        
+                        // 只有在「分數增加」時才檢查是不是作弊 (扣分不管)
+                        if (diff > 0) {
+                            const now = Date.now();
+                            const timeSinceLegit = now - legitActionTime;
+                            const timeSinceLastGain = now - myLastGainTime;
+                            
+                            let isCheating = false;
+
+                            // 🚨 條件 1: 分數暴增超過 10 (例如用腳本+50)，且最近 3 秒內根本沒按按鈕
+                            if (diff > 10 && timeSinceLegit > 3000) {
+                                isCheating = true;
+                            }
+                            // 🚨 條件 2: 短於 1.5 秒內連續加分 (抓 setInterval 腳本)
+                            else if (timeSinceLastGain < 1500) {
+                                isCheating = true;
+                            }
+
+                            if (isCheating) {
+                                const penalty = diff * 2; // 沒收髒錢，再罰一倍！
+                                
+                                console.error(`🚨 偵測到魔修行為！非法獲取 ${diff} 分，天道反噬扣除 ${penalty} 分！`);
+                                
+                                // 執行天道反噬 (寫入倒扣分數)
+                                db.ref(`users/${user.uid}/cultivation`).set(firebase.database.ServerValue.increment(-penalty));
+                                logAction(user.uid, currentUser.customName, '觸發天道防作弊反噬', -penalty);
+                                
+                                // 全服廣播公開處刑！
+                                sendSystemMsg(`⚡ 【天道雷罰】${currentUser.customName} 妄圖施展禁術篡改修為，遭天道無情反噬，重挫 ${penalty} 點修為！`, 'bad');
+                            }
+                            myLastGainTime = now;
+                        }
+                    }
+
+                    myLastPoints = currentPoints;
+                    myPoints = currentPoints;
                     updateMyProfileDisplay();
                 });
                 
@@ -714,7 +759,7 @@
                 let ev = events[Math.floor(Math.random() * events.length)]; diff = ev.d; msg = ev.m;
             } else if (rand < 85) { 
                 const events = [
-                    {d: -10, m: "🥤 海苔精聽完你點的歌說這誰點的老歌阿，當場走火入魔，修為 -10！"},
+                    {d: -10, m: "🥤 期待了一整個下午的手搖飲送來，結果你的「無糖微冰」變成了「全糖去冰」，當場走火入魔，修為 -10！"},
                     {d: -10, m: "⚡ 辦公室有人電鍋和微波爐一起用，整間公司瞬間跳電，你的報表沒存檔，心血白費，修為 -10！"},
                     {d: -20, m: "📦 點交門市配件庫存時，發現少了一箱盲盒，急忙去調監視器，心力交瘁，修為 -20！"}
                 ];
@@ -951,7 +996,7 @@
             roomRef.child('radioPlaylist').push(id); alert(`✅ 已將《${title}》永久加入電台！`);
         }
 
-        function batchAdd() { if (!checkCooldown()) return; const myState = getUserRealmState(myPoints, myBreakthroughs); const chks = document.querySelectorAll('.pl-chk:checked'), now = Date.now(); if (chks.length > 20 && (myState.currentLevel < 6)) return alert('❌ 境界不足！【大乘仙尊】才能匯入超過 20 首！'); let added = 0; chks.forEach((chk, i) => { const it = tempPlaylist[chk.value]; if (!currentQueue.some(s => s.videoId === it.id)) { roomRef.child('queue').push({ videoId: it.id, title: it.title, nickname: currentUser.customName, uid: currentUser.uid, timestamp: now + i }); roomRef.child(`songStats/${it.id}/count`).set(firebase.database.ServerValue.increment(1)); roomRef.child(`songStats/${it.id}/title`).set(it.title); db.ref(`users/${currentUser.uid}/history`).push({ videoId: it.id, title: it.title, timestamp: firebase.database.ServerValue.TIMESTAMP }); added++; } }); db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(added)); logAction(currentUser.uid, currentUser.customName, '批次匯入歌單', added); incrementScore(added); document.getElementById('playlistModal').style.display = 'none'; }
+        function batchAdd() { if (!checkCooldown()) return; const myState = getUserRealmState(myPoints, myBreakthroughs); const chks = document.querySelectorAll('.pl-chk:checked'), now = Date.now(); if (chks.length > 20 && (myState.currentLevel < 6)) return alert('❌ 境界不足！【大乘仙尊】才能匯入超過 20首！'); let added = 0; chks.forEach((chk, i) => { const it = tempPlaylist[chk.value]; if (!currentQueue.some(s => s.videoId === it.id)) { roomRef.child('queue').push({ videoId: it.id, title: it.title, nickname: currentUser.customName, uid: currentUser.uid, timestamp: now + i }); roomRef.child(`songStats/${it.id}/count`).set(firebase.database.ServerValue.increment(1)); roomRef.child(`songStats/${it.id}/title`).set(it.title); db.ref(`users/${currentUser.uid}/history`).push({ videoId: it.id, title: it.title, timestamp: firebase.database.ServerValue.TIMESTAMP }); added++; } }); db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(added)); logAction(currentUser.uid, currentUser.customName, '批次匯入歌單', added); incrementScore(added); document.getElementById('playlistModal').style.display = 'none'; }
         function batchAddFromFav() { if (!checkCooldown()) return; const myState = getUserRealmState(myPoints, myBreakthroughs); const chks = document.querySelectorAll('.fav-chk:checked'), now = Date.now(); if (chks.length > 10 && (myState.currentLevel < 6)) return alert('❌ 境界不足！【大乘仙尊】才能一次點超過 10 首！'); let added = 0; chks.forEach((chk, i) => { const vid = chk.getAttribute('data-vid'), t = chk.getAttribute('data-title'); if (!currentQueue.some(s => s.videoId === vid)) { roomRef.child('queue').push({ videoId: vid, title: t, nickname: currentUser.customName, uid: currentUser.uid, timestamp: now + i }); roomRef.child(`songStats/${vid}/count`).set(firebase.database.ServerValue.increment(1)); roomRef.child(`songStats/${vid}/title`).set(t); db.ref(`users/${currentUser.uid}/history`).push({ videoId: vid, title: t, timestamp: firebase.database.ServerValue.TIMESTAMP }); added++; } }); db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(added)); logAction(currentUser.uid, currentUser.customName, '批次匯入收藏', added); incrementScore(added); document.getElementById('favModal').style.display = 'none'; }
         
         function updateLeaderboard(s) { const data = s.val() || {}; let maxCount = 0; topKing = null; const today = new Date().toLocaleDateString(); Object.keys(data).forEach(uid => { if(data[uid].date === today && data[uid].count > maxCount) { maxCount = data[uid].count; topKing = data[uid]; } }); document.querySelector('.king-text').innerHTML = topKing ? `👑 本日大香腸之王：${topKing.name}` : "👑 尚未產生今日大香腸王"; document.querySelector('.king-count').innerText = `${maxCount} 首`; }
