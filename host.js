@@ -1,16 +1,17 @@
 // ==========================================
-// 1. Firebase 設定 (維持不變)
+// 1. Firebase 設定 (換成新紀元的鑰匙了！)
 // ==========================================
 const firebaseConfig = {
-    apiKey: "AIzaSyBF5p7x31GP_O9ePRrhJbXJM9C6aPj4wiE",
-    authDomain: "ytplayer-be8ef.firebaseapp.com",
-    databaseURL: "https://ytplayer-be8ef-default-rtdb.firebaseio.com",
-    projectId: "ytplayer-be8ef",
-    storageBucket: "ytplayer-be8ef.firebasestorage.app",
-    messagingSenderId: "812933574917",
-    appId: "1:812933574917:web:a13e5ebef6c935c1d2076c"
+    apiKey: "AIzaSyAFL63CNYEkzZ46OmHMyGc0Nhtpkcy-_EI",
+    authDomain: "sausage-new-era.firebaseapp.com",
+    databaseURL: "https://sausage-new-era-default-rtdb.firebaseio.com",
+    projectId: "sausage-new-era"
 };
-firebase.initializeApp(firebaseConfig);
+
+// 避免 HTML 和 JS 重複初始化導致報錯
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
 const db = firebase.database();
 const ADMIN_PASSWORD = "1234";
 
@@ -265,16 +266,21 @@ function requestSkip() {
 }
 
 function removeSong(key) { 
-    if(prompt("密碼：") === ADMIN_PASSWORD) roomRef.child('queue').child(key).remove(); 
+    if(prompt("請輸入管理員密碼：") === ADMIN_PASSWORD) {
+        roomRef.child('queue').child(key).remove(); 
+    } else {
+        alert("❌ 密碼錯誤！");
+    }
 }
 
-// 💡 修正：音量歸 0 會爆音的 Bug 就在這裡！
+// 💡 音量同步
 roomRef.child('volume').on('value', s => {
     let vol = s.val();
     if (vol === null) vol = 100; // 只有在「完全沒有資料」時才給 100，0 會被正常接收
     if (player && player.setVolume) player.setVolume(vol);
 });
 
+// 💡 播放/暫停同步
 roomRef.child('isPaused').on('value', s => {
     let paused = s.val() || false;
     if (player && player.pauseVideo) paused ? player.pauseVideo() : player.playVideo();
