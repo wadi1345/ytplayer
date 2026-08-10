@@ -843,7 +843,19 @@
             }).join('') || '無人上線';
         }
 
-        function editNickname() { const n = prompt("輸入大香腸暱稱：", currentUser.customName || currentUser.displayName); if (n && n.trim()) { db.ref(`users/${currentUser.uid}/nickname`).set(n.trim()); db.ref(`leaderboard/${currentUser.uid}`).update({ name: n.trim() }); } }
+       function editNickname() { 
+    const n = prompt("輸入大香腸暱稱：", currentUser.customName || currentUser.displayName); 
+    if (n && n.trim()) { 
+        const newName = n.trim();
+        // 1. 更新天道資料庫
+        db.ref(`users/${currentUser.uid}/nickname`).set(newName); 
+        db.ref(`leaderboard/${currentUser.uid}`).update({ name: newName }); 
+        
+        // 2. ⚡ 立刻更新本地端的記憶，並重新渲染左上角的名稱與上線名單
+        currentUser.customName = newName;
+        updateMyProfileDisplay();
+    } 
+}
         function signIn() { auth.signInWithPopup(provider); }
         function signOut() { auth.signOut(); }
 
