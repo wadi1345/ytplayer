@@ -15,15 +15,11 @@
         
         /* 🔥 自製密碼視窗的樣式 */
         #customModal {
-            display: none; /* 預設隱藏 */
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.85); /* 半透明黑底 */
-            z-index: 1000;
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85); z-index: 1000;
             justify-content: center; align-items: center;
         }
-        .modal-content {
-            background: #282828; padding: 30px; border-radius: 16px; text-align: center; width: 300px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        }
+        .modal-content { background: #282828; padding: 30px; border-radius: 16px; text-align: center; width: 300px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         .modal-content h3 { margin-top: 0; color: #1e88e5; }
         .modal-content input { width: 90%; padding: 10px; margin: 15px 0; border-radius: 8px; border: none; background: #121212; color: white; font-size: 16px; text-align: center; }
         .modal-btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin: 0 5px; }
@@ -56,26 +52,11 @@
         </div>
     </div>
 
-    <!-- 載入外部 SDK -->
     <script src="https://www.youtube.com/iframe_api"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     
-    <!-- 🔥 在此處寫入新宇宙的天道鑰匙 -->
-    <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyAFL63CNYEkzZ46OmHMyGc0Nhtpkcy-_EI",
-            authDomain: "sausage-new-era.firebaseapp.com",
-            databaseURL: "https://sausage-new-era-default-rtdb.firebaseio.com",
-            projectId: "sausage-new-era"
-        };
-        // 確保不重複初始化
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
-    </script>
-
-    <!-- 載入你原本的播放器邏輯 -->
+    <!-- 💡 這裡已經清空，天道金鑰統一寫在 host.js 裡，避免衝突！ -->
     <script src="host.js"></script>
 </body>
 </html>
