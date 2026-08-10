@@ -82,14 +82,23 @@
         .chat-input-container input { flex-grow: 1; min-width: 100px; padding: 10px; background: #222; border: 1px solid #444; border-radius: 50px; color: white; font-size: 13px; outline: none; }
         .chat-input-container button { padding: 10px 12px; background: var(--spotify-green); color: black; border: none; border-radius: 50px; font-weight: bold; cursor: pointer; flex-shrink: 0; }
         .btn-mega { background: linear-gradient(45deg, #ff8c00, #ff4b2b) !important; color: white !important; font-size: 11px; padding: 8px 10px !important; }
-        .btn-admin { background: transparent !important; border: 1px solid var(--gold) !important; color: var(--gold) !important; padding: 8px 10px !important; font-size: 12px; }
+        
+        /* 系統警告遮罩 */
+        #cooldown-warning { position:fixed; inset:0; background:rgba(255,0,0,0.8); z-index:99999; display:none; justify-content:center; align-items:center; color:white; font-size:24px; font-weight:bold; flex-direction:column; }
     </style>
 </head>
 <body>
 
+    <!-- 🚨 防連點警告畫面 -->
+    <div id="cooldown-warning">
+        <span style="font-size:50px;">⚡</span>
+        <p>天道反噬！動作太快了！</p>
+        <p style="font-size:14px; font-weight:normal;">請冷卻後再試...</p>
+    </div>
+
     <div id="lobby-screen">
         <div class="lobby-box">
-            <h2 style="color:var(--spotify-green); margin-top:0;">🎶 大香腸修仙系統</h2>
+            <h2 style="color:var(--spotify-green); margin-top:0;">🎶 大香腸修仙系統 (新紀元)</h2>
             <input type="text" id="roomInput" class="room-input" placeholder="輸入代碼" autocomplete="off">
             <button class="btn-join" onclick="joinRoom()" id="joinBtn">進入房間</button>
             <p id="lobbyMsg" style="color:#ff4b2b; font-size:13px; margin-top:15px; display:none;"></p>
@@ -199,11 +208,11 @@
                     👼 獲贈仙丹 +2 | 😈 心魔纏身 -1<br>
                     🧭 每逢整點探尋秘境 (亦有極大殞落風險)<br>
                     📢 宗門頻道使用「傳音符廣播」：每次扣除 2 點修為<br>
-                    <span style="color:#aaa; font-size:11px;">※ 天地靈氣枯竭，已停止自動掛機吐納。</span>
+                    <span style="color:#ff4b2b; font-size:11px; font-weight:bold;">※ 天道法則重啟：嚴禁使用連點程式，違者系統將無情封殺！</span>
                 </div>
                 <div style="margin-bottom: 10px; border-top: 1px dashed #444; padding-top: 10px;">
                     <strong style="color: #ff4b2b;">【⚡ 天劫突破法則】</strong><br>
-                    自金丹期起，達到修為門檻將進入「圓滿」瓶頸，須點擊按鈕引動天劫方可突破。天威難測，失敗將面臨嚴重反噬！(重修恢復點數後，無需再次渡劫)
+                    自金丹期起，達到修為門檻將進入「圓滿」瓶頸，須點擊按鈕引動天劫方可突破。天威難測，失敗將面臨嚴重反噬！
                 </div>
                 <table class="rule-table">
                     <tr><th>境界</th><th>門檻</th><th>突破率</th><th>失敗反噬</th><th>特權</th></tr>
@@ -249,11 +258,12 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script>
+        // ⚠️ 替換為 sausage-new-era 的全新天道鑰匙
         const firebaseConfig = {
-            apiKey: "AIzaSyBF5p7x31GP_O9ePRrhJbXJM9C6aPj4wiE",
-            authDomain: "ytplayer-be8ef.firebaseapp.com",
-            databaseURL: "https://ytplayer-be8ef-default-rtdb.firebaseio.com",
-            projectId: "ytplayer-be8ef"
+            apiKey: "AIzaSyAFL63CNYEkzZ46OmHMyGc0Nhtpkcy-_EI",
+            authDomain: "sausage-new-era.firebaseapp.com",
+            databaseURL: "https://sausage-new-era-default-rtdb.firebaseio.com",
+            projectId: "sausage-new-era"
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
@@ -279,6 +289,20 @@
         let myGachaHour = ""; 
         let countdownTimer = null;
         let hasUnreadChat = false;
+
+        // 🛡️ 物理冷卻陣法 (全域冷卻時間 2 秒)
+        let lastActionTime = 0;
+        function checkCooldown() {
+            const now = Date.now();
+            if (now - lastActionTime < 2000) { 
+                const warningBox = document.getElementById('cooldown-warning');
+                warningBox.style.display = 'flex';
+                setTimeout(() => warningBox.style.display = 'none', 1500);
+                return false;
+            }
+            lastActionTime = now;
+            return true;
+        }
 
         const REALM_DATA = [
             { id: 'lv0', name: "煉氣期", req: 0 },
@@ -395,7 +419,6 @@
                 db.ref(`users/${user.uid}/gachaHour`).on('value', s => { myGachaHour = s.val() || ""; });
                 
                 startGachaCountdown(); 
-                // 注意：startIdleCultivation() 已被移除
                 db.ref(`users/${user.uid}/favorites`).on('value', s => { myFavorites = s.val() || {}; updateAllStars(); });
             } else {
                 myPoints = 0; myBreakthroughs = {};
@@ -434,6 +457,7 @@
         }
 
         function attemptBreakthrough() {
+            if (!checkCooldown()) return; 
             const state = getUserRealmState(myPoints, myBreakthroughs);
             if (!state.isBottleneck) return;
             const target = state.nextTarget;
@@ -467,6 +491,8 @@
         }
 
         function sendChatMessage(isMega = false) {
+            if (!checkCooldown()) return; 
+            
             const input = document.getElementById('chatInput');
             const msg = input.value.trim();
             if(!msg) return;
@@ -515,7 +541,7 @@
             }
         }
 
-        // 👁️ 查水表 (GM 限定) - 全服即時修為雷達
+        // 👁️ 查水表 (GM 限定)
         function viewAuditLogs() {
             if (prompt("請輸入天道密碼以開啟照妖鏡：") === "1234") {
                 document.getElementById('hotModal').style.display = 'none'; 
@@ -525,7 +551,6 @@
                 const container = document.getElementById('auditItems');
                 container.innerHTML = `<div style="text-align:center; color:#aaa; margin-top:20px;">讀取全服修士數據中...</div>`;
 
-                // 1. 撈取底層所有 user 真實分數
                 db.ref('users').once('value', snap => {
                     const usersData = snap.val() || {};
                     let userList = [];
@@ -536,7 +561,6 @@
                             points: u.cultivation || 0
                         });
                     });
-                    
                     userList.sort((a, b) => b.points - a.points);
 
                     let html = `<h4 style="color:#1DB954; margin:5px 0 10px 0; text-align:center;">📊 全服真實修為排行榜</h4>`;
@@ -550,13 +574,12 @@
                     });
                     html += `</table>`;
 
-                    // 2. 撈取最近的動作紀錄 (只抓最近 30 筆)
                     roomRef.child('auditLogs').limitToLast(30).once('value', logSnap => {
                         const logs = logSnap.val() || {};
-                        html += `<h4 style="color:#ff4b2b; margin:15px 0 10px 0; text-align:center;">🔍 近期行為追蹤 (需更新網頁)</h4>`;
+                        html += `<h4 style="color:#ff4b2b; margin:15px 0 10px 0; text-align:center;">🔍 近期行為追蹤</h4>`;
                         
                         if (Object.keys(logs).length === 0) {
-                            html += `<div style="text-align:center; color:#aaa; font-size:11px;">尚無紀錄。等他們重新整理網頁後才會開始紀錄！</div>`;
+                            html += `<div style="text-align:center; color:#aaa; font-size:11px;">尚無紀錄。</div>`;
                         } else {
                             const logArray = Object.values(logs).reverse();
                             html += logArray.map(l => {
@@ -631,6 +654,7 @@
 
         function spinRoulette() {
             if (!currentUser) return alert("⚠️ 登入後才能進入秘境！");
+            if (!checkCooldown()) return; 
             
             const now = new Date();
             const currentHourKey = `${now.getFullYear()}-${now.getMonth()+1}-${now.getDate()}-${now.getHours()}`;
@@ -710,6 +734,8 @@
         // 🔮 點歌與因果平衡機制 (點歌+1，切歌-1)
         // ==========================================
         function addToQueue(id, title) {
+            if (!checkCooldown()) return; 
+            
             const myState = getUserRealmState(myPoints, myBreakthroughs);
             if (bannedList[currentUser ? currentUser.uid : localGuestId]) {
                 if (myState.currentLevel < 5) return alert('🛑 業障太重，你已被禁言！(需達到 渡劫期 方可免疫)');
@@ -743,6 +769,7 @@
         }
 
         function disguisedSkip() { 
+            if (!checkCooldown()) return; 
             if(currentQueue.length===0)return; 
             const s = currentQueue[0]; 
             
@@ -779,6 +806,7 @@
         }
 
         function removeSong(k, uid) { 
+            if (!checkCooldown()) return; 
             if (currentUser && uid === currentUser.uid) { 
                 if(confirm("取消點歌？\n(⚠️ 注意：將倒扣回原本點歌獲得的 1 點修為)")) {
                     db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(-1));
@@ -821,6 +849,8 @@
 
         function castVote(type) {
             if (!currentUser) return alert("⚠️ 登入後才能動用仙丹與心魔！");
+            if (!checkCooldown()) return; 
+            
             if (currentQueue.length === 0) return;
             const curSong = currentQueue[0];
             if (!curSong.uid) return alert("此曲沒有主人的因果，無法降下心魔！");
@@ -832,13 +862,21 @@
                 let diff = 0, newVote = null, giverDiff = 0;
                 
                 if (type === 'like') {
-                    if (prevVote === 'like') { diff = -2; giverDiff = -10; } 
-                    else if (prevVote === 'dislike') { diff = 3; newVote = 'like'; giverDiff = 10; } 
-                    else { diff = 2; newVote = 'like'; giverDiff = 10; } 
+                    if (prevVote === 'like') { 
+                        diff = -2; giverDiff = -5; // 收回仙丹扣更重
+                    } else if (prevVote === 'dislike') { 
+                        diff = 3; newVote = 'like'; giverDiff = 2; 
+                    } else { 
+                        diff = 2; newVote = 'like'; giverDiff = 2; 
+                    } 
                 } else if (type === 'dislike') {
-                    if (prevVote === 'dislike') { diff = 1; newVote = null; } 
-                    else if (prevVote === 'like') { diff = -3; newVote = 'dislike'; giverDiff = -10; } 
-                    else { diff = -1; newVote = 'dislike'; } 
+                    if (prevVote === 'dislike') { 
+                        diff = 1; newVote = null; 
+                    } else if (prevVote === 'like') { 
+                        diff = -3; newVote = 'dislike'; giverDiff = -5; // 仙丹轉心魔倒扣
+                    } else { 
+                        diff = -1; newVote = 'dislike'; 
+                    } 
                 }
                 
                 if (newVote) voteRef.set(newVote); else voteRef.remove();
@@ -881,8 +919,8 @@
             roomRef.child('radioPlaylist').push(id); alert(`✅ 已將《${title}》永久加入電台！`);
         }
 
-        function batchAdd() { const myState = getUserRealmState(myPoints, myBreakthroughs); const chks = document.querySelectorAll('.pl-chk:checked'), now = Date.now(); if (chks.length > 20 && (myState.currentLevel < 6)) return alert('❌ 境界不足！【大乘仙尊】才能匯入超過 20 首！'); let added = 0; chks.forEach((chk, i) => { const it = tempPlaylist[chk.value]; if (!currentQueue.some(s => s.videoId === it.id)) { roomRef.child('queue').push({ videoId: it.id, title: it.title, nickname: currentUser.customName, uid: currentUser.uid, timestamp: now + i }); roomRef.child(`songStats/${it.id}/count`).set(firebase.database.ServerValue.increment(1)); roomRef.child(`songStats/${it.id}/title`).set(it.title); db.ref(`users/${currentUser.uid}/history`).push({ videoId: it.id, title: it.title, timestamp: firebase.database.ServerValue.TIMESTAMP }); added++; } }); db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(added)); logAction(currentUser.uid, currentUser.customName, '批次匯入歌單', added); incrementScore(added); document.getElementById('playlistModal').style.display = 'none'; }
-        function batchAddFromFav() { const myState = getUserRealmState(myPoints, myBreakthroughs); const chks = document.querySelectorAll('.fav-chk:checked'), now = Date.now(); if (chks.length > 10 && (myState.currentLevel < 6)) return alert('❌ 境界不足！【大乘仙尊】才能一次點超過 10 首！'); let added = 0; chks.forEach((chk, i) => { const vid = chk.getAttribute('data-vid'), t = chk.getAttribute('data-title'); if (!currentQueue.some(s => s.videoId === vid)) { roomRef.child('queue').push({ videoId: vid, title: t, nickname: currentUser.customName, uid: currentUser.uid, timestamp: now + i }); roomRef.child(`songStats/${vid}/count`).set(firebase.database.ServerValue.increment(1)); roomRef.child(`songStats/${vid}/title`).set(t); db.ref(`users/${currentUser.uid}/history`).push({ videoId: vid, title: t, timestamp: firebase.database.ServerValue.TIMESTAMP }); added++; } }); db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(added)); logAction(currentUser.uid, currentUser.customName, '批次匯入收藏', added); incrementScore(added); document.getElementById('favModal').style.display = 'none'; }
+        function batchAdd() { if (!checkCooldown()) return; const myState = getUserRealmState(myPoints, myBreakthroughs); const chks = document.querySelectorAll('.pl-chk:checked'), now = Date.now(); if (chks.length > 20 && (myState.currentLevel < 6)) return alert('❌ 境界不足！【大乘仙尊】才能匯入超過 20 首！'); let added = 0; chks.forEach((chk, i) => { const it = tempPlaylist[chk.value]; if (!currentQueue.some(s => s.videoId === it.id)) { roomRef.child('queue').push({ videoId: it.id, title: it.title, nickname: currentUser.customName, uid: currentUser.uid, timestamp: now + i }); roomRef.child(`songStats/${it.id}/count`).set(firebase.database.ServerValue.increment(1)); roomRef.child(`songStats/${it.id}/title`).set(it.title); db.ref(`users/${currentUser.uid}/history`).push({ videoId: it.id, title: it.title, timestamp: firebase.database.ServerValue.TIMESTAMP }); added++; } }); db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(added)); logAction(currentUser.uid, currentUser.customName, '批次匯入歌單', added); incrementScore(added); document.getElementById('playlistModal').style.display = 'none'; }
+        function batchAddFromFav() { if (!checkCooldown()) return; const myState = getUserRealmState(myPoints, myBreakthroughs); const chks = document.querySelectorAll('.fav-chk:checked'), now = Date.now(); if (chks.length > 10 && (myState.currentLevel < 6)) return alert('❌ 境界不足！【大乘仙尊】才能一次點超過 10 首！'); let added = 0; chks.forEach((chk, i) => { const vid = chk.getAttribute('data-vid'), t = chk.getAttribute('data-title'); if (!currentQueue.some(s => s.videoId === vid)) { roomRef.child('queue').push({ videoId: vid, title: t, nickname: currentUser.customName, uid: currentUser.uid, timestamp: now + i }); roomRef.child(`songStats/${vid}/count`).set(firebase.database.ServerValue.increment(1)); roomRef.child(`songStats/${vid}/title`).set(t); db.ref(`users/${currentUser.uid}/history`).push({ videoId: vid, title: t, timestamp: firebase.database.ServerValue.TIMESTAMP }); added++; } }); db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(added)); logAction(currentUser.uid, currentUser.customName, '批次匯入收藏', added); incrementScore(added); document.getElementById('favModal').style.display = 'none'; }
         
         function updateLeaderboard(s) { const data = s.val() || {}; let maxCount = 0; topKing = null; const today = new Date().toLocaleDateString(); Object.keys(data).forEach(uid => { if(data[uid].date === today && data[uid].count > maxCount) { maxCount = data[uid].count; topKing = data[uid]; } }); document.querySelector('.king-text').innerHTML = topKing ? `👑 本日大香腸之王：${topKing.name}` : "👑 尚未產生今日大香腸王"; document.querySelector('.king-count').innerText = `${maxCount} 首`; }
         function incrementScore(c) { if(!currentUser)return; const t = new Date().toLocaleDateString(), r = db.ref(`leaderboard/${currentUser.uid}`); r.once('value', s => { const d = s.val() || {}; r.set({ count: (d.date === t) ? (d.count || 0) + c : c, name: currentUser.customName, date: t }); }); }
