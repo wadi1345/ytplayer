@@ -604,23 +604,24 @@ if (diff > 0) {
                 }
             }
         }
+// 🌟 宣告全域冷卻時間變數（放在程式碼最上方變數區）
 let lastTiandaoCallTime = 0;
 
+// 🤖 天道本尊 (言出法隨：賞罰分明版)
 async function callTiandaoAI(question, userName, realm) {
-    // 🌟 限制每 5 秒只能呼叫一次天道，防止 429 超速爆掉！
-    const now = Date.now();
-    if (now - lastTiandaoCallTime < 5000) {
+    // 🛡️ 頻率限制防護：若距離上次呼叫不到 5 秒，直接攔截！
+    const nowTime = Date.now();
+    if (nowTime - lastTiandaoCallTime < 5000) {
         roomRef.child('chat').push({
             type: 'system',
             sysType: 'bad',
-            msg: `☁️ 【天道法旨】本尊正在閉關中，別一直煩我！請 5 秒後再叩拜！`,
+            msg: `☁️ 【天道法旨】本尊正在閉關中，別一直吵！請稍候 5 秒再叩拜！`,
             timestamp: Date.now()
         });
-        return;
+        return; // 直接中斷，不送出請求，保住額度！
     }
-    lastTiandaoCallTime = now;
-       // 🤖 天道本尊 (言出法隨：賞罰分明版)
-async function callTiandaoAI(question, userName, realm) {
+    lastTiandaoCallTime = nowTime;
+
     const systemPrompt = `你是大香腸修仙世界中的「天道」，高高在上、傲嬌且霸氣。
 現在有一位境界為「${realm}」名叫「${userName}」的修士問你：「${question}」。
 請用修仙風格、幽默且簡短(約30到50字內)回答。
@@ -636,6 +637,11 @@ async function callTiandaoAI(question, userName, realm) {
                 contents: [{ parts: [{ text: systemPrompt }] }]
             })
         });
+
+        // 如果還是遇到 429，給予友善提示
+        if (response.status === 429) {
+            throw new Error('API 額度超速 (429)');
+        }
 
         if (!response.ok) throw new Error('天道無回應');
 
@@ -657,7 +663,7 @@ async function callTiandaoAI(question, userName, realm) {
         else if (rewardMatch && currentUser) {
             let rewardPoints = Math.min(parseInt(rewardMatch[1]), 50); 
             
-            // 🌟 關鍵免死金牌：開啟特赦令，防止防外掛糾察隊誤殺！
+            // 🌟 開啟防外掛特赦令
             isHeavenReward = true; 
 
             db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(rewardPoints));
@@ -665,7 +671,6 @@ async function callTiandaoAI(question, userName, realm) {
             sysType = 'mega';
         }
 
-        // 將天道回覆推送到聊天室
         roomRef.child('chat').push({
             type: 'system',
             sysType: sysType,
@@ -675,14 +680,22 @@ async function callTiandaoAI(question, userName, realm) {
 
     } catch (error) {
         console.error("AI 呼叫失敗:", error);
+        let errorMsg = `☁️ 【天道法旨】本尊目前正在閉關對付海苔精，無暇理會 ${userName} 的呼喚...`;
+        
+        if (error.message.includes('429')) {
+            errorMsg = `☁️ 【天道法旨】香火太鼎盛、信徒太多，伺服器被擠爆了！請稍後兩分鐘再試！`;
+        }
+
         roomRef.child('chat').push({
             type: 'system',
             sysType: 'bad',
-            msg: `☁️ 【天道法旨】本尊目前正在閉關對付海苔精，無暇理會 ${userName} 的呼喚...`,
+            msg: errorMsg,
             timestamp: Date.now()
         });
     }
 }
+
+      
         function sendAdminBroadcast() {
             const msg = prompt("請輸入你要發佈的【天道法旨】內容：");
             if (!msg) return;
