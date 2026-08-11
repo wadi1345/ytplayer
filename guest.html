@@ -439,45 +439,43 @@ let isHeavenReward = false; // 天道發放福利中的特赦旗標
                     if (myLastPoints !== null) {
                         const diff = currentPoints - myLastPoints;
                         
-                        // 只有在「分數增加」時才檢查是不是作弊 (扣分不管)
-                        if (diff > 0) {
-                        // 🌟 如果這次加分是天道賞賜，直接特赦放行！
-                        if (isHeavenReward) {
-                            isHeavenReward = false; // 重置旗標
-                            myLastGainTime = now;
-                            myLastPoints = currentPoints;
-                            return; // 直接跳過檢查，絕不反噬！
-                        }
+                      // 只有在「分數增加」時才檢查是不是作弊 (扣分不管)
+if (diff > 0) {
+    const now = Date.now(); // 🌟 必須第一時間宣告初始化！
 
-                            const now = Date.now();
-                            const timeSinceLegit = now - legitActionTime;
-                            const timeSinceLastGain = now - myLastGainTime;
-                            
-                            let isCheating = false;
+    // 🌟 如果這次加分是天道賞賜，直接特赦放行！
+    if (isHeavenReward) {
+        isHeavenReward = false; // 重置旗標
+        myLastGainTime = now;
+        myLastPoints = currentPoints;
+        return; // 直接跳過檢查，絕不反噬！
+    }
 
-                            // 🚨 條件 1: 分數暴增超過 10 (例如用腳本+50)，且最近 3 秒內根本沒按按鈕
-                            if (diff > 10 && timeSinceLegit > 3000) {
-                                isCheating = true;
-                            }
-                            // 🚨 條件 2: 短於 1.5 秒內連續加分 (抓 setInterval 腳本)
-                            else if (timeSinceLastGain < 1500) {
-                                isCheating = true;
-                            }
+    const timeSinceLegit = now - legitActionTime;
+    const timeSinceLastGain = now - myLastGainTime;
+    
+    let isCheating = false;
 
-                            if (isCheating) {
-                                const penalty = diff * 2; // 沒收髒錢，再罰一倍！
-                                
-                                console.error(`🚨 偵測到魔修行為！非法獲取 ${diff} 分，天道反噬扣除 ${penalty} 分！`);
-                                
-                                // 執行天道反噬 (寫入倒扣分數)
-                                db.ref(`users/${user.uid}/cultivation`).set(firebase.database.ServerValue.increment(-penalty));
-                                logAction(user.uid, currentUser.customName, '觸發天道防作弊反噬', -penalty);
-                                
-                                // 全服廣播公開處刑！
-                                sendSystemMsg(`⚡ 【天道雷罰】${currentUser.customName} 妄圖施展禁術篡改修為，遭天道無情反噬，重挫 ${penalty} 點修為！`, 'bad');
-                            }
-                            myLastGainTime = now;
-                        }
+    // 🚨 條件 1: 分數暴增超過 10，且最近 3 秒內沒按按鈕
+    if (diff > 10 && timeSinceLegit > 3000) {
+        isCheating = true;
+    }
+    // 🚨 條件 2: 於 1.5 秒內連續加分
+    else if (timeSinceLastGain < 1500) {
+        isCheating = true;
+    }
+
+    if (isCheating) {
+        const penalty = diff * 2;
+        console.error(`🚨 偵測到魔修行為！非法獲取 ${diff} 分，天道反噬扣除 ${penalty} 分！`);
+        
+        db.ref(`users/${user.uid}/cultivation`).set(firebase.database.ServerValue.increment(-penalty));
+        logAction(user.uid, currentUser.customName, '觸發天道防作弊反噬', -penalty);
+        
+        sendSystemMsg(`⚡ 【天道雷罰】${currentUser.customName} 妄圖施展禁術篡改修為，遭天道無情反噬，重挫 ${penalty} 點修為！`, 'bad');
+    }
+    myLastGainTime = now;
+}
                     }
 
                     myLastPoints = currentPoints;
