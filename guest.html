@@ -604,7 +604,21 @@ if (diff > 0) {
                 }
             }
         }
+let lastTiandaoCallTime = 0;
 
+async function callTiandaoAI(question, userName, realm) {
+    // 🌟 限制每 5 秒只能呼叫一次天道，防止 429 超速爆掉！
+    const now = Date.now();
+    if (now - lastTiandaoCallTime < 5000) {
+        roomRef.child('chat').push({
+            type: 'system',
+            sysType: 'bad',
+            msg: `☁️ 【天道法旨】本尊正在閉關中，別一直煩我！請 5 秒後再叩拜！`,
+            timestamp: Date.now()
+        });
+        return;
+    }
+    lastTiandaoCallTime = now;
        // 🤖 天道本尊 (言出法隨：賞罰分明版)
 async function callTiandaoAI(question, userName, realm) {
     const systemPrompt = `你是大香腸修仙世界中的「天道」，高高在上、傲嬌且霸氣。
