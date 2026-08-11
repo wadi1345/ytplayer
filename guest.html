@@ -307,7 +307,7 @@
             startCooldownUI(CD_TIME);
             return true;
         }
-
+let isHeavenReward = false; // 天道發放福利中的特赦旗標
         function startCooldownUI(duration) {
             const indicator = document.getElementById('cooldown-indicator');
             const text = document.getElementById('cd-timer-text');
@@ -441,6 +441,14 @@
                         
                         // 只有在「分數增加」時才檢查是不是作弊 (扣分不管)
                         if (diff > 0) {
+                        // 🌟 如果這次加分是天道賞賜，直接特赦放行！
+                        if (isHeavenReward) {
+                            isHeavenReward = false; // 重置旗標
+                            myLastGainTime = now;
+                            myLastPoints = currentPoints;
+                            return; // 直接跳過檢查，絕不反噬！
+                        }
+
                             const now = Date.now();
                             const timeSinceLegit = now - legitActionTime;
                             const timeSinceLastGain = now - myLastGainTime;
@@ -666,10 +674,12 @@
         
         // 5. 順利通過審查：更新今日累積額度、增加修為、寫入日誌
         dailyRef.set(currentDailyEarned + rewardPoints);
-        
+        // 5. 順利通過審查：開啟特赦令、更新修為、寫入日誌
+        isHeavenReward = true; // 🌟 告訴保全系統：老天爺在發錢，不准查！
         // 🌟 關鍵免死金牌：更新合法動作時間，讓防外掛糾察隊閉嘴！
         legitActionTime = Date.now(); 
         
+        dailyRef.set(currentDailyEarned + rewardPoints);
         db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(rewardPoints));
         logAction(currentUser.uid, currentUser.customName, '獲天道賞賜', rewardPoints);
         sysType = 'mega';
