@@ -635,42 +635,45 @@
                     sysType = 'bad'; 
                 } 
             else if (rewardMatch && currentUser) {
-    let rewardPoints = Math.min(parseInt(rewardMatch[1]), 50); 
-    
-    // 1. 取得今天的日期字串 (例如 "2026-06-07")
-    const today = new Date().toISOString().slice(0, 10);
-    const dailyRef = db.ref(`users/${currentUser.uid}/dailyHeavenPoints/${today}`);
-    
-    // 2. 檢查今天已經從天道身上薅走多少羊毛了
-    const snapshot = await dailyRef.once('value');
-    const currentDailyEarned = snapshot.val() || 0;
-    
-    // 3. 超過 100 點上限，直接沒收並給予傲嬌吐槽
-    if (currentDailyEarned >= 100) {
-        sysType = 'bad';
-        aiReply = `哼！你今天從本尊這裡刮走太多好處了，貪得無厭！今日賞賜額度已滿，滾去好好修煉，別再拍馬屁了！`;
+        let rewardPoints = Math.min(parseInt(rewardMatch[1]), 50); 
         
-        roomRef.child('chat').push({
-            type: 'system',
-            sysType: sysType,
-            msg: `☁️ 【天道法旨】回覆 ${userName}：\n${aiReply}`,
-            timestamp: Date.now()
-        });
-        return; // 直接中斷，不予賞賜
+        // 1. 取得今天的日期字串 (例如 "2026-06-07")
+        const today = new Date().toISOString().slice(0, 10);
+        const dailyRef = db.ref(`users/${currentUser.uid}/dailyHeavenPoints/${today}`);
+        
+        // 2. 檢查今天已經從天道身上薅走多少羊毛了
+        const snapshot = await dailyRef.once('value');
+        const currentDailyEarned = snapshot.val() || 0;
+        
+        // 3. 超過 100 點上限，直接沒收並給予傲嬌吐槽
+        if (currentDailyEarned >= 100) {
+            sysType = 'bad';
+            aiReply = `哼！你今天從本尊這裡刮走太多好處了，貪得無厭！今日賞賜額度已滿，滾去好好修煉，別再拍馬屁了！`;
+            
+            roomRef.child('chat').push({
+                type: 'system',
+                sysType: sysType,
+                msg: `☁️ 【天道法旨】回覆 ${userName}：\n${aiReply}`,
+                timestamp: Date.now()
+            });
+            return; // 直接中斷，不予賞賜
+        }
+        
+        // 4. 如果這次加下去會超過 100 點，自動幫它卡死在 100 點
+        if (currentDailyEarned + rewardPoints > 100) {
+            rewardPoints = 100 - currentDailyEarned;
+        }
+        
+        // 5. 順利通過審查：更新今日累積額度、增加修為、寫入日誌
+        dailyRef.set(currentDailyEarned + rewardPoints);
+        
+        // 🌟 關鍵免死金牌：更新合法動作時間，讓防外掛糾察隊閉嘴！
+        legitActionTime = Date.now(); 
+        
+        db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(rewardPoints));
+        logAction(currentUser.uid, currentUser.customName, '獲天道賞賜', rewardPoints);
+        sysType = 'mega';
     }
-    
-    // 4. 如果這次加下去會超過 100 點，自動幫它卡死在 100 點
-    if (currentDailyEarned + rewardPoints > 100) {
-        rewardPoints = 100 - currentDailyEarned;
-    }
-    
-    // 5. 順利通過審查：更新今日累積額度、增加修為、寫入日誌
-    dailyRef.set(currentDailyEarned + rewardPoints);
-    db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(rewardPoints));
-    logAction(currentUser.uid, currentUser.customName, '獲天道賞賜', rewardPoints);
-    sysType = 'mega';
-}
-
             } catch (error) {
                 console.error("AI 呼叫失敗:", error);
                 roomRef.child('chat').push({
