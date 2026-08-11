@@ -1,17 +1,5 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-    <meta charset="UTF-8">
-    <title>天道金鑰測試儀</title>
-</head>
-<body style="background: #111; color: #fff; font-family: sans-serif; padding: 20px;">
-    <h2>🔮 天道金鑰測試儀</h2>
-    <button onclick="testAPI()" style="padding: 10px 20px; font-size: 16px; cursor: pointer;">點我呼叫天道</button>
-    <p id="status" style="color: #888; margin-top: 20px;">等待測試...</p>
-    <div id="result" style="background: #222; padding: 15px; border-radius: 8px; margin-top: 10px; font-size: 14px; white-space: pre-wrap;"></div>
-
-    <script>
-        // 🔑 你的金鑰
+<script>
+        // 🔑 你的最新版高級金鑰
         const API_KEY = "AQ.Ab8RN6Izyjv8vW4dWNzgrzjqG293OVreAMh9-8r70Bg0o5_nkw"; 
         
         async function testAPI() {
@@ -20,9 +8,14 @@
             document.getElementById('status').style.color = "#ffd700";
 
             try {
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`, {
+                // 🌟 破陣關鍵：網址後面不加 ?key= 了！
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        // 🌟 把金鑰藏在這裡，這是 Google 官方指定的新版傳輸方式！
+                        'x-goog-api-key': API_KEY 
+                    },
                     body: JSON.stringify({
                         contents: [{ parts: [{ text: "你好，這是一條測試訊息，請用一句話證明你收到了。" }] }]
                     })
@@ -45,5 +38,3 @@
             }
         }
     </script>
-</body>
-</html>
