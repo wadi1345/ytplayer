@@ -605,94 +605,70 @@ if (diff > 0) {
             }
         }
 
-        // 🤖 天道本尊 (言出法隨：賞罰分明版)
-        async function callTiandaoAI(question, userName, realm) {
-            const systemPrompt = `你是大香腸修仙世界中的「天道」，高高在上、傲嬌且霸氣。
+       // 🤖 天道本尊 (言出法隨：賞罰分明版)
+async function callTiandaoAI(question, userName, realm) {
+    const systemPrompt = `你是大香腸修仙世界中的「天道」，高高在上、傲嬌且霸氣。
 現在有一位境界為「${realm}」名叫「${userName}」的修士問你：「${question}」。
 請用修仙風格、幽默且簡短(約30到50字內)回答。
 - 若他無禮、貪婪或問愚蠢問題，請懲罰他，並在回覆中明確寫出「扣除X點修為」(X為1到20的隨機數字)。
 - 若他嘴甜、虔誠或問了有趣的好問題，你可以賞賜他，並在回覆中明確寫出「賜予X點修為」(X為1到20的隨機數字)。
 - 若只是普通對話，則給予簡短的幹話或指點即可，不帶任何點數字眼。`;
 
-            try {
-             const response = await fetch(`https://sparkling-frog-7c71.d1226635781.workers.dev/`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-        contents: [{ parts: [{ text: systemPrompt }] }]
-    })
-});
+    try {
+        const response = await fetch(`https://sparkling-frog-7c71.d1226635781.workers.dev/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: systemPrompt }] }]
+            })
+        });
 
-                if (!response.ok) throw new Error('天道無回應');
+        if (!response.ok) throw new Error('天道無回應');
 
-                const data = await response.json();
-                const aiReply = data.candidates[0].content.parts[0].text.trim();
+        const data = await response.json();
+        const aiReply = data.candidates[0].content.parts[0].text.trim();
 
-                const penaltyMatch = aiReply.match(/扣(?:除|你)?\s*(\d+)\s*點修為/);
-                const rewardMatch = aiReply.match(/(?:賜予|增加|獎勵)\s*(\d+)\s*點修為/);
-                
-                let sysType = 'good';
-
-                if (penaltyMatch && currentUser) {
-                    const penaltyPoints = parseInt(penaltyMatch[1]);
-                    db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(-penaltyPoints));
-                    logAction(currentUser.uid, currentUser.customName, '觸怒天道遭雷劈', -penaltyPoints);
-                    if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-                    sysType = 'bad'; 
-                } 
-            else if (rewardMatch && currentUser) {
-        let rewardPoints = Math.min(parseInt(rewardMatch[1]), 50); 
+        const penaltyMatch = aiReply.match(/扣(?:除|你)?\s*(\d+)\s*點修為/);
+        const rewardMatch = aiReply.match(/(?:賜予|增加|獎勵)\s*(\d+)\s*點修為/);
         
-        // 1. 取得今天的日期字串 (例如 "2026-06-07")
-        const today = new Date().toISOString().slice(0, 10);
-        const dailyRef = db.ref(`users/${currentUser.uid}/dailyHeavenPoints/${today}`);
-        
-        // 2. 檢查今天已經從天道身上薅走多少羊毛了
-        const snapshot = await dailyRef.once('value');
-        const currentDailyEarned = snapshot.val() || 0;
-        
-        // 3. 超過 100 點上限，直接沒收並給予傲嬌吐槽
-        if (currentDailyEarned >= 100) {
-            sysType = 'bad';
-            aiReply = `哼！你今天從本尊這裡刮走太多好處了，貪得無厭！今日賞賜額度已滿，滾去好好修煉，別再拍馬屁了！`;
+        let sysType = 'good';
+
+        if (penaltyMatch && currentUser) {
+            const penaltyPoints = parseInt(penaltyMatch[1]);
+            db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(-penaltyPoints));
+            logAction(currentUser.uid, currentUser.customName, '觸怒天道遭雷劈', -penaltyPoints);
+            if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+            sysType = 'bad'; 
+        } 
+        else if (rewardMatch && currentUser) {
+            let rewardPoints = Math.min(parseInt(rewardMatch[1]), 50); 
             
-            roomRef.child('chat').push({
-                type: 'system',
-                sysType: sysType,
-                msg: `☁️ 【天道法旨】回覆 ${userName}：\n${aiReply}`,
-                timestamp: Date.now()
-            });
-            return; // 直接中斷，不予賞賜
-        }
-        
-        // 4. 如果這次加下去會超過 100 點，自動幫它卡死在 100 點
-        if (currentDailyEarned + rewardPoints > 100) {
-            rewardPoints = 100 - currentDailyEarned;
-        }
-        
-        // 5. 順利通過審查：更新今日累積額度、增加修為、寫入日誌
-        dailyRef.set(currentDailyEarned + rewardPoints);
-        // 5. 順利通過審查：開啟特赦令、更新修為、寫入日誌
-        isHeavenReward = true; // 🌟 告訴保全系統：老天爺在發錢，不准查！
-        // 🌟 關鍵免死金牌：更新合法動作時間，讓防外掛糾察隊閉嘴！
-        legitActionTime = Date.now(); 
-        
-        dailyRef.set(currentDailyEarned + rewardPoints);
-        db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(rewardPoints));
-        logAction(currentUser.uid, currentUser.customName, '獲天道賞賜', rewardPoints);
-        sysType = 'mega';
-    }
-            } catch (error) {
-                console.error("AI 呼叫失敗:", error);
-                roomRef.child('chat').push({
-                    type: 'system',
-                    sysType: 'bad',
-                    msg: `☁️ 【天道法旨】本尊目前正在閉關對付海苔精，無暇理會 ${userName} 的呼喚...`,
-                    timestamp: Date.now()
-                });
-            }
+            // 🌟 關鍵免死金牌：開啟特赦令，防止防外掛糾察隊誤殺！
+            isHeavenReward = true; 
+
+            db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(rewardPoints));
+            logAction(currentUser.uid, currentUser.customName, '獲天道賞賜', rewardPoints);
+            sysType = 'mega';
         }
 
+        // 將天道回覆推送到聊天室
+        roomRef.child('chat').push({
+            type: 'system',
+            sysType: sysType,
+            msg: `☁️ 【天道法旨】回覆 ${userName}：\n${aiReply}`,
+            timestamp: Date.now()
+        });
+
+    } catch (error) {
+        console.error("AI 呼叫失敗:", error);
+        roomRef.child('chat').push({
+            type: 'system',
+            sysType: 'bad',
+            msg: `☁️ 【天道法旨】本尊目前正在閉關對付海苔精，無暇理會 ${userName} 的呼喚...`,
+            timestamp: Date.now()
+        });
+    }
+}
         function sendAdminBroadcast() {
             const msg = prompt("請輸入你要發佈的【天道法旨】內容：");
             if (!msg) return;
