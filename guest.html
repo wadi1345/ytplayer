@@ -46,7 +46,7 @@
         .btn-search { width: 100%; padding: 15px; background: var(--spotify-green); color: #000; border: none; border-radius: 50px; font-weight: 900; font-size: 16px; cursor: pointer; margin-bottom: 10px; }
         
         .action-btns { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
-        .action-btn { flex: 1; min-width: 30%; padding: 12px; background: #333; color: #fff; border: 1px solid #555; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 13px; text-align: center; transition: 0.3s; }
+        .action-btn { flex: 1; min-width: 22%; padding: 12px 8px; background: #333; color: #fff; border: 1px solid #555; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 12px; text-align: center; transition: 0.3s; }
         
         .btn-fav { background-color: transparent !important; -webkit-appearance: none; border: none !important; box-shadow: none; font-size: 18px; cursor: pointer; padding: 0 5px; color: #888; }
         .btn-del { background-color: transparent !important; -webkit-appearance: none; border: none !important; box-shadow: none; cursor: pointer; font-size: 15px; padding: 5px; opacity: 0.5; color: #444; }
@@ -150,6 +150,8 @@
                 <button class="action-btn" id="my-fav-btn" onclick="openFavModal()" style="display:none; border-color:var(--spotify-green); color:var(--spotify-green);">📂 私人歌單</button>
                 <button class="action-btn" onclick="openOnlineModal()">👥 在線名單</button>
                 <button class="action-btn" id="gacha-btn" style="display:none; border-color:#9400d3; color:#e066ff;">🧭 秘境探險</button>
+                <!-- 🌟 新增：外出歷練按鈕 (整合 AI 奇遇) -->
+                <button class="action-btn" id="adventure-btn" onclick="triggerEvent()" style="border-color:var(--gold); color:var(--gold);">⚔️ 外出歷練</button>
             </div>
             <div id="results"></div>
         </div>
@@ -201,6 +203,7 @@
                     <strong style="color: #fff;">【因果與修練】</strong><br>
                     🎵 點歌 +1 | 🔪 刪除歌曲 -1 (點了又切會扣除點數喔！)<br>
                     👼 獲贈仙丹 +2 / 贈人仙丹 +10 | 😈 心魔纏身 -1<br>
+                    ⚔️ 隨時可進行「外出歷練」，觸發天道奇遇<br>
                     🧭 每逢整點探尋秘境 (亦有極大殞落風險)<br>
                     📢 宗門頻道使用「傳音符廣播」：每次扣除 2 點修為<br>
                     <span style="color:#ff4b2b; font-size:11px; font-weight:bold;">※ 天道法則重啟：切勿沉迷！</span>
@@ -280,14 +283,16 @@
         let myCurrentRealm = "凡人";
         let myCurrentRealmColor = "#888";
         
-        // 🧭 秘境
+        // 🧭 秘境與天道變數
         let myGachaHour = ""; 
         let countdownTimer = null;
         let hasUnreadChat = false;
+        let isHeavenReward = false; // 🌟 天道特赦旗標 (防作弊系統特赦)
+        let lastTiandaoCallTime = 0; // 🌟 天道 AI 冷卻時間戳記
 
         // 🛡️ 物理冷卻陣法 (帶有視覺倒數)
         let lastActionTime = 0;
-        let legitActionTime = 0; // 🌟 新增：紀錄合法點擊的時間
+        let legitActionTime = 0; // 🌟 紀錄合法點擊的時間
         let cdTimer = null;
 
         function checkCooldown() {
@@ -295,7 +300,6 @@
             const CD_TIME = 2000; // 2秒冷卻
 
             if (now - lastActionTime < CD_TIME) {
-                // 如果在冷卻中點擊，讓提示框震動一下提醒他
                 const indicator = document.getElementById('cooldown-indicator');
                 indicator.style.transform = "translateX(-50%) scale(1.1)";
                 setTimeout(() => indicator.style.transform = "translateX(-50%) scale(1)", 150);
@@ -303,11 +307,11 @@
             }
 
             lastActionTime = now;
-            legitActionTime = now; // 🌟 每次合法按按鈕，就記錄當下時間
+            legitActionTime = now;
             startCooldownUI(CD_TIME);
             return true;
         }
-let isHeavenReward = false; // 天道發放福利中的特赦旗標
+
         function startCooldownUI(duration) {
             const indicator = document.getElementById('cooldown-indicator');
             const text = document.getElementById('cd-timer-text');
@@ -439,43 +443,43 @@ let isHeavenReward = false; // 天道發放福利中的特赦旗標
                     if (myLastPoints !== null) {
                         const diff = currentPoints - myLastPoints;
                         
-                      // 只有在「分數增加」時才檢查是不是作弊 (扣分不管)
-if (diff > 0) {
-    const now = Date.now(); // 🌟 必須第一時間宣告初始化！
+                        // 只有在「分數增加」時才檢查是不是作弊 (扣分不管)
+                        if (diff > 0) {
+                            const now = Date.now(); // 🌟 第一時間宣告初始化
 
-    // 🌟 如果這次加分是天道賞賜，直接特赦放行！
-    if (isHeavenReward) {
-        isHeavenReward = false; // 重置旗標
-        myLastGainTime = now;
-        myLastPoints = currentPoints;
-        return; // 直接跳過檢查，絕不反噬！
-    }
+                            // 🌟 如果這次加分是天道賞賜/奇遇，直接特赦放行！
+                            if (isHeavenReward) {
+                                isHeavenReward = false; // 重置旗標
+                                myLastGainTime = now;
+                                myLastPoints = currentPoints;
+                                return; // 直接跳過檢查，絕不反噬！
+                            }
 
-    const timeSinceLegit = now - legitActionTime;
-    const timeSinceLastGain = now - myLastGainTime;
-    
-    let isCheating = false;
+                            const timeSinceLegit = now - legitActionTime;
+                            const timeSinceLastGain = now - myLastGainTime;
+                            
+                            let isCheating = false;
 
-    // 🚨 條件 1: 分數暴增超過 10，且最近 3 秒內沒按按鈕
-    if (diff > 10 && timeSinceLegit > 3000) {
-        isCheating = true;
-    }
-    // 🚨 條件 2: 於 1.5 秒內連續加分
-    else if (timeSinceLastGain < 1500) {
-        isCheating = true;
-    }
+                            // 🚨 條件 1: 分數暴增超過 10，且最近 3 秒內沒按按鈕
+                            if (diff > 10 && timeSinceLegit > 3000) {
+                                isCheating = true;
+                            }
+                            // 🚨 條件 2: 於 1.5 秒內連續加分
+                            else if (timeSinceLastGain < 1500) {
+                                isCheating = true;
+                            }
 
-    if (isCheating) {
-        const penalty = diff * 2;
-        console.error(`🚨 偵測到魔修行為！非法獲取 ${diff} 分，天道反噬扣除 ${penalty} 分！`);
-        
-        db.ref(`users/${user.uid}/cultivation`).set(firebase.database.ServerValue.increment(-penalty));
-        logAction(user.uid, currentUser.customName, '觸發天道防作弊反噬', -penalty);
-        
-        sendSystemMsg(`⚡ 【天道雷罰】${currentUser.customName} 妄圖施展禁術篡改修為，遭天道無情反噬，重挫 ${penalty} 點修為！`, 'bad');
-    }
-    myLastGainTime = now;
-}
+                            if (isCheating) {
+                                const penalty = diff * 2;
+                                console.error(`🚨 偵測到魔修行為！非法獲取 ${diff} 分，天道反噬扣除 ${penalty} 分！`);
+                                
+                                db.ref(`users/${user.uid}/cultivation`).set(firebase.database.ServerValue.increment(-penalty));
+                                logAction(user.uid, currentUser.customName, '觸發天道防作弊反噬', -penalty);
+                                
+                                sendSystemMsg(`⚡ 【天道雷罰】${currentUser.customName} 妄圖施展禁術篡改修為，遭天道無情反噬，重挫 ${penalty} 點修為！`, 'bad');
+                            }
+                            myLastGainTime = now;
+                        }
                     }
 
                     myLastPoints = currentPoints;
@@ -552,7 +556,7 @@ if (diff > 0) {
         }
 
         // ==========================================
-        // 💬 聊天室與 GM 查水表
+        // 💬 聊天室與 AI 天道本尊
         // ==========================================
         function openChatModal() {
             document.getElementById('chatModal').style.display = 'flex';
@@ -604,25 +608,22 @@ if (diff > 0) {
                 }
             }
         }
-// 🌟 宣告全域冷卻時間變數（放在程式碼最上方變數區）
-let lastTiandaoCallTime = 0;
 
-// 🤖 天道本尊 (言出法隨：賞罰分明版)
-async function callTiandaoAI(question, userName, realm) {
-    // 🛡️ 頻率限制防護：若距離上次呼叫不到 5 秒，直接攔截！
-    const nowTime = Date.now();
-    if (nowTime - lastTiandaoCallTime < 5000) {
-        roomRef.child('chat').push({
-            type: 'system',
-            sysType: 'bad',
-            msg: `☁️ 【天道法旨】本尊正在閉關中，別一直吵！請稍候 5 秒再叩拜！`,
-            timestamp: Date.now()
-        });
-        return; // 直接中斷，不送出請求，保住額度！
-    }
-    lastTiandaoCallTime = nowTime;
+        // 🤖 天道本尊 (言出法隨：賞罰分明版)
+        async function callTiandaoAI(question, userName, realm) {
+            const nowTime = Date.now();
+            if (nowTime - lastTiandaoCallTime < 5000) {
+                roomRef.child('chat').push({
+                    type: 'system',
+                    sysType: 'bad',
+                    msg: `☁️ 【天道法旨】本尊正在閉關中，別一直吵！請稍候 5 秒再叩拜！`,
+                    timestamp: Date.now()
+                });
+                return;
+            }
+            lastTiandaoCallTime = nowTime;
 
-    const systemPrompt = `你是大香腸修仙世界中的「天道」，高高在上、傲嬌且霸氣。
+            const systemPrompt = `你是大香腸修仙世界中的「天道」，高高在上、傲嬌且霸氣。
 現在有一位境界為「${realm}」名叫「${userName}」的修士問你：「${question}」。
 請用修仙風格、幽默且簡短(不超過25字)回答。
 - 若他無禮、貪婪或問愚蠢問題，請懲罰他，並在回覆中明確寫出「扣除X點修為」(X為1到20的隨機數字)。
@@ -630,73 +631,158 @@ async function callTiandaoAI(question, userName, realm) {
 - 若他和你站在同一陣線，一起對付海苔精，你將會非常開心，並在回覆中明確寫出「賜予X點修為」(X為1到20的隨機數字)。
 - 若只是普通對話，則給予簡短的幹話或指點即可，不帶任何點數字眼。`;
 
-    try {
-        const response = await fetch(`https://sparkling-frog-7c71.d1226635781.workers.dev/`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: systemPrompt }] }]
-            })
-        });
+            try {
+                const response = await fetch(`https://sparkling-frog-7c71.d1226635781.workers.dev/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: systemPrompt }] }],
+                        generationConfig: { maxOutputTokens: 150, temperature: 0.7 }
+                    })
+                });
 
-        // 如果還是遇到 429，給予友善提示
-        if (response.status === 429) {
-            throw new Error('API 額度超速 (429)');
+                if (response.status === 429) {
+                    throw new Error('API 額度超速 (429)');
+                }
+
+                if (!response.ok) throw new Error('天道無回應');
+
+                const data = await response.json();
+                const aiReply = data.candidates[0].content.parts[0].text.trim();
+
+                const penaltyMatch = aiReply.match(/扣(?:除|你)?\s*(\d+)\s*點修為/);
+                const rewardMatch = aiReply.match(/(?:賜予|增加|獎勵)\s*(\d+)\s*點修為/);
+                
+                let sysType = 'good';
+
+                if (penaltyMatch && currentUser) {
+                    const penaltyPoints = parseInt(penaltyMatch[1]);
+                    db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(-penaltyPoints));
+                    logAction(currentUser.uid, currentUser.customName, '觸怒天道遭雷劈', -penaltyPoints);
+                    if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+                    sysType = 'bad'; 
+                } 
+                else if (rewardMatch && currentUser) {
+                    let rewardPoints = Math.min(parseInt(rewardMatch[1]), 50); 
+                    
+                    // 🌟 開啟防外掛特赦令
+                    isHeavenReward = true; 
+
+                    db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(rewardPoints));
+                    logAction(currentUser.uid, currentUser.customName, '獲天道賞賜', rewardPoints);
+                    sysType = 'mega';
+                }
+
+                roomRef.child('chat').push({
+                    type: 'system',
+                    sysType: sysType,
+                    msg: `☁️ 【天道法旨】回覆 ${userName}：\n${aiReply}`,
+                    timestamp: Date.now()
+                });
+
+            } catch (error) {
+                console.error("AI 呼叫失敗:", error);
+                let errorMsg = `☁️ 【天道法旨】本尊目前正在閉關對付海苔精，無暇理會 ${userName} 的呼喚...`;
+                
+                if (error.message.includes('429')) {
+                    errorMsg = `☁️ 【天道法旨】香火太鼎盛、信徒太多，伺服器被擠爆了！請稍後兩分鐘再試！`;
+                }
+
+                roomRef.child('chat').push({
+                    type: 'system',
+                    sysType: 'bad',
+                    msg: errorMsg,
+                    timestamp: Date.now()
+                });
+            }
         }
 
-        if (!response.ok) throw new Error('天道無回應');
-
-        const data = await response.json();
-        const aiReply = data.candidates[0].content.parts[0].text.trim();
-
-        const penaltyMatch = aiReply.match(/扣(?:除|你)?\s*(\d+)\s*點修為/);
-        const rewardMatch = aiReply.match(/(?:賜予|增加|獎勵)\s*(\d+)\s*點修為/);
-        
-        let sysType = 'good';
-
-        if (penaltyMatch && currentUser) {
-            const penaltyPoints = parseInt(penaltyMatch[1]);
-            db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(-penaltyPoints));
-            logAction(currentUser.uid, currentUser.customName, '觸怒天道遭雷劈', -penaltyPoints);
-            if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-            sysType = 'bad'; 
-        } 
-        else if (rewardMatch && currentUser) {
-            let rewardPoints = Math.min(parseInt(rewardMatch[1]), 50); 
+        // ==========================================
+        // ⚔️ 外出歷練 (20% AI 奇遇 + 80% 本地固定事件)
+        // ==========================================
+        async function triggerEvent() {
+            if (!checkCooldown()) return;
             
-            // 🌟 開啟防外掛特赦令
-            isHeavenReward = true; 
-
-            db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(rewardPoints));
-            logAction(currentUser.uid, currentUser.customName, '獲天道賞賜', rewardPoints);
-            sysType = 'mega';
+            // 20% 機率觸發 AI 奇遇，80% 走本地事件
+            const isAITriggered = Math.random() < 0.2; 
+            
+            if (isAITriggered) {
+                await fetchAIEvent();
+            } else {
+                triggerLocalEvent();
+            }
         }
 
-        roomRef.child('chat').push({
-            type: 'system',
-            sysType: sysType,
-            msg: `☁️ 【天道法旨】回覆 ${userName}：\n${aiReply}`,
-            timestamp: Date.now()
-        });
+        async function fetchAIEvent() {
+            const name = currentUser ? (currentUser.customName || currentUser.displayName) : (document.getElementById('userName').value || '臭香腸');
+            const realm = myCurrentRealm || '凡人';
 
-    } catch (error) {
-        console.error("AI 呼叫失敗:", error);
-        let errorMsg = `☁️ 【天道法旨】本尊目前正在閉關對付海苔精，無暇理會 ${userName} 的呼喚...`;
-        
-        if (error.message.includes('429')) {
-            errorMsg = `☁️ 【天道法旨】香火太鼎盛、信徒太多，伺服器被擠爆了！請稍後兩分鐘再試！`;
+            const prompt = `你是一個修仙世界的奇遇生成器。請為境界「${realm}」名叫「${name}」的修士隨機生成一個奇遇事件。
+- 字數控制在 35 字以內，風格幽默修仙。
+- 結尾必須明確包含「獲得X點修為」或「損失X點修為」(X為 1~15 的隨機數字)。`;
+
+            try {
+                // 🌟 發送特赦令，防止防外掛系統反噬
+                isHeavenReward = true;
+
+                const response = await fetch(`https://sparkling-frog-7c71.d1226635781.workers.dev/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }],
+                        generationConfig: { maxOutputTokens: 150, temperature: 0.8 }
+                    })
+                });
+
+                if (response.status === 429) throw new Error('API 超速 (429)');
+                if (!response.ok) throw new Error('AI 忙碌中');
+
+                const data = await response.json();
+                const eventText = data.candidates[0].content.parts[0].text.trim();
+
+                // 解析修為變動
+                const rewardMatch = eventText.match(/(?:獲得|增加|賜予)\s*(\d+)\s*點修為/);
+                const penaltyMatch = eventText.match(/(?:損失|扣除|重挫)\s*(\d+)\s*點修為/);
+
+                let diff = 0;
+                if (rewardMatch) diff = parseInt(rewardMatch[1]);
+                if (penaltyMatch) diff = -parseInt(penaltyMatch[1]);
+
+                if (diff !== 0 && currentUser) {
+                    db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(diff));
+                    logAction(currentUser.uid, currentUser.customName || name, '觸發 AI 奇遇', diff);
+                }
+
+                sendSystemMsg(`✨ 【天道奇遇】${eventText}`, diff >= 0 ? 'good' : 'bad');
+
+            } catch (err) {
+                console.warn("AI 奇遇觸發失敗或超速，無縫切回本地事件：", err);
+                triggerLocalEvent(); // 🌟 自動降級：AI 失敗時改走本地固定事件
+            }
         }
 
-        roomRef.child('chat').push({
-            type: 'system',
-            sysType: 'bad',
-            msg: errorMsg,
-            timestamp: Date.now()
-        });
-    }
-}
+        function triggerLocalEvent() {
+            const name = currentUser ? (currentUser.customName || currentUser.displayName) : (document.getElementById('userName').value || '臭香腸');
+            const localEvents = [
+                { msg: `${name} 在深山破廟中發現前人留下的殘篇，參悟後修為增加 5 點！`, points: 5 },
+                { msg: `${name} 走路不小心打翻了香腸丹爐，受到驚嚇倒扣 3 點修為！`, points: -3 },
+                { msg: `${name} 觀摩大能渡劫有所領悟，大道感應，修為增加 10 點！`, points: 10 },
+                { msg: `${name} 路上撿到一顆劣質仙丹吞下，結果拉肚子，修為損失 4 點！`, points: -4 },
+                { msg: `${name} 幫宗門打掃茶水間，偶遇隱世高人指點，修為增加 8 點！`, points: 8 },
+                { msg: `${name} 誤入海苔精的幻陣，心神受震，修為扣除 6 點！`, points: -6 }
+            ];
 
-      
+            const evt = localEvents[Math.floor(Math.random() * localEvents.length)];
+
+            if (evt.points !== 0 && currentUser) {
+                if (evt.points > 0) isHeavenReward = true; // 🌟 啟動特赦令
+                db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(evt.points));
+                logAction(currentUser.uid, currentUser.customName || name, '歷練奇遇', evt.points);
+            }
+
+            sendSystemMsg(`🗺️ 【歷練事件】${evt.msg}`, evt.points >= 0 ? 'good' : 'bad');
+        }
+
         function sendAdminBroadcast() {
             const msg = prompt("請輸入你要發佈的【天道法旨】內容：");
             if (!msg) return;
@@ -897,6 +983,7 @@ async function callTiandaoAI(question, userName, realm) {
 
             db.ref(`users/${currentUser.uid}/gachaHour`).set(currentHourKey);
             if (diff !== 0) {
+                if (diff > 0) isHeavenReward = true; // 🌟 啟動特赦令
                 db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(diff));
                 logAction(currentUser.uid, myName, `秘境探險(${diff > 0 ? '機緣' : '厄運'})`, diff);
             }
@@ -905,7 +992,7 @@ async function callTiandaoAI(question, userName, realm) {
         }
 
         // ==========================================
-        // 🔮 點歌與因果平衡機制 (點歌+1，切歌-1)
+        // 🔮 點歌與因果平衡機制
         // ==========================================
         function addToQueue(id, title) {
             if (!checkCooldown()) return; 
@@ -1066,6 +1153,7 @@ async function callTiandaoAI(question, userName, realm) {
                 if (newVote) voteRef.set(newVote); else voteRef.remove();
                 if (diff !== 0) db.ref(`users/${curSong.uid}/cultivation`).set(firebase.database.ServerValue.increment(diff));
                 if (giverDiff !== 0) {
+                    if (giverDiff > 0) isHeavenReward = true; // 放行特赦
                     db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(giverDiff));
                     logAction(currentUser.uid, currentUser.customName, '仙丹發送/收回', giverDiff);
                 }
