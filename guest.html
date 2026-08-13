@@ -615,96 +615,91 @@
             }
         }
 
-        async function callTiandaoAI(question, userName, realm) {
-            const nowTime = Date.now();
-            if (nowTime - lastTiandaoCallTime < 5000) {
-                sendSystemMsg(`☁️ 【天道法旨】本尊正在閉關中，別一直吵！請稍候 5 秒再叩拜！`, 'bad');
-                return;
-            }
-            lastTiandaoCallTime = nowTime;
+      async function callTiandaoAI(question, userName, realm) {
+    const nowTime = Date.now();
+    if (nowTime - lastTiandaoCallTime < 5000) {
+        sendSystemMsg(`☁️ 【天道法旨】本尊正在閉關中，別一直吵！請稍候 5 秒再叩拜！`, 'bad');
+        return;
+    }
+    lastTiandaoCallTime = nowTime;
 
-            const systemPrompt = `【系統指令：你現在完全進入角色扮演，禁止輸出任何邏輯推導、分析說明或英文單字。】
+    // 🌟 瘦身版 Prompt：移除所有「嚴禁/絕對」負面字眼，只留核心角色與獎懲邏輯
+    const payload = {
+        system_instruction: {
+            parts: [{
+                text: `你是修仙世界高高在上的傲嬌「天道」，請用【繁體中文】回覆修士。
 
-你是大香腸修仙世界中的傲嬌「天道」。
-修士「${userName}」（境界：${realm}）對你說：「${question}」。
+性格：傲嬌、霸氣、幽默，對話必須把句子完整講完。
 
-請直接以天道本尊的口吻回覆 1~2 句繁體中文對白：
-1. 若對方嗆你、無禮、質疑你或問廢話：直接怒斥並隨機懲罰，必須寫出「扣除X點修為」(X為1~20)。
-2. 若對方請安、討好、嘴甜或說要對付海苔精：傲嬌收下並獎勵，必須寫出「賜予X點修為」(X為1~20)。
-3. 普通對話：給予簡短修仙幹話，不帶任何點數。
-
-請直接輸出對白，絕對不要輸出任何思考過程、符號推導或英文標籤！`;
-
-            try {
-                const response = await fetch(`https://sparkling-frog-7c71.d1226635781.workers.dev/`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: systemPrompt }] }],
-                        generationConfig: { maxOutputTokens: 300, temperature: 0.7 }
-                    })
-                });
-
-                if (response.status === 429) throw new Error('429');
-                if (!response.ok) throw new Error('API_ERROR');
-
-                const data = await response.json();
-                if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
-                    throw new Error('INVALID_REPLY');
-                }
-
-                let aiReply = data.candidates[0].content.parts[0].text.trim();
-
-                aiReply = aiReply
-                    .replace(/["']?\s*->\s*[a-zA-Z\s()/*._-]*/g, '')
-                    .replace(/[a-zA-Z]{2,}/g, '')
-                    .replace(/\*\*Format\/Length Constraint:\*\*/gi, '')
-                    .replace(/style,?\s*\*?extremely concise\*?/gi, '')
-                    .trim();
-
-                if (!aiReply || aiReply.length < 2) {
-                    const fallbackReplies = [
-                        "放肆！凡人竟敢質疑本尊天威！(扣除5點修為)",
-                        "哼，本尊懶得與你這小輩計較！(賜予1點修為)",
-                        "天機不可洩漏，退下吧！",
-                        "本尊正在壓制海苔精，莫要前來打擾！",
-                        "口舌之爭無益於大道，還不快去吐納修練！"
-                    ];
-                    aiReply = fallbackReplies[Math.floor(Math.random() * fallbackReplies.length)];
-                }
-
-                const penaltyMatch = aiReply.match(/扣(?:除|你)?\s*(\d+)\s*點修為/);
-                const rewardMatch = aiReply.match(/(?:賜予|增加|獎勵)\s*(\d+)\s*點修為/);
-                
-                let sysType = 'good';
-
-                if (penaltyMatch && currentUser) {
-                    const penaltyPoints = parseInt(penaltyMatch[1]);
-                    db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(-penaltyPoints));
-                    logAction(currentUser.uid, currentUser.customName, '觸怒天道遭雷劈', -penaltyPoints);
-                    if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-                    sysType = 'bad'; 
-                } 
-                else if (rewardMatch && currentUser) {
-                    let rewardPoints = Math.min(parseInt(rewardMatch[1]), 50); 
-                    isHeavenReward = true; 
-
-                    db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(rewardPoints));
-                    logAction(currentUser.uid, currentUser.customName, '獲天道賞賜', rewardPoints);
-                    sysType = 'mega';
-                }
-
-                sendSystemMsg(`☁️ 【天道法旨】回覆 ${userName}：\n${aiReply}`, sysType);
-
-            } catch (error) {
-                console.error("AI 呼叫失敗:", error);
-                let errorMsg = `☁️ 【天道法旨】本尊目前正在閉關對付海苔精，無暇理會 ${userName} 的呼喚...`;
-                if (error.message && error.message.includes('429')) {
-                    errorMsg = `☁️ 【天道法旨】香火太鼎盛、信徒太多，伺服器被擠爆了！請稍後兩分鐘再試！`;
-                }
-                sendSystemMsg(errorMsg, 'bad');
-            }
+【修為裁決】
+- 若修士討好、送禮、請安、或要對付海苔精：請在句尾加上 (賜予X點修為)
+- 若修士無禮、嗆聲、質疑天道：請在句尾加上 (扣除X點修為)
+- (X 為 1 到 20 的隨機數字)`
+            }]
+        },
+        contents: [{
+            role: "user",
+            parts: [{ text: `修士「${userName}」（${realm}）說：「${question}」` }]
+        }],
+        generationConfig: {
+            maxOutputTokens: 300,
+            temperature: 0.7
         }
+    };
+
+    try {
+        const response = await fetch(`https://sparkling-frog-7c71.d1226635781.workers.dev/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (response.status === 429) {
+            sendSystemMsg(`☁️ 【天道法旨】（香火過盛，天道靈力充能中，請稍候 1 分鐘...）`, 'bad');
+            return;
+        }
+
+        if (!response.ok) throw new Error(`API_ERROR_${response.status}`);
+
+        const data = await response.json();
+        if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
+            throw new Error('INVALID_REPLY');
+        }
+
+        let aiReply = data.candidates[0].content.parts[0].text.trim();
+
+        // 輕量過濾殘留標籤
+        aiReply = aiReply.replace(/["']?\s*->\s*[a-zA-Z\s()/*._-]*/g, '').replace(/[a-zA-Z]{2,}/g, '').trim();
+        if (!aiReply) return;
+
+        const penaltyMatch = aiReply.match(/扣(?:除|你)?\s*(\d+)\s*點修為/);
+        const rewardMatch = aiReply.match(/(?:賜予|增加|獎勵)\s*(\d+)\s*點修為/);
+        
+        let sysType = 'good';
+
+        if (penaltyMatch && currentUser) {
+            const penaltyPoints = parseInt(penaltyMatch[1]);
+            db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(-penaltyPoints));
+            logAction(currentUser.uid, currentUser.customName, '觸怒天道遭雷劈', -penaltyPoints);
+            if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+            sysType = 'bad'; 
+        } 
+        else if (rewardMatch && currentUser) {
+            let rewardPoints = Math.min(parseInt(rewardMatch[1]), 50); 
+            isHeavenReward = true; 
+
+            db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(rewardPoints));
+            logAction(currentUser.uid, currentUser.customName, '獲天道賞賜', rewardPoints);
+            sysType = 'mega';
+        }
+
+        sendSystemMsg(`☁️ 【天道法旨】回覆 ${userName}：\n${aiReply}`, sysType);
+
+    } catch (error) {
+        console.error("AI 呼叫失敗:", error);
+        sendSystemMsg(`☁️ 【天道法旨】（天道神識波動，暫時無法回應，請稍後再試）`, 'bad');
+    }
+}
 
         function startGachaCountdown() {
             if (countdownTimer) clearInterval(countdownTimer);
