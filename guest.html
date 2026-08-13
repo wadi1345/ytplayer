@@ -352,7 +352,7 @@
             }
         }
 
-        // 🌟 補回：管理員大招 - 天道照妖鏡 🔍
+        // 🌟 管理員大招 - 天道照妖鏡 🔍
         function viewAuditLogs() {
             if (prompt("請輸入管理員密碼：") !== "1234") return alert("密碼錯誤！");
             document.getElementById('hotModal').style.display = 'none';
@@ -379,7 +379,7 @@
             }
         }
 
-        // 🌟 補回：管理員大招 - 天道法旨廣播 👑
+        // 🌟 管理員大招 - 天道法旨廣播 👑
         function sendAdminBroadcast() {
             if (prompt("請輸入管理員密碼：") !== "1234") return alert("密碼錯誤！");
             const msg = prompt("請輸入天道法旨廣播內容：");
@@ -423,6 +423,7 @@
                     return; 
                 }
 
+                // 自動開房機制
                 await db.ref(`rooms/${input}`).set({ 
                     created: Date.now(), 
                     alias: input 
@@ -484,6 +485,7 @@
                 let myLastPoints = null;
                 let myLastGainTime = 0;
 
+                // 🌟 修復版即時修為監聽（無攔劫）
                 db.ref(`users/${user.uid}/cultivation`).on('value', cultSnap => {
                     const currentPoints = cultSnap.val() || 0;
 
@@ -496,32 +498,29 @@
                             if (isHeavenReward) {
                                 isHeavenReward = false;
                                 myLastGainTime = now;
-                                myLastPoints = currentPoints;
-                                return;
-                            }
+                            } else {
+                                const timeSinceLegit = now - legitActionTime;
+                                const timeSinceLastGain = now - myLastGainTime;
+                                let isCheating = false;
 
-                            const timeSinceLegit = now - legitActionTime;
-                            const timeSinceLastGain = now - myLastGainTime;
-                            
-                            let isCheating = false;
+                                if (diff > 10 && timeSinceLegit > 3000) {
+                                    isCheating = true;
+                                }
+                                else if (timeSinceLastGain < 1500) {
+                                    isCheating = true;
+                                }
 
-                            if (diff > 10 && timeSinceLegit > 3000) {
-                                isCheating = true;
+                                if (isCheating) {
+                                    const penalty = diff * 2;
+                                    console.error(`🚨 偵測到魔修行為！非法獲取 ${diff} 分，天道反噬扣除 ${penalty} 分！`);
+                                    
+                                    db.ref(`users/${user.uid}/cultivation`).set(firebase.database.ServerValue.increment(-penalty));
+                                    logAction(user.uid, currentUser.customName, '觸發天道防作弊反噬', -penalty);
+                                    
+                                    sendSystemMsg(`⚡ 【天道雷罰】${currentUser.customName} 妄圖施展禁術篡改修為，遭天道無情反噬，重挫 ${penalty} 點修為！`, 'bad');
+                                }
+                                myLastGainTime = now;
                             }
-                            else if (timeSinceLastGain < 1500) {
-                                isCheating = true;
-                            }
-
-                            if (isCheating) {
-                                const penalty = diff * 2;
-                                console.error(`🚨 偵測到魔修行為！非法獲取 ${diff} 分，天道反噬扣除 ${penalty} 分！`);
-                                
-                                db.ref(`users/${user.uid}/cultivation`).set(firebase.database.ServerValue.increment(-penalty));
-                                logAction(user.uid, currentUser.customName, '觸發天道防作弊反噬', -penalty);
-                                
-                                sendSystemMsg(`⚡ 【天道雷罰】${currentUser.customName} 妄圖施展禁術篡改修為，遭天道無情反噬，重挫 ${penalty} 點修為！`, 'bad');
-                            }
-                            myLastGainTime = now;
                         }
                     }
 
@@ -651,6 +650,7 @@
             }
         }
 
+        // 🌟 天道 AI（精準截斷與雜訊過濾）
         async function callTiandaoAI(question, userName, realm) {
             const nowTime = Date.now();
             if (nowTime - lastTiandaoCallTime < 5000) {
@@ -659,13 +659,12 @@
             }
             lastTiandaoCallTime = nowTime;
 
-            // 🌟 嚴格修復 Prompt：強調一句完結與無斷句
             const payload = {
                 system_instruction: {
                     parts: [{
                         text: `你是大香腸修仙世界的傲嬌「天道」。使用繁體中文回覆。
 規則：
-1. 請用 1 句完整簡短的對話（25字以內）回答修士，必須有頭有尾，講話絕對不能講到一半中斷！
+1. 用 1~2 句傲嬌霸氣的簡短對話回答修士。
 2. 句尾必須附上修為結算，格式為 (賜予X點修為) 或 (扣除X點修為)，X為1~20的數字。`
                     }]
                 },
@@ -675,7 +674,7 @@
                 }],
                 generationConfig: {
                     maxOutputTokens: 300,
-                    temperature: 0.6
+                    temperature: 0.7
                 }
             };
 
@@ -700,15 +699,18 @@
 
                 let aiReply = data.candidates[0].content.parts[0].text.trim();
 
-                // 🌟 過濾雜訊
+                // 淨化雜訊標籤
                 aiReply = aiReply.replace(/["']?\s*->\s*[a-zA-Z\s()/*._-]*/g, '').replace(/[a-zA-Z]{2,}/g, '').trim();
 
-                // 🌟 核心保險：檢查是否句子遭截斷（若無結尾標點或括號，自動完成句尾）
-                if (!/[。！？！?\)]$/.test(aiReply)) {
-                    if (aiReply.includes("稀罕") || aiReply.includes("凡人") || aiReply.includes("主宰")) {
-                        aiReply += "俗物！(賜予3點修為)";
+                // 精準截斷檢查：檢查是否已帶有修為結算標籤
+                const hasScoreTag = /(?:賜予|增加|獎勵|扣除|扣你)\s*\d+\s*點修為/.test(aiReply);
+
+                if (!hasScoreTag) {
+                    const randPts = Math.floor(Math.random() * 5) + 1;
+                    if (aiReply.endsWith("，") || aiReply.endsWith("、")) {
+                        aiReply = aiReply.slice(0, -1) + `！(賜予${randPts}點修為)`;
                     } else {
-                        aiReply += "……退下吧！(賜予1點修為)";
+                        aiReply += `！(賜予${randPts}點修為)`;
                     }
                 }
 
@@ -780,70 +782,70 @@
             }
         }
 
+        // 🌟 修復版 AI 秘境（文字長度驗證與自動降級）
         async function spinAIRoulette(currentHourKey) {
-    const myName = currentUser.customName || "某修士";
-    const realm = myCurrentRealm || "凡人";
+            const myName = currentUser.customName || "某修士";
+            const realm = myCurrentRealm || "凡人";
 
-    const payload = {
-        system_instruction: {
-            parts: [{
-                text: `你是修仙世界的秘境奇遇生成器。使用【繁體中文】。
+            const payload = {
+                system_instruction: {
+                    parts: [{
+                        text: `你是修仙世界的秘境奇遇生成器。使用【繁體中文】。
 規則：
 1. 隨機生成一個有趣的秘境修仙奇遇故事（30字以內）。
 2. 結尾必須明確包含「獲得X點修為」或「損失X點修為」(X為 1~25 的數字)。`
-            }]
-        },
-        contents: [{
-            role: "user",
-            parts: [{ text: `修士「${myName}」（${realm}）進入了秘境探險` }]
-        }],
-        generationConfig: { maxOutputTokens: 150, temperature: 0.8 }
-    };
+                    }]
+                },
+                contents: [{
+                    role: "user",
+                    parts: [{ text: `修士「${myName}」（${realm}）進入了秘境探險` }]
+                }],
+                generationConfig: { maxOutputTokens: 150, temperature: 0.8 }
+            };
 
-    try {
-        isHeavenReward = true; 
+            try {
+                isHeavenReward = true; 
 
-        const response = await fetch(`https://sparkling-frog-7c71.d1226635781.workers.dev/`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
+                const response = await fetch(`https://sparkling-frog-7c71.d1226635781.workers.dev/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
 
-        if (!response.ok) throw new Error('API_ERROR');
+                if (!response.ok) throw new Error('API_ERROR');
 
-        const data = await response.json();
-        if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
-            throw new Error('INVALID_DATA');
+                const data = await response.json();
+                if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
+                    throw new Error('INVALID_DATA');
+                }
+
+                let eventText = data.candidates[0].content.parts[0].text.trim();
+
+                if (!eventText || eventText.length < 5) {
+                    throw new Error('AI_OUTPUT_INVALID');
+                }
+
+                const rewardMatch = eventText.match(/(?:獲得|增加|賜予)\s*(\d+)\s*點修為/);
+                const penaltyMatch = eventText.match(/(?:損失|扣除|重挫)\s*(\d+)\s*點修為/);
+
+                let diff = 0;
+                if (rewardMatch) diff = parseInt(rewardMatch[1]);
+                if (penaltyMatch) diff = -parseInt(penaltyMatch[1]);
+
+                db.ref(`users/${currentUser.uid}/gachaHour`).set(currentHourKey);
+                if (diff !== 0) {
+                    db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(diff));
+                    logAction(currentUser.uid, myName, `秘境探險(AI)`, diff);
+                }
+
+                alert(`🧭 秘境探索結果(天道奇遇)：\n\n${eventText}`);
+                sendSystemMsg(`✨ 【秘境廣播】${myName} 在秘境中獲得天道感應：${eventText}`, diff >= 0 ? 'good' : 'bad');
+
+            } catch (err) {
+                console.warn("AI 秘境生成無效，自動切回本地秘境：", err);
+                spinLocalRoulette(currentHourKey); 
+            }
         }
-
-        let eventText = data.candidates[0].content.parts[0].text.trim();
-
-        // 🌟 防護檢查：若 AI 回傳內容少於 5 個字或只有標點，強制判定失敗，走本地備用秘境
-        if (!eventText || eventText.length < 5) {
-            throw new Error('AI_OUTPUT_INVALID');
-        }
-
-        const rewardMatch = eventText.match(/(?:獲得|增加|賜予)\s*(\d+)\s*點修為/);
-        const penaltyMatch = eventText.match(/(?:損失|扣除|重挫)\s*(\d+)\s*點修為/);
-
-        let diff = 0;
-        if (rewardMatch) diff = parseInt(rewardMatch[1]);
-        if (penaltyMatch) diff = -parseInt(penaltyMatch[1]);
-
-        db.ref(`users/${currentUser.uid}/gachaHour`).set(currentHourKey);
-        if (diff !== 0) {
-            db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(diff));
-            logAction(currentUser.uid, myName, `秘境探險(AI)`, diff);
-        }
-
-        alert(`🧭 秘境探索結果(天道奇遇)：\n\n${eventText}`);
-        sendSystemMsg(`✨ 【秘境廣播】${myName} 在秘境中獲得天道感應：${eventText}`, diff >= 0 ? 'good' : 'bad');
-
-    } catch (err) {
-        console.warn("AI 秘境生成無效，自動切回本地秘境：", err);
-        spinLocalRoulette(currentHourKey); 
-    }
-}
 
         function spinLocalRoulette(currentHourKey) {
             let rand = Math.random() * 100;
