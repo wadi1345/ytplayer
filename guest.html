@@ -781,52 +781,69 @@
         }
 
         async function spinAIRoulette(currentHourKey) {
-            const myName = currentUser.customName || "某修士";
-            const realm = myCurrentRealm || "凡人";
+    const myName = currentUser.customName || "某修士";
+    const realm = myCurrentRealm || "凡人";
 
-            const prompt = `你是一個修仙世界的秘境奇遇生成器。請為境界「${realm}」名叫「${myName}」的修士隨機生成一個秘境探險奇遇。
-- 字數控制在 35 字以內，風格幽默修仙。
-- 結尾必須明確包含「獲得X點修為」或「損失X點修為」(X為 1~25 的隨機數字)。`;
+    const payload = {
+        system_instruction: {
+            parts: [{
+                text: `你是修仙世界的秘境奇遇生成器。使用【繁體中文】。
+規則：
+1. 隨機生成一個有趣的秘境修仙奇遇故事（30字以內）。
+2. 結尾必須明確包含「獲得X點修為」或「損失X點修為」(X為 1~25 的數字)。`
+            }]
+        },
+        contents: [{
+            role: "user",
+            parts: [{ text: `修士「${myName}」（${realm}）進入了秘境探險` }]
+        }],
+        generationConfig: { maxOutputTokens: 150, temperature: 0.8 }
+    };
 
-            try {
-                isHeavenReward = true; 
+    try {
+        isHeavenReward = true; 
 
-                const response = await fetch(`https://sparkling-frog-7c71.d1226635781.workers.dev/`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: prompt }] }],
-                        generationConfig: { maxOutputTokens: 150, temperature: 0.8 }
-                    })
-                });
+        const response = await fetch(`https://sparkling-frog-7c71.d1226635781.workers.dev/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
 
-                if (response.status === 429) throw new Error('API 超速 (429)');
-                if (!response.ok) throw new Error('AI 忙碌中');
+        if (!response.ok) throw new Error('API_ERROR');
 
-                const data = await response.json();
-                const eventText = data.candidates[0].content.parts[0].text.trim();
-
-                const rewardMatch = eventText.match(/(?:獲得|增加|賜予)\s*(\d+)\s*點修為/);
-                const penaltyMatch = eventText.match(/(?:損失|扣除|重挫)\s*(\d+)\s*點修為/);
-
-                let diff = 0;
-                if (rewardMatch) diff = parseInt(rewardMatch[1]);
-                if (penaltyMatch) diff = -parseInt(penaltyMatch[1]);
-
-                db.ref(`users/${currentUser.uid}/gachaHour`).set(currentHourKey);
-                if (diff !== 0) {
-                    db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(diff));
-                    logAction(currentUser.uid, myName, `秘境探險(AI)`, diff);
-                }
-
-                alert(`🧭 秘境探索結果(天道奇遇)：\n\n${eventText}`);
-                sendSystemMsg(`✨ 【秘境廣播】${myName} 在秘境中獲得天道感應：${eventText}`, diff >= 0 ? 'good' : 'bad');
-
-            } catch (err) {
-                console.warn("AI 秘境生成失敗，自動切回本地傳統秘境：", err);
-                spinLocalRoulette(currentHourKey); 
-            }
+        const data = await response.json();
+        if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
+            throw new Error('INVALID_DATA');
         }
+
+        let eventText = data.candidates[0].content.parts[0].text.trim();
+
+        // 🌟 防護檢查：若 AI 回傳內容少於 5 個字或只有標點，強制判定失敗，走本地備用秘境
+        if (!eventText || eventText.length < 5) {
+            throw new Error('AI_OUTPUT_INVALID');
+        }
+
+        const rewardMatch = eventText.match(/(?:獲得|增加|賜予)\s*(\d+)\s*點修為/);
+        const penaltyMatch = eventText.match(/(?:損失|扣除|重挫)\s*(\d+)\s*點修為/);
+
+        let diff = 0;
+        if (rewardMatch) diff = parseInt(rewardMatch[1]);
+        if (penaltyMatch) diff = -parseInt(penaltyMatch[1]);
+
+        db.ref(`users/${currentUser.uid}/gachaHour`).set(currentHourKey);
+        if (diff !== 0) {
+            db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(diff));
+            logAction(currentUser.uid, myName, `秘境探險(AI)`, diff);
+        }
+
+        alert(`🧭 秘境探索結果(天道奇遇)：\n\n${eventText}`);
+        sendSystemMsg(`✨ 【秘境廣播】${myName} 在秘境中獲得天道感應：${eventText}`, diff >= 0 ? 'good' : 'bad');
+
+    } catch (err) {
+        console.warn("AI 秘境生成無效，自動切回本地秘境：", err);
+        spinLocalRoulette(currentHourKey); 
+    }
+}
 
         function spinLocalRoulette(currentHourKey) {
             let rand = Math.random() * 100;
