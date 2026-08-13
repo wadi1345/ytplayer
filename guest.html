@@ -585,7 +585,7 @@
             }
         }
 
-       async function callTiandaoAI(question, userName, realm) {
+      async function callTiandaoAI(question, userName, realm) {
     const nowTime = Date.now();
     if (nowTime - lastTiandaoCallTime < 5000) {
         sendSystemMsg(`☁️ 【天道法旨】本尊正在閉關中，別一直吵！請稍候 5 秒再叩拜！`, 'bad');
@@ -597,8 +597,8 @@
 修士「${userName}」（境界：${realm}）對你說：「${question}」。
 
 請遵照以下天道法則回覆：
-1. 用傲嬌霸氣的修仙風格回覆，控制在 50 字以內，且務必將句子完整講完。
-2. 絕對禁止輸出任何標題、格式說明或系統標籤。
+1. 用傲嬌霸氣的修仙風格回覆，控制在 40 字以內，並務必把句子完整講完。
+2. 絕對禁止輸出任何標題、格式說明或系統標籤（例如 **Format/Length Constraint:**）。
 3. 根據對方的態度裁決修為：
    - 若他嘴甜請安、虔誠叩拜或要一起對付海苔精：請明確寫出「賜予X點修為」(X為1~20的數字)。
    - 若他無禮、白目、貪婪或問愚蠢問題：請明確寫出「扣除X點修為」(X為1~20的數字)。
@@ -610,7 +610,7 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 contents: [{ parts: [{ text: systemPrompt }] }],
-                // 🌟 上限調高至 300 Token，確保中文句子能完整講完
+                // 🌟 前端直接改為 300 Tokens，留足給中文發揮的空間，絕不斷句！
                 generationConfig: { maxOutputTokens: 300, temperature: 0.7 }
             })
         });
