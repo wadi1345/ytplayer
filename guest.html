@@ -1034,7 +1034,17 @@
         function openHotModal() { const m = document.getElementById('hotModal'); if(!m)return; m.style.display='flex'; const c = document.getElementById('hotItems'); c.innerHTML='<p style="text-align:center; color:#888;">📊 統計中...</p>'; roomRef.child('songStats').once('value', snap => { const d = snap.val()||{}; const s = Object.keys(d).map(id=>({id,...d[id]})).sort((a,b)=>b.count-a.count).slice(0,10); if(s.length===0) return c.innerHTML='<p style="text-align:center; color:#555;">還沒有點歌紀錄喔！</p>'; c.innerHTML=s.map((it,i)=>{ let m = i===0?'🥇':i===1?'🥈':i===2?'🥉':`<span style="color:#888; font-size:12px;">${i+1}.</span>`; return `<div class="res-item" style="display:flex; align-items:center; border-bottom:1px solid #444; padding:10px 0; margin:0;"><div style="width:30px; text-align:center; font-size:18px;">${m}</div><div style="flex-grow:1; margin:0 10px; overflow:hidden;"><div style="font-size:13px; color:white; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${it.title}</div><div style="font-size:11px; color:#1DB954; font-weight:bold; margin-top:3px;">被點了 ${it.count} 次</div></div><button onclick="addToQueue('${it.id}', '${it.title.replace(/'/g, "\\'")}')" style="background:var(--spotify-green); border:none; padding:6px 12px; border-radius:8px; font-weight:bold; cursor:pointer; font-size:11px; color:black; flex-shrink:0;">點播</button></div>`; }).join(''); }); }
         function renderFavItems() { const c = document.getElementById('favItems'); const sortSelect = document.getElementById('favSortSelect'); const sortType = sortSelect ? sortSelect.value : 'dateDesc'; let sorted = Object.keys(myFavorites).map(id => ({ id, ...myFavorites[id] })); if (sortType === 'dateDesc') sorted.sort((a,b) => b.addedAt - a.addedAt); else if (sortType === 'dateAsc') sorted.sort((a,b) => a.addedAt - b.addedAt); else if (sortType === 'az') sorted.sort((a,b) => a.title.localeCompare(b.title)); let adminBtn = `<button onclick="syncFavToRadio()" style="width:100%; margin-bottom:15px; padding:12px; background:linear-gradient(45deg, #ff4b2b, #ff416c); color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-size:14px; box-shadow: 0 4px 10px rgba(255,75,43,0.3);">📻 將這份歌單設為大螢幕「派對電台」</button>`; if (sorted.length === 0) return c.innerHTML = adminBtn + '<p style="text-align:center; color:#555;">無收藏</p>'; c.innerHTML = adminBtn + sorted.map(s => `<div class="res-item" style="border:none; padding:8px 0; margin:0;"><input type="checkbox" class="fav-chk" data-vid="${s.id}" data-title="${s.title.replace(/'/g, "\\'")}" checked style="margin-right:10px;"><span class="res-title" style="flex-grow:1;">${s.title}</span><button onclick="toggleFav('${s.id}', '')" style="background:none; border:none; color:#ff4b2b; font-size:10px;">移除</button></div>`).join(''); }
         function syncFavToRadio() { const myState = getUserRealmState(myPoints, myBreakthroughs); if (myState.currentLevel < 4) return alert("❌ 境界不足！【化神期】以上方可發動此陣法！"); const ids = Object.keys(myFavorites); if (ids.length === 0) return alert("你的收藏是空的！"); ids.forEach(id => roomRef.child('radioPlaylist').push(id)); alert(`✅ 已成功擴充電台輪播池！`); }
-
+// 🛠️ 補回漏掉的系統廣播函數
+function sendSystemMsg(msg, type = 'good') {
+    if (roomRef) {
+        roomRef.child('chat').push({ 
+            type: 'system', 
+            sysType: type, 
+            msg: msg, 
+            timestamp: Date.now() 
+        });
+    }
+}
         function renderChatMessage(data) {
             if (!data) return;
             const cb = document.getElementById('chatBox');
