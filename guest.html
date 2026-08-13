@@ -421,7 +421,41 @@
                 }
             });
         }
+// 🛠️ 補回缺失的 renderChatMessage 函數
+function renderChatMessage(data) {
+    if (!data) return;
+    
+    const cb = document.getElementById('chatBox');
+    if (!cb) return;
 
+    const timeStr = data.timestamp ? new Date(data.timestamp).toLocaleTimeString('zh-TW', {hour: '2-digit', minute:'2-digit'}) : '剛剛';
+    const msgText = String(data.msg || "").replace(/</g, "&lt;");
+    const nameText = String(data.name || "神秘修士").replace(/</g, "&lt;");
+    const realmText = data.realm || "凡人";
+    const colorText = data.color || "#888";
+    
+    let html = "";
+    if (data.type === 'system') {
+        const styleClass = data.sysType === 'bad' ? 'chat-system-bad' : 'chat-system';
+        html = `<div class="chat-msg ${styleClass}"><span class="chat-time">${timeStr}</span> <b>${msgText}</b></div>`;
+    } else if (data.type === 'mega') {
+        html = `<div class="chat-msg chat-mega"><span class="chat-time" style="color:#eee;">${timeStr}</span> [傳音符] <strong style="color:#fff;">[${realmText}] ${nameText}:</strong> <span style="color:#fff;">${msgText}</span></div>`;
+    } else {
+        html = `<div class="chat-msg"><span class="chat-time">${timeStr}</span> <strong style="color:${colorText};">[${realmText}] ${nameText}:</strong> <span style="color:#eee;">${msgText}</span></div>`;
+    }
+    
+    cb.innerHTML += html;
+    cb.scrollTop = cb.scrollHeight;
+
+    if (document.getElementById('chatModal') && document.getElementById('chatModal').style.display !== 'flex') {
+        hasUnreadChat = true;
+        const btn = document.getElementById('chatBtnNotification');
+        if (btn) {
+            btn.innerText = "💬 頻道 (有新訊息)";
+            btn.style.background = "linear-gradient(45deg, #ff4b2b, #ff416c)";
+        }
+    }
+}
         function handleAuthChange(user) {
             currentUser = user;
             if (user) {
