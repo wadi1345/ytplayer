@@ -196,7 +196,7 @@
                     <strong style="color: #fff;">【因果與修練】</strong><br>
                     🎵 點歌 +1 | 🔪 刪除歌曲 -1 (點了又切會扣除點數喔！)<br>
                     👼 獲贈仙丹 +2 / 贈人仙丹 +10 | 😈 心魔纏身 -1<br>
-                    🧭 每逢整點探尋秘境 (亦有極大殞落風險與 AI 隨機奇遇)<br>
+                    🧭 每逢整點探尋秘境 (豐富修仙與職場奇遇，高額機緣與厄運挑戰)<br>
                     📢 宗門頻道使用「傳音符廣播」：每次扣除 2 點修為<br>
                     <span style="color:#ff4b2b; font-size:11px; font-weight:bold;">※ 天道法則重啟：切勿沉迷！</span>
                 </div>
@@ -423,7 +423,6 @@
                     return; 
                 }
 
-                // 自動開房機制
                 await db.ref(`rooms/${input}`).set({ 
                     created: Date.now(), 
                     alias: input 
@@ -485,7 +484,6 @@
                 let myLastPoints = null;
                 let myLastGainTime = 0;
 
-                // 🌟 修復版即時修為監聽（無攔劫）
                 db.ref(`users/${user.uid}/cultivation`).on('value', cultSnap => {
                     const currentPoints = cultSnap.val() || 0;
 
@@ -650,7 +648,7 @@
             }
         }
 
-        // 🌟 天道 AI（精準截斷與雜訊過濾）
+        // 🌟 天道 AI（保留於聊天室，人設分離 + 標籤安全防護）
         async function callTiandaoAI(question, userName, realm) {
             const nowTime = Date.now();
             if (nowTime - lastTiandaoCallTime < 5000) {
@@ -699,10 +697,8 @@
 
                 let aiReply = data.candidates[0].content.parts[0].text.trim();
 
-                // 淨化雜訊標籤
                 aiReply = aiReply.replace(/["']?\s*->\s*[a-zA-Z\s()/*._-]*/g, '').replace(/[a-zA-Z]{2,}/g, '').trim();
 
-                // 精準截斷檢查：檢查是否已帶有修為結算標籤
                 const hasScoreTag = /(?:賜予|增加|獎勵|扣除|扣你)\s*\d+\s*點修為/.test(aiReply);
 
                 if (!hasScoreTag) {
@@ -765,7 +761,8 @@
             }, 1000);
         }
 
-        async function spinRoulette() {
+        // 🌟 純本地化秘境探險（零延遲、零錯誤、高穩定度）
+        function spinRoulette() {
             if (!currentUser) return alert("⚠️ 登入後才能進入秘境！");
             if (!checkCooldown()) return; 
             
@@ -773,80 +770,10 @@
             const currentHourKey = `${now.getFullYear()}-${now.getMonth()+1}-${now.getDate()}-${now.getHours()}`;
             if (myGachaHour === currentHourKey) return alert("🛑 此時辰的秘境你已探索過，請等待下個整點！");
 
-            const isAITriggered = Math.random() < 0.2;
-
-            if (isAITriggered) {
-                await spinAIRoulette(currentHourKey);
-            } else {
-                spinLocalRoulette(currentHourKey);
-            }
+            spinLocalRoulette(currentHourKey);
         }
 
-        // 🌟 修復版 AI 秘境（文字長度驗證與自動降級）
-        async function spinAIRoulette(currentHourKey) {
-            const myName = currentUser.customName || "某修士";
-            const realm = myCurrentRealm || "凡人";
-
-            const payload = {
-                system_instruction: {
-                    parts: [{
-                        text: `你是修仙世界的秘境奇遇生成器。使用【繁體中文】。
-規則：
-1. 隨機生成一個有趣的秘境修仙奇遇故事（30字以內）。
-2. 結尾必須明確包含「獲得X點修為」或「損失X點修為」(X為 1~25 的數字)。`
-                    }]
-                },
-                contents: [{
-                    role: "user",
-                    parts: [{ text: `修士「${myName}」（${realm}）進入了秘境探險` }]
-                }],
-                generationConfig: { maxOutputTokens: 150, temperature: 0.8 }
-            };
-
-            try {
-                isHeavenReward = true; 
-
-                const response = await fetch(`https://sparkling-frog-7c71.d1226635781.workers.dev/`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                if (!response.ok) throw new Error('API_ERROR');
-
-                const data = await response.json();
-                if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
-                    throw new Error('INVALID_DATA');
-                }
-
-                let eventText = data.candidates[0].content.parts[0].text.trim();
-
-                if (!eventText || eventText.length < 5) {
-                    throw new Error('AI_OUTPUT_INVALID');
-                }
-
-                const rewardMatch = eventText.match(/(?:獲得|增加|賜予)\s*(\d+)\s*點修為/);
-                const penaltyMatch = eventText.match(/(?:損失|扣除|重挫)\s*(\d+)\s*點修為/);
-
-                let diff = 0;
-                if (rewardMatch) diff = parseInt(rewardMatch[1]);
-                if (penaltyMatch) diff = -parseInt(penaltyMatch[1]);
-
-                db.ref(`users/${currentUser.uid}/gachaHour`).set(currentHourKey);
-                if (diff !== 0) {
-                    db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(diff));
-                    logAction(currentUser.uid, myName, `秘境探險(AI)`, diff);
-                }
-
-                alert(`🧭 秘境探索結果(天道奇遇)：\n\n${eventText}`);
-                sendSystemMsg(`✨ 【秘境廣播】${myName} 在秘境中獲得天道感應：${eventText}`, diff >= 0 ? 'good' : 'bad');
-
-            } catch (err) {
-                console.warn("AI 秘境生成無效，自動切回本地秘境：", err);
-                spinLocalRoulette(currentHourKey); 
-            }
-        }
-
+        // 🌟 超龐大本地修仙奇遇庫
         function spinLocalRoulette(currentHourKey) {
             let rand = Math.random() * 100;
             let diff = 0; let msg = "";
@@ -854,57 +781,78 @@
 
             const myName = currentUser.customName || "某修士";
 
-            if (rand < 10) { 
+            // 🏆 大機緣池 (12% 機率: +30 ~ +50)
+            if (rand < 12) { 
                 const events = [
-                    {d: 50, m: "✨ 下班去抽盲盒，竟然一發入魂抽中超稀有隱藏版！心境大突破，修為 +50！"},
+                    {d: 50, m: "✨ 下班去抽盲盒，竟然一發入魂抽中超稀有大隱藏版！心境大突破，修為 +50！"},
+                    {d: 45, m: "🌀 去玩具店搶到了限量版爆款戰鬥陀螺，轉手現賺翻倍，道心堅定，修為 +45！"},
                     {d: 40, m: "📊 月底的庫存與結帳報表一次對齊，帳目完美無瑕，被全公司膜拜，修為 +40！"},
-                    {d: 30, m: "🀄 週末打牌連莊自摸，順便拍了超有梗的手機殼短影音，流量爆擊，修為 +30！"}
+                    {d: 40, m: "⚡ 隨手寫了一段自動化批次腳本，直接幫全組提早兩小時收工下班，功德無量！修為 +40！"},
+                    {d: 35, m: "🍧 主管心情大好，無預警請全體同仁吃頂級下午茶與芒果雪花冰，靈氣大補，修為 +35！"},
+                    {d: 30, m: "🀄 週末打麻將連莊自摸清一色，順便拍了超有梗的手機殼短影音流量破萬，修為 +30！"}
                 ];
                 let ev = events[Math.floor(Math.random() * events.length)]; diff = ev.d; msg = ev.m;
                 triggerBroadcast = { msg: `✨ 【天道廣播】氣運之子降臨！${myName} 在秘境獲得大機緣，修為暴漲！`, type: 'good' };
-            } else if (rand < 40) { 
+            } 
+            // 🍵 中等日常福報 (35% 機率: +10 ~ +25)
+            else if (rand < 47) { 
                 const events = [
-                    {d: 20, m: "🍱 中午負責幫大家訂中和精緻便當，沒算錯錢老闆還多送小菜，獲得同事感恩念力，修為 +20！"},
-                    {d: 15, m: "🧋 下午茶訂了手搖飲，不僅準時送達，珍珠還煮得特別軟Q，心情大好，修為 +15！"},
-                    {d: 15, m: "📱 最新一季的 IP 聯名手機殼打樣送來了，顏色完美零色差，一次過稿免修改！修為 +15！"},
-                    {d: 10, m: "💡 坐在辦公座位上，突然想出一句超洗腦的 3C 配件行銷腳本，修為 +10！"}
+                    {d: 25, m: "🍱 負責幫大家訂中和精緻便當，老闆不僅沒算錯錢還多送了招牌紅燒肉與小菜，修為 +25！"},
+                    {d: 20, m: "🎫 在辦公桌抽屜深處翻出一張沒過期的超商百元禮券，白吃一頓午餐，修為 +20！"},
+                    {d: 18, m: "💻 電腦突然當機重啟，原本以為心血泡湯，打開卻發現軟體有自動存檔！驚險過關，修為 +18！"},
+                    {d: 15, m: "🧋 下午茶訂了手搖飲，不僅準時送達，珍珠波霸還剛好起鍋超級軟Q，修為 +15！"},
+                    {d: 15, m: "📱 最新一季的 IP 聯名手機殼樣品寄來，顏色完全零色差，一次過審免修改！修為 +15！"},
+                    {d: 15, m: "🍪 去茶水間裝水，剛好遇到同事分食日本帶回來的超高級伴手禮點心，修為 +15！"},
+                    {d: 12, m: "🏃‍♂️ 早上跑步衝刺，在 08:59:59 壓線打卡成功，全勤獎金穩如泰山！修為 +12！"},
+                    {d: 10, m: "💡 坐在位子上發呆，突然想出一句超洗腦的 3C 配件行銷文案，修為 +10！"}
                 ];
                 let ev = events[Math.floor(Math.random() * events.length)]; diff = ev.d; msg = ev.m;
-            } else if (rand < 60) { 
+            } 
+            // 🍃 凡間瑣事 (20% 機率: -5 ~ +5)
+            else if (rand < 67) { 
                 const events = [
-                    {d: 5, m: "🍗 中午吃到一塊比手掌還大的超巨型雞排，氣血翻湧，修為 +5！"},
-                    {d: 0, m: "😐 去茶水間裝水，望著窗外發呆了三分鐘，什麼事都沒發生。修為 +0。"},
-                    {d: -5, m: "🔍 廠商寄來的樣品神秘消失，跟同事翻箱倒櫃找了半天才發現在紙箱最底層，修為 -5。"},
-                    {d: -5, m: "🗑️ 發現今天要倒的垃圾特別多，原來是海苔精在搞鬼，心很累，修為 -5。"}
+                    {d: 5, m: "🍗 中午吃到一塊比手掌還大的現炸超巨型雞排，氣血翻湧，修為 +5！"},
+                    {d: 2, m: "💤 開會時大家都在靈魂出竅，整整坐了一小時沒人被點名，修為 +2。"},
+                    {d: 0, m: "😐 去茶水間裝水，望著窗外發呆了整整三分鐘，什麼事都沒發生。修為 +0。"},
+                    {d: 0, m: "🥤 自動販賣機投幣掉出兩罐飲料，但第二罐是你最討厭的苦瓜汁。修為 +0。"},
+                    {d: -5, m: "🔍 廠商寄來的樣品神秘失蹤，跟同事翻箱倒櫃找了半天才在最底層找到，修為 -5。"},
+                    {d: -5, m: "🗑️ 發現今天要倒的垃圾特別多，原來是海苔精又在亂丟碎紙，心累，修為 -5。"}
                 ];
                 let ev = events[Math.floor(Math.random() * events.length)]; diff = ev.d; msg = ev.m;
-            } else if (rand < 85) { 
+            } 
+            // 🩸 走火入魔厄運 (20% 機率: -10 ~ -20)
+            else if (rand < 87) { 
                 const events = [
-                    {d: -10, m: "🥤 期待了一整個下午的手搖飲送來，結果你的「無糖微冰」變成了「全糖去冰」，當場走火入魔，修為 -10！"},
-                    {d: -10, m: "⚡ 辦公室有人電鍋和微波爐一起用，整間公司瞬間跳電，你的報表沒存檔，心血白費，修為 -10！"},
-                    {d: -20, m: "📦 點交門市配件庫存時，發現少了一箱盲盒，急忙去調監視器，心力交瘁，修為 -20！"}
+                    {d: -10, m: "🥤 期待整下午的手搖飲送來，結果你的「無糖微冰」被做成「全糖去冰」，甜到走火入魔！修為 -10！"},
+                    {d: -10, m: "⚡ 辦公室微波爐和電鍋同時啟動瞬間跳電，你的修仙日誌沒存到檔！修為 -10！"},
+                    {d: -12, m: "🦶 一邊滑手機一邊走路，大拇指直接狠狠踢到辦公桌桌腳，神魂劇痛！修為 -12！"},
+                    {d: -15, m: "🍛 中午頂著烈日排隊想吃的名店便當，走到門口才發現今日無預警公休，修為 -15！"},
+                    {d: -18, m: "📂 主管突然指派你去倉庫翻找三年前的手工紙本發票，灰塵漫天，心力交瘁，修為 -18！"},
+                    {d: -20, m: "📦 盤點門市庫存時發現少了一整箱盲盒，急忙調監視器排查，心神重創，修為 -20！"}
                 ];
                 let ev = events[Math.floor(Math.random() * events.length)]; diff = ev.d; msg = ev.m;
                 triggerBroadcast = { msg: `🐾 【天道廣播】業障引爆！${myName} 遭遇日常厄運，損失了 ${Math.abs(diff)} 點修為！`, type: 'bad' };
-            } else { 
+            } 
+            // 💀 遭遇上古凶獸挑戰 (13% 機率: 互動決策題)
+            else { 
                 const myState = getUserRealmState(myPoints, myBreakthroughs);
-                let winRate = 0.1; 
-                if (myState.currentLevel >= 4) winRate = 0.6; 
-                else if (myState.currentLevel >= 2) winRate = 0.3; 
+                let winRate = 0.15; 
+                if (myState.currentLevel >= 4) winRate = 0.70; 
+                else if (myState.currentLevel >= 2) winRate = 0.40; 
 
-                if (confirm(`💀 警告！你在走廊上遭遇了傳說中的兇獸（老闆）對你微笑！\n你要嘗試「閃避」還是「勇敢面對」？\n\n👉 按『確定』嘗試閃避 (50%機率無事)\n👉 按『取消』勇敢面對 (依據你的境界，勝率為 ${winRate*100}%)`)) {
+                if (confirm(`💀 警告！你在走廊轉角遭遇了傳說中的上古凶獸（大老闆）對你微笑！\n你要嘗試「閃避」還是「正面迎擊」？\n\n👉 按『確定』嘗試閃避 (50%機率無事逃脫)\n👉 按『取消』正面迎擊 (依境界當前勝率為 ${(winRate*100).toFixed(0)}%)`)) {
                     if (Math.random() < 0.5) {
-                        diff = 0; msg = "💨 你一個滑步躲進了廁所，成功逃過一劫！修為不變。";
+                        diff = 0; msg = "💨 你一個神級滑步閃進了茶水間，成功避開視線逃過一劫！修為不變。";
                     } else {
-                        diff = -10; msg = "💥 你閃避不及，被老闆叫住問專案進度，當場走火入魔！修為 -10！";
+                        diff = -10; msg = "💥 你閃避不及被叫住問專案進度，冷汗直流支支吾吾，修為 -10！";
                     }
                 } else {
                     if (Math.random() < winRate) {
-                        diff = 40; msg = "🎉 【戰勝兇獸！】你大聲且完美地匯報了當季聯名手機殼銷量與機台佈署進度，老闆龍心大悅！修為暴增 +40！";
-                        triggerBroadcast = { msg: `👑 【天道廣播】太神啦！${myName} 竟然正面戰勝了傳說兇獸(老闆)，修為狂飆 40 點！`, type: 'good' };
+                        diff = 40; msg = "🎉 【正面擊潰凶獸！】你從容不迫地拿出了完整的數據報表與銷量分析，大老闆龍心大悅！修為暴增 +40！";
+                        triggerBroadcast = { msg: `👑 【天道廣播】太神啦！${myName} 竟然正面迎戰上古凶獸(大老闆)大獲全勝，修為狂飆 40 點！`, type: 'good' };
                     } else {
-                        diff = -20; msg = "🩸 【戰敗！】你支支吾吾答不出來，承受了兇獸的恐怖威壓，神魂受創！修為重挫 -20！";
-                        triggerBroadcast = { msg: `💀 【天道廣播】悲劇！${myName} 不自量力挑戰傳說兇獸(老闆)失敗，被噴到神魂受創，扣除 20 點修為！`, type: 'bad' };
+                        diff = -25; msg = "🩸 【慘遭鎮壓！】你被連續靈魂拷問三道致命難題，當場神魂俱滅，修為重挫 -25！";
+                        triggerBroadcast = { msg: `💀 【天道廣播】慘烈！${myName} 挑戰上古凶獸(大老闆)失敗，遭恐怖威壓重創扣除 25 點修為！`, type: 'bad' };
                     }
                 }
             }
