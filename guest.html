@@ -265,7 +265,6 @@
 
         let myPoints = 0;
         let myBreakthroughs = {};
-        let todayKey = new Date().toLocaleDateString().replace(/\//g, '-'); 
         let myDailyStats = { jump: 0, skip: 0 }; 
         let myCurrentRealm = "凡人";
         let myCurrentRealmColor = "#888";
@@ -279,6 +278,12 @@
         let lastActionTime = 0;
         let legitActionTime = 0;
         let cdTimer = null;
+
+        // 🌟 標準動態日期函數（支援每日自動刷新）
+        function getTodayKey() {
+            const d = new Date();
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        }
 
         function checkCooldown() {
             const now = Date.now();
@@ -532,7 +537,16 @@
                     updateMyProfileDisplay();
                 });
 
-                db.ref(`users/${user.uid}/dailyStats/${todayKey}`).on('value', s => { myDailyStats = s.val() || { jump: 0, skip: 0 }; });
+                // 🌟 動態日誌鍵監聽與安全數值保底
+                const today = getTodayKey();
+                db.ref(`users/${user.uid}/dailyStats/${today}`).on('value', s => { 
+                    const data = s.val() || {};
+                    myDailyStats = {
+                        jump: data.jump || 0,
+                        skip: data.skip || 0
+                    };
+                });
+
                 db.ref(`users/${user.uid}/gachaHour`).on('value', s => { myGachaHour = s.val() || ""; });
                 
                 startGachaCountdown(); 
@@ -648,7 +662,7 @@
             }
         }
 
-        // 🌟 天道 AI（保留於聊天室，人設分離 + 標籤安全防護）
+        // 🌟 天道 AI（人設分離 + 標籤安全防護）
         async function callTiandaoAI(question, userName, realm) {
             const nowTime = Date.now();
             if (nowTime - lastTiandaoCallTime < 5000) {
@@ -761,7 +775,6 @@
             }, 1000);
         }
 
-        // 🌟 純本地化秘境探險（零延遲、零錯誤、高穩定度）
         function spinRoulette() {
             if (!currentUser) return alert("⚠️ 登入後才能進入秘境！");
             if (!checkCooldown()) return; 
@@ -773,7 +786,6 @@
             spinLocalRoulette(currentHourKey);
         }
 
-        // 🌟 超龐大本地修仙奇遇庫
         function spinLocalRoulette(currentHourKey) {
             let rand = Math.random() * 100;
             let diff = 0; let msg = "";
@@ -781,7 +793,6 @@
 
             const myName = currentUser.customName || "某修士";
 
-            // 🏆 大機緣池 (12% 機率: +30 ~ +50)
             if (rand < 12) { 
                 const events = [
                     {d: 50, m: "✨ 下班去抽盲盒，竟然一發入魂抽中超稀有大隱藏版！心境大突破，修為 +50！"},
@@ -794,7 +805,6 @@
                 let ev = events[Math.floor(Math.random() * events.length)]; diff = ev.d; msg = ev.m;
                 triggerBroadcast = { msg: `✨ 【天道廣播】氣運之子降臨！${myName} 在秘境獲得大機緣，修為暴漲！`, type: 'good' };
             } 
-            // 🍵 中等日常福報 (35% 機率: +10 ~ +25)
             else if (rand < 47) { 
                 const events = [
                     {d: 25, m: "🍱 負責幫大家訂中和精緻便當，老闆不僅沒算錯錢還多送了招牌紅燒肉與小菜，修為 +25！"},
@@ -808,7 +818,6 @@
                 ];
                 let ev = events[Math.floor(Math.random() * events.length)]; diff = ev.d; msg = ev.m;
             } 
-            // 🍃 凡間瑣事 (20% 機率: -5 ~ +5)
             else if (rand < 67) { 
                 const events = [
                     {d: 5, m: "🍗 中午吃到一塊比手掌還大的現炸超巨型雞排，氣血翻湧，修為 +5！"},
@@ -820,7 +829,6 @@
                 ];
                 let ev = events[Math.floor(Math.random() * events.length)]; diff = ev.d; msg = ev.m;
             } 
-            // 🩸 走火入魔厄運 (20% 機率: -10 ~ -20)
             else if (rand < 87) { 
                 const events = [
                     {d: -10, m: "🥤 期待整下午的手搖飲送來，結果你的「無糖微冰」被做成「全糖去冰」，甜到走火入魔！修為 -10！"},
@@ -833,7 +841,6 @@
                 let ev = events[Math.floor(Math.random() * events.length)]; diff = ev.d; msg = ev.m;
                 triggerBroadcast = { msg: `🐾 【天道廣播】業障引爆！${myName} 遭遇日常厄運，損失了 ${Math.abs(diff)} 點修為！`, type: 'bad' };
             } 
-            // 💀 遭遇上古凶獸挑戰 (13% 機率: 互動決策題)
             else { 
                 const myState = getUserRealmState(myPoints, myBreakthroughs);
                 let winRate = 0.15; 
@@ -881,11 +888,15 @@
 
             let finalTimestamp = Date.now();
             
+            // 🌟 金丹期特權：動態日期與次數判定
+            const today = getTodayKey();
+            const jumpUsed = myDailyStats.jump || 0;
+
             if (currentUser && myState.currentLevel >= 2 && currentQueue.length > 1) {
-                if (myDailyStats.jump === 0) {
+                if (jumpUsed < 1) {
                     if (confirm(`👑 金丹期特權：\n你今日還有 1 次「縮地成寸(插隊)」機會。要消耗它將此歌排到下一首嗎？`)) {
                         finalTimestamp = currentQueue[1].timestamp - 1; 
-                        db.ref(`users/${currentUser.uid}/dailyStats/${todayKey}/jump`).set(1);
+                        db.ref(`users/${currentUser.uid}/dailyStats/${today}/jump`).set(1);
                     }
                 }
             }
@@ -915,11 +926,15 @@
                 } else { return; }
             } 
             
+            // 🌟 元嬰期特權：動態日期與次數判定
             const myState = getUserRealmState(myPoints, myBreakthroughs);
+            const today = getTodayKey();
+            const skipUsed = myDailyStats.skip || 0;
+
             if (currentUser && myState.currentLevel >= 3) {
-                if (myDailyStats.skip === 0) {
+                if (skipUsed < 1) {
                     if (confirm(`👑 元嬰期特權：\n你今日還有 1 次「言出法隨」機會。要消耗它強制抹殺這首爛歌嗎？`)) {
-                        db.ref(`users/${currentUser.uid}/dailyStats/${todayKey}/skip`).set(1);
+                        db.ref(`users/${currentUser.uid}/dailyStats/${today}/skip`).set(1);
                         sendSystemMsg(`🔪 【天道廣播】大能出手！${currentUser.customName} 發動了【言出法隨】強制切除了歌曲。`, 'bad');
                         if (s.uid) {
                             db.ref(`users/${s.uid}/cultivation`).set(firebase.database.ServerValue.increment(-1));
