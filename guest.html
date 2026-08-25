@@ -1109,7 +1109,7 @@
             renderRadioItems();
         }
 
-        // 🌟 自動解析舊版 ID 歌名並回寫修復版
+      // 🌟 終極合體版：自動轉真實歌名 + UID 動態連動修士暱稱
 function renderRadioItems() {
     const container = document.getElementById('radioItems');
     const countBadge = document.getElementById('radioCountBadge');
@@ -1124,18 +1124,18 @@ function renderRadioItems() {
             return container.innerHTML = '<p style="text-align:center; color:#555; padding:20px;">電台目前空空如也～</p>';
         }
 
-        // 1. 找出所有只有英文 ID 或尚未抓取歌名的舊歌曲
+        // 1. 找出所有只有英文 ID 或尚未抓取真實歌名的歌曲 (例如 3ytqnteXfjw)
         const missingList = [];
         keys.forEach(k => {
             const item = data[k];
             const vid = typeof item === 'object' ? item.videoId : item;
-            const hasProperTitle = typeof item === 'object' && item.title && item.title !== vid && !item.title.startsWith('電台經典曲目');
+            const hasProperTitle = typeof item === 'object' && item.title && item.title !== vid && !item.title.startsWith('電台歌曲') && !item.title.startsWith('電台經典曲目');
             if (!hasProperTitle && vid) {
                 missingList.push({ key: k, vid: vid });
             }
         });
 
-        // 2. 若有舊 ID，批次向 YouTube API 查詢真實歌名並回寫 Firebase
+        // 2. 向 YouTube API 批次查詢真實歌名並回寫修復 Firebase
         if (missingList.length > 0) {
             const uniqueVids = [...new Set(missingList.map(m => m.vid))];
             const key = YOUTUBE_API_KEYS[currentKeyIndex];
@@ -1155,7 +1155,7 @@ function renderRadioItems() {
                                 data[m.key].title = realTitle;
                                 roomRef.child(`radioPlaylist/${m.key}/title`).set(realTitle);
                             } else {
-                                // 將舊版純字串 ID 升級為完整物件
+                                // 將舊版純字串 ID 升級為完整物件格式
                                 const upgradedObj = {
                                     videoId: m.vid,
                                     title: realTitle,
@@ -1174,19 +1174,36 @@ function renderRadioItems() {
             }
         }
 
-        // 3. 渲染出真實曲名清單
+        // 3. 讀取全體用戶檔案，動態連動 UID ➔ 暱稱
+        let allUsers = {};
+        try {
+            const usersSnap = await db.ref('users').once('value');
+            allUsers = usersSnap.val() || {};
+        } catch (e) {
+            console.warn("讀取用戶暱稱失敗:", e);
+        }
+
+        // 4. 渲染完整曲庫清單
         container.innerHTML = keys.map((k, i) => {
             const item = data[k];
             const vid = typeof item === 'object' ? item.videoId : item;
-            const title = (typeof item === 'object' && item.title) ? item.title : `未知歌曲 (${vid})`;
-            const nickname = (typeof item === 'object' && item.nickname) ? item.nickname : '神秘大能';
+            const title = (typeof item === 'object' && item.title) ? item.title : `電台歌曲 (${vid})`;
             const itemUid = (typeof item === 'object') ? item.uid : null;
+            
+            // 🌟 優先取 users/{uid} 的最新自訂暱稱
+            let nickname = (typeof item === 'object' && item.nickname) ? item.nickname : '上古大能';
+            if (itemUid && allUsers[itemUid]) {
+                nickname = allUsers[itemUid].nickname || allUsers[itemUid].name || nickname;
+            }
+
             const isMySong = currentUser && itemUid && currentUser.uid === itemUid;
 
             return `<div class="res-item" style="padding:10px 12px; margin:0 0 8px 0;">
                 <div style="flex-grow:1; overflow:hidden; margin-right:8px;">
                     <div style="font-size:13px; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${title}">${title}</div>
-                    <div style="font-size:11px; color:#888; margin-top:2px;">收錄者：<span style="color:#ff8c00;">${nickname}</span> ${isMySong ? '<strong style="color:var(--spotify-green);">(你)</strong>' : ''}</div>
+                    <div style="font-size:11px; color:#888; margin-top:2px;">
+                        收錄者：<span style="color:#ff8c00;">${nickname}</span> ${isMySong ? '<strong style="color:var(--spotify-green);">(你)</strong>' : ''}
+                    </div>
                 </div>
                 <div class="res-actions">
                     <button onclick="addToQueue('${vid}', '${title.replace(/'/g, "\\'")}')" style="background:var(--spotify-green); border:none; padding:6px 10px; border-radius:6px; font-weight:bold; cursor:pointer; font-size:11px; color:black;">點播</button>
@@ -1196,7 +1213,6 @@ function renderRadioItems() {
         }).join('');
     });
 }
-
         function removeRadioSong(key, itemUid) {
             if (!checkCooldown()) return;
             const isMySong = currentUser && itemUid && currentUser.uid === itemUid;
