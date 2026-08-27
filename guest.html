@@ -43,10 +43,13 @@
 
         .search-box { background: var(--card-gray); padding: 20px; border-radius: 20px; margin-bottom: 25px; border: 1px solid #2a2a2a; }
         input[type="text"]:not(.room-input) { width: 100%; padding: 14px; margin-bottom: 12px; background: #2a2a2a; color: white; border: 1px solid #3d3d3d; border-radius: 12px; box-sizing: border-box; font-size: 15px; }
-        .btn-search { width: 100%; padding: 15px; background: var(--spotify-green); color: #000; border: none; border-radius: 50px; font-weight: 900; font-size: 16px; cursor: pointer; margin-bottom: 10px; }
+        .btn-search { width: 100%; padding: 15px; background: var(--spotify-green); color: #000; border: none; border-radius: 50px; font-weight: 900; font-size: 16px; cursor: pointer; margin-bottom: 12px; }
         
-        .action-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
-        .action-btn { flex: 1; min-width: 18%; padding: 10px 4px; background: #333; color: #fff; border: 1px solid #555; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 11px; text-align: center; transition: 0.3s; }
+        /* 🌟 優化後的網格按鈕排版 */
+        .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+        .action-btn { padding: 11px 8px; background: #222; color: #fff; border: 1px solid #444; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 13px; text-align: center; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 4px; }
+        .action-btn:active { transform: scale(0.98); }
+        .action-btn-full { grid-column: span 2; padding: 12px; background: linear-gradient(45deg, rgba(148,0,211,0.15), rgba(224,102,255,0.15)); border-color: #9400d3; color: #e066ff; font-size: 14px; }
         
         .btn-fav { background-color: transparent !important; -webkit-appearance: none; border: none !important; box-shadow: none; font-size: 18px; cursor: pointer; padding: 0 5px; color: #888; }
         .btn-del { background-color: transparent !important; -webkit-appearance: none; border: none !important; box-shadow: none; cursor: pointer; font-size: 15px; padding: 5px; opacity: 0.5; color: #444; }
@@ -144,12 +147,13 @@
             <input type="text" id="searchInput" placeholder="🔍 搜尋歌名或貼上 YouTube 清單網址">
             <button class="btn-search" onclick="searchYouTube()">即刻點歌</button>
             
-            <div class="action-btns">
+            <!-- 🌟 清爽寬敞的 2 列網格排版 -->
+            <div class="action-grid">
                 <button class="action-btn" id="my-fav-btn" onclick="openFavModal()" style="display:none; border-color:var(--spotify-green); color:var(--spotify-green);">📂 私人歌單</button>
+                <button class="action-btn" onclick="openOnlineModal()">👥 在線名單</button>
                 <button class="action-btn" onclick="openRadioModal()" style="border-color:#ff8c00; color:#ff8c00;">📻 電台曲庫</button>
                 <button class="action-btn" onclick="openBannedModal()" style="border-color:#ff4b2b; color:#ff4b2b;">🚫 封印天牢</button>
-                <button class="action-btn" onclick="openOnlineModal()">👥 在線名單</button>
-                <button class="action-btn" id="gacha-btn" style="display:none; border-color:#9400d3; color:#e066ff;">🧭 秘境探險</button>
+                <button class="action-btn action-btn-full" id="gacha-btn" style="display:none;">🧭 秘境探險</button>
             </div>
             <div id="results"></div>
         </div>
@@ -181,7 +185,6 @@
         </div>
     </div>
 
-    <!-- 🌟 新增：封印天牢（永久黑名單）彈窗 -->
     <div id="bannedModal" class="modal-overlay">
         <div class="modal-body">
             <h3 style="color:#ff4b2b; margin-top:0; display:flex; justify-content:space-between; align-items:center;">
@@ -240,14 +243,14 @@
                     自金丹期起，達到修為門檻將進入「圓滿」瓶頸，須點擊按鈕引動天劫方可突破。天威難測，失敗將面臨嚴重反噬！
                 </div>
                 <table class="rule-table">
-                    <tr><th>境界</th><th>門檻</th><th>突破率</th><th>失敗反噬</th><th>特權</th></tr>
+                    <tr><th>境界</th><th>門檻</th><th>突破率</th><th>失敗反噬</th><th>每日階梯特權</th></tr>
                     <tr><td style="color:#888;">煉氣期</td><td>0+</td><td>-</td><td>-</td><td>凡人排隊</td></tr>
                     <tr><td style="color:#1DB954;">築基期</td><td>100+</td><td>自動</td><td>-</td><td>清單匯入(20首)</td></tr>
-                    <tr><td style="color:#ffd700;">金丹期</td><td>500+</td><td>30%</td><td>-100</td><td>每日 1 次插隊</td></tr>
-                    <tr><td style="color:#ff8c00;">元嬰期</td><td>1000+</td><td>20%</td><td>-300</td><td>每日免密碼切歌</td></tr>
-                    <tr><td style="color:#ff4b2b;">化神期</td><td>3000+</td><td>15%</td><td>-500</td><td>寫入電台 / 解封黑名單</td></tr>
-                    <tr><td style="color:#9400d3;">渡劫期</td><td>5000+</td><td>10%</td><td>-1000</td><td>免疫管理員禁言</td></tr>
-                    <tr><td style="color:#00ffff;">大乘仙尊</td><td>10000+</td><td>5%</td><td>-3000</td><td>匯入無上限</td></tr>
+                    <tr><td style="color:#ffd700;">金丹期</td><td>500+</td><td>30%</td><td>-100</td><td>插隊 1 次</td></tr>
+                    <tr><td style="color:#ff8c00;">元嬰期</td><td>1000+</td><td>20%</td><td>-300</td><td>插隊 2 次 / 免密切歌 1 次</td></tr>
+                    <tr><td style="color:#ff4b2b;">化神期</td><td>3000+</td><td>15%</td><td>-500</td><td>插隊 3 次 / 切歌 2 次 / 寫入電台 / 解封天牢</td></tr>
+                    <tr><td style="color:#9400d3;">渡劫期</td><td>5000+</td><td>10%</td><td>-1000</td><td>插隊 4 次 / 切歌 3 次 / 降雷 1 次(劈50~100) / 免疫禁言</td></tr>
+                    <tr><td style="color:#00ffff;">大乘仙尊</td><td>10000+</td><td>5%</td><td>-3000</td><td>插隊 5 次 / 切歌 4 次 / 降雷 2 次 / 匯入無上限</td></tr>
                 </table>
             </div>
             <button onclick="document.getElementById('realmModal').style.display='none'" style="width:100%; padding:12px; background:#555; color:white; border:none; border-radius:50px; font-weight:bold; cursor:pointer;">我已悟道</button>
@@ -300,7 +303,7 @@
 
         let myPoints = 0;
         let myBreakthroughs = {};
-        let myDailyStats = { jump: 0, skip: 0 }; 
+        let myDailyStats = { jump: 0, skip: 0, thunder: 0 }; 
         let myCurrentRealm = "凡人";
         let myCurrentRealmColor = "#888";
         
@@ -317,6 +320,15 @@
         function getTodayKey() {
             const d = new Date();
             return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        }
+
+        // 🌟 階梯式每日特權上限計算
+        function getDailyLimits(level) {
+            return {
+                jump: level >= 2 ? (level - 1) : 0,     // Lv2:1, Lv3:2, Lv4:3, Lv5:4, Lv6:5
+                skip: level >= 3 ? (level - 2) : 0,     // Lv3:1, Lv4:2, Lv5:3, Lv6:4
+                thunder: level >= 5 ? (level - 4) : 0   // Lv5:1, Lv6:2
+            };
         }
 
         function checkCooldown() {
@@ -581,7 +593,8 @@
                     const data = s.val() || {};
                     myDailyStats = {
                         jump: data.jump || 0,
-                        skip: data.skip || 0
+                        skip: data.skip || 0,
+                        thunder: data.thunder || 0
                     };
                 });
 
@@ -760,7 +773,7 @@
                     if (aiReply.endsWith("，") || aiReply.endsWith("、")) {
                         aiReply = aiReply.slice(0, -1) + `！(賜予${randPts}點修為)`;
                     } else {
-                        aiReply += `！(賜予${randPts}點修為)`;
+                        aiReply += `！(賜予${randPts}點修微)`;
                     }
                 }
 
@@ -914,6 +927,46 @@
             if (triggerBroadcast) sendSystemMsg(triggerBroadcast.msg, triggerBroadcast.type);
         }
 
+        // 🌟 渡劫期專屬大招：引動九天玄雷
+        function strikeThunder(targetUid, targetName) {
+            if (!checkCooldown()) return;
+            if (!currentUser) return alert("請先登入！");
+
+            const myState = getUserRealmState(myPoints, myBreakthroughs);
+            const limits = getDailyLimits(myState.currentLevel);
+            const thunderUsed = myDailyStats.thunder || 0;
+            const remainingThunder = limits.thunder - thunderUsed;
+
+            if (limits.thunder <= 0) {
+                return alert("❌ 境界不足！需達到【渡劫期】方可引動九天玄雷！");
+            }
+
+            if (remainingThunder <= 0) {
+                return alert(`⏳ 今日天雷靈力已耗盡 (${limits.thunder}/${limits.thunder} 次)，明日 00:00 方可再次引動！`);
+            }
+
+            if (currentUser.uid === targetUid) {
+                return alert("🛑 天雷難以反噬自身，請選擇其他修士！");
+            }
+
+            const penaltyPoints = 50 + Math.floor(Math.random() * 6) * 10;
+            const myName = currentUser.customName || currentUser.displayName || "某位大能";
+            const today = getTodayKey();
+
+            if (confirm(`⚡ 【九天玄雷】渡劫特權：\n今日剩餘 ${remainingThunder} / ${limits.thunder} 次。\n\n確定要引動天雷怒劈【${targetName}】嗎？\n\n⚠️ 將隨機劈落 50~100 點修為！`)) {
+                db.ref(`users/${currentUser.uid}/dailyStats/${today}/thunder`).set(thunderUsed + 1);
+                myDailyStats.thunder = thunderUsed + 1;
+
+                db.ref(`users/${targetUid}/cultivation`).set(firebase.database.ServerValue.increment(-penaltyPoints));
+                logAction(targetUid, targetName, `遭大能(${myName})天雷怒劈`, -penaltyPoints);
+                logAction(currentUser.uid, myName, `引動天雷懲戒${targetName}`, 0);
+
+                sendSystemMsg(`⚡ 【天雷降世】${myState.realmName}【${myName}】引動九天玄雷怒劈【${targetName}】，狂暴雷威轟散其 ${penaltyPoints} 點修為以儆效尤！`, 'bad');
+                alert(`⚡ 天雷轟頂！一道驚雷精準劈中【${targetName}】，成功削減其 ${penaltyPoints} 點修為！`);
+                renderOnlineModal();
+            }
+        }
+
         // 🌟 永久封印黑名單處理函數
         function banSong(videoId, title, reason, bannerName) {
             if (!roomRef || !videoId) return;
@@ -1041,13 +1094,15 @@
             let finalTimestamp = Date.now();
             
             const today = getTodayKey();
+            const limits = getDailyLimits(myState.currentLevel);
             const jumpUsed = myDailyStats.jump || 0;
+            const remainingJump = limits.jump - jumpUsed;
 
-            if (currentUser && myState.currentLevel >= 2 && currentQueue.length > 1) {
-                if (jumpUsed < 1) {
-                    if (confirm(`👑 金丹期特權：\n你今日還有 1 次「縮地成寸(插隊)」機會。要消耗它將此歌排到下一首嗎？`)) {
+            if (currentUser && limits.jump > 0 && currentQueue.length > 1) {
+                if (remainingJump > 0) {
+                    if (confirm(`👑 【縮地成寸】特權：\n今日剩餘 ${remainingJump} / ${limits.jump} 次插隊機會。\n\n要消耗 1 次將此歌排到下一首嗎？`)) {
                         finalTimestamp = currentQueue[1].timestamp - 1; 
-                        db.ref(`users/${currentUser.uid}/dailyStats/${today}/jump`).set(1);
+                        db.ref(`users/${currentUser.uid}/dailyStats/${today}/jump`).set(jumpUsed + 1);
                     }
                 }
             }
@@ -1079,16 +1134,18 @@
             
             const myState = getUserRealmState(myPoints, myBreakthroughs);
             const today = getTodayKey();
+            const limits = getDailyLimits(myState.currentLevel);
             const skipUsed = myDailyStats.skip || 0;
+            const remainingSkip = limits.skip - skipUsed;
 
-            if (currentUser && myState.currentLevel >= 3) {
-                if (skipUsed < 1) {
-                    if (confirm(`👑 元嬰期特權：\n你今日還有 1 次「言出法隨」機會。要消耗它將此歌抹殺並打入永久黑名單嗎？`)) {
-                        db.ref(`users/${currentUser.uid}/dailyStats/${today}/skip`).set(1);
-                        banSong(s.videoId, s.title, '元嬰大能【言出法隨】抹殺', currentUser.customName);
+            if (currentUser && limits.skip > 0) {
+                if (remainingSkip > 0) {
+                    if (confirm(`👑 【言出法隨】特權：\n今日剩餘 ${remainingSkip} / ${limits.skip} 次抹殺機會。\n\n要消耗 1 次將此歌強制斬殺並打入永久黑名單嗎？`)) {
+                        db.ref(`users/${currentUser.uid}/dailyStats/${today}/skip`).set(skipUsed + 1);
+                        banSong(s.videoId, s.title, `${myState.realmName}【${currentUser.customName}】言出法隨抹殺`, currentUser.customName);
                         if (s.uid) {
                             db.ref(`users/${s.uid}/cultivation`).set(firebase.database.ServerValue.increment(-1));
-                            logAction(s.uid, s.nickname, '被元嬰特權切歌', -1);
+                            logAction(s.uid, s.nickname, '被言出法隨切歌', -1);
                         }
                         return roomRef.child('queue/'+s.key).remove();
                     } else { return; }
@@ -1126,20 +1183,40 @@
 
         function renderOnlineModal() {
             const container = document.getElementById('onlineItems');
+            const myState = getUserRealmState(myPoints, myBreakthroughs);
+            const limits = getDailyLimits(myState.currentLevel);
+            const canStrike = currentUser && limits.thunder > 0 && (myDailyStats.thunder || 0) < limits.thunder;
+
             container.innerHTML = Object.keys(onlineUsers).map(id => {
-                const u = onlineUsers[id], isMe = (currentUser && id === currentUser.uid) || (!currentUser && id === localGuestId), isB = bannedList[id];
-                const rName = u.realmName || "凡人", rColor = u.realmColor || "#888", lv = u.level || 0;
+                const u = onlineUsers[id];
+                const isMe = (currentUser && id === currentUser.uid) || (!currentUser && id === localGuestId);
+                const isB = bannedList[id];
+                const rName = u.realmName || "凡人";
+                const rColor = u.realmColor || "#888";
+                const lv = u.level || 0;
                 
-                let btn = "";
-                if (isMe) {
-                    btn = `<span style="color:var(--spotify-green);">(你)</span>`;
-                } else if (lv >= 5) {
-                    btn = `<span style="color:#9400d3; font-size:11px; font-weight:bold;">🛡️ 天道庇護</span>`;
-                } else {
-                    btn = `<button class="member-btn" style="${isB?'color:#ff4b2b;border-color:#ff4b2b':''}" onclick="toggleBan('${id}', ${isB})">${isB?'解禁':'禁言'}</button>`;
+                let actionBtns = "";
+
+                if (!isMe && u.uid && canStrike) {
+                    actionBtns += `<button onclick="strikeThunder('${u.uid}', '${u.name.replace(/'/g, "\\'")}')" style="background:linear-gradient(45deg, #ff4b2b, #9400d3); color:white; border:none; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:bold; cursor:pointer; margin-right:5px;" title="引動九天玄雷劈扣 50~100 修為">⚡ 降雷</button>`;
                 }
 
-                return `<div class="member-item"><img src="${u.photo}" class="avatar" style="width:36px; height:36px;"><div class="member-info"><div class="member-name"><span style="color:${rColor}; font-size:11px; margin-right:5px;">[${rName}]</span>${u.name}</div><div style="font-size:11px; color:#666;">${isB?'🚫 業障禁言':'🟢 在線'} | 修為: ${u.points || 0}</div></div>${btn}</div>`;
+                if (isMe) {
+                    actionBtns += `<span style="color:var(--spotify-green); font-size:12px;">(你)</span>`;
+                } else if (lv >= 5) {
+                    actionBtns += `<span style="color:#9400d3; font-size:11px; font-weight:bold;">🛡️ 天道庇護</span>`;
+                } else {
+                    actionBtns += `<button class="member-btn" style="${isB?'color:#ff4b2b;border-color:#ff4b2b':''}" onclick="toggleBan('${id}', ${isB})">${isB?'解禁':'禁言'}</button>`;
+                }
+
+                return `<div class="member-item">
+                    <img src="${u.photo}" class="avatar" style="width:36px; height:36px;">
+                    <div class="member-info">
+                        <div class="member-name"><span style="color:${rColor}; font-size:11px; margin-right:5px;">[${rName}]</span>${u.name}</div>
+                        <div style="font-size:11px; color:#666;">${isB?'🚫 業障禁言':'🟢 在線'} | 修為: ${u.points || 0}</div>
+                    </div>
+                    <div style="display:flex; align-items:center;">${actionBtns}</div>
+                </div>`;
             }).join('') || '無人上線';
         }
 
@@ -1197,7 +1274,6 @@
                     logAction(currentUser.uid, currentUser.customName, '仙丹發送/收回', giverDiff);
                 }
 
-                // 🌟 心魔累計滿 3 票自動斬殺並打入封印天牢
                 roomRef.child(`queue/${curSong.key}/votes`).once('value', vSnap => {
                     const votesObj = vSnap.val() || {};
                     let totalDislikes = 0;
@@ -1404,7 +1480,7 @@
             let added = 0; 
             chks.forEach((chk, i) => { 
                 const it = tempPlaylist[chk.value]; 
-                if (bannedSongs[it.id]) return; // 過濾封印歌曲
+                if (bannedSongs[it.id]) return; 
                 if (!currentQueue.some(s => s.videoId === it.id)) { 
                     roomRef.child('queue').push({ videoId: it.id, title: it.title, nickname: currentUser.customName, uid: currentUser.uid, timestamp: now + i }); 
                     roomRef.child(`songStats/${it.id}/count`).set(firebase.database.ServerValue.increment(1)); 
@@ -1427,7 +1503,7 @@
             let added = 0; 
             chks.forEach((chk, i) => { 
                 const vid = chk.getAttribute('data-vid'), t = chk.getAttribute('data-title'); 
-                if (bannedSongs[vid]) return; // 過濾封印歌曲
+                if (bannedSongs[vid]) return; 
                 if (!currentQueue.some(s => s.videoId === vid)) { 
                     roomRef.child('queue').push({ videoId: vid, title: t, nickname: currentUser.customName, uid: currentUser.uid, timestamp: now + i }); 
                     roomRef.child(`songStats/${vid}/count`).set(firebase.database.ServerValue.increment(1)); 
