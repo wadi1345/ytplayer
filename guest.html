@@ -693,95 +693,93 @@
         }
 
         function handleAuthChange(user) {
-            currentUser = user;
-            if (user) {
-                document.getElementById('userName').style.display = 'none'; document.getElementById('login-btn').style.display = 'none'; document.getElementById('logout-btn').style.display = 'inline-block'; document.getElementById('my-fav-btn').style.display = 'flex'; document.getElementById('gacha-btn').style.display = 'flex';
+    currentUser = user;
+    if (user) {
+        document.getElementById('userName').style.display = 'none'; 
+        document.getElementById('login-btn').style.display = 'none'; 
+        document.getElementById('logout-btn').style.display = 'inline-block'; 
+        document.getElementById('my-fav-btn').style.display = 'flex'; 
+        document.getElementById('gacha-btn').style.display = 'flex';
+        
+        let myLastPoints = null;
+        let myLastGainTime = 0;
+
+        // 🌟 合併為單一快照監聽，徹底解決豁免令與修為抵達的時間差
+        db.ref(`users/${user.uid}`).on('value', userSnap => {
+            const userData = userSnap.val() || {};
+            const currentPoints = userData.cultivation || 0;
+            const bypassTime = userData.adminBypass || 0;
+            myBreakthroughs = userData.breakthroughs || {};
+            myCustomRate = userData.customBreakthroughRate;
+
+            if (myLastPoints !== null) {
+                const diff = currentPoints - myLastPoints;
                 
-                let myLastPoints = null;
-                let myLastGainTime = 0;
+                if (diff > 0) {
+                    const now = Date.now();
+                    // 🌟 寬限期 5 分鐘，且允許跨裝置時間微小誤差
+                    const hasAdminBypass = Math.abs(now - bypassTime) < 300000;
 
-                db.ref(`users/${user.uid}/adminBypass`).on('value', s => {
-                    adminBypassTime = s.val() || 0;
-                    legitActionTime = Date.now();
-                    myLastGainTime = Date.now();
-                });
+                    if (isHeavenReward || hasAdminBypass) {
+                        isHeavenReward = false;
+                        myLastGainTime = now;
+                        legitActionTime = now;
+                    } else {
+                        const timeSinceLegit = now - legitActionTime;
+                        const timeSinceLastGain = now - myLastGainTime;
+                        let isCheating = false;
 
-                db.ref(`users/${user.uid}/customBreakthroughRate`).on('value', s => {
-                    myCustomRate = s.val();
-                });
-
-                db.ref(`users/${user.uid}/cultivation`).on('value', cultSnap => {
-                    const currentPoints = cultSnap.val() || 0;
-
-                    if (myLastPoints !== null) {
-                        const diff = currentPoints - myLastPoints;
-                        
-                        if (diff > 0) {
-                            const now = Date.now();
-
-                            if (isHeavenReward || (now - adminBypassTime < 60000)) {
-                                isHeavenReward = false;
-                                myLastGainTime = now;
-                                legitActionTime = now;
-                            } else {
-                                const timeSinceLegit = now - legitActionTime;
-                                const timeSinceLastGain = now - myLastGainTime;
-                                let isCheating = false;
-
-                                if (diff > 10 && timeSinceLegit > 3000) {
-                                    isCheating = true;
-                                }
-                                else if (timeSinceLastGain < 1500) {
-                                    isCheating = true;
-                                }
-
-                                if (isCheating) {
-                                    const penalty = diff * 2;
-                                    console.error(`🚨 偵測到魔修行為！非法獲取 ${diff} 分，天道反噬扣除 ${penalty} 分！`);
-                                    
-                                    db.ref(`users/${user.uid}/cultivation`).set(firebase.database.ServerValue.increment(-penalty));
-                                    logAction(user.uid, currentUser.customName, '觸發天道防作弊反噬', -penalty);
-                                    
-                                    sendSystemMsg(`⚡ 【天道雷罰】${currentUser.customName} 妄圖施展禁術篡改修為，遭天道無情反噬，重挫 ${penalty} 點修為！`, 'bad');
-                                }
-                                myLastGainTime = now;
-                            }
+                        if (diff > 10 && timeSinceLegit > 3000) {
+                            isCheating = true;
+                        } else if (timeSinceLastGain < 1500) {
+                            isCheating = true;
                         }
+
+                        if (isCheating) {
+                            const penalty = diff * 2;
+                            console.error(`🚨 偵測到魔修行為！非法獲取 ${diff} 分，天道反噬扣除 ${penalty} 分！`);
+                            
+                            db.ref(`users/${user.uid}/cultivation`).set(firebase.database.ServerValue.increment(-penalty));
+                            logAction(user.uid, currentUser.customName, '觸發天道防作弊反噬', -penalty);
+                            
+                            sendSystemMsg(`⚡ 【天道雷罰】${currentUser.customName} 妄圖施展禁術篡改修為，遭天道無情反噬，重挫 ${penalty} 點修為！`, 'bad');
+                        }
+                        myLastGainTime = now;
                     }
-
-                    myLastPoints = currentPoints;
-                    myPoints = currentPoints;
-                    updateMyProfileDisplay();
-                });
-                
-                db.ref(`users/${user.uid}/breakthroughs`).on('value', btSnap => {
-                    myBreakthroughs = btSnap.val() || {};
-                    updateMyProfileDisplay();
-                });
-
-                const today = getTodayKey();
-                db.ref(`users/${user.uid}/dailyStats/${today}`).on('value', s => { 
-                    const data = s.val() || {};
-                    myDailyStats = {
-                        jump: data.jump || 0,
-                        skip: data.skip || 0,
-                        thunder: data.thunder || 0
-                    };
-                });
-
-                db.ref(`users/${user.uid}/gachaHour`).on('value', s => { myGachaHour = s.val() || ""; });
-                
-                startGachaCountdown(); 
-                db.ref(`users/${user.uid}/favorites`).on('value', s => { myFavorites = s.val() || {}; updateAllStars(); });
-            } else {
-                myPoints = 0; myBreakthroughs = {}; myCustomRate = null;
-                if (countdownTimer) clearInterval(countdownTimer);
-                document.getElementById('userName').style.display = 'block'; document.getElementById('login-btn').style.display = 'inline-block'; document.getElementById('logout-btn').style.display = 'none'; document.getElementById('my-fav-btn').style.display = 'none'; document.getElementById('gacha-btn').style.display = 'none';
-                document.getElementById('user-info').innerHTML = `<div class="avatar" style="background: url('https://cdn-icons-png.flaticon.com/512/149/149071.png') center/cover;"></div><span style="font-size: 14px; color: #888;">凡人 (未登入)</span>`;
-                setupPresence('凡人', '#888', 0);
+                }
             }
-            renderQueueUI();
-        }
+
+            myLastPoints = currentPoints;
+            myPoints = currentPoints;
+            updateMyProfileDisplay();
+        });
+
+        const today = getTodayKey();
+        db.ref(`users/${user.uid}/dailyStats/${today}`).on('value', s => { 
+            const data = s.val() || {};
+            myDailyStats = {
+                jump: data.jump || 0,
+                skip: data.skip || 0,
+                thunder: data.thunder || 0
+            };
+        });
+
+        db.ref(`users/${user.uid}/gachaHour`).on('value', s => { myGachaHour = s.val() || ""; });
+        startGachaCountdown(); 
+        db.ref(`users/${user.uid}/favorites`).on('value', s => { myFavorites = s.val() || {}; updateAllStars(); });
+    } else {
+        myPoints = 0; myBreakthroughs = {}; myCustomRate = null;
+        if (countdownTimer) clearInterval(countdownTimer);
+        document.getElementById('userName').style.display = 'block'; 
+        document.getElementById('login-btn').style.display = 'inline-block'; 
+        document.getElementById('logout-btn').style.display = 'none'; 
+        document.getElementById('my-fav-btn').style.display = 'none'; 
+        document.getElementById('gacha-btn').style.display = 'none';
+        document.getElementById('user-info').innerHTML = `<div class="avatar" style="background: url('https://cdn-icons-png.flaticon.com/512/149/149071.png') center/cover;"></div><span style="font-size: 14px; color: #888;">凡人 (未登入)</span>`;
+        setupPresence('凡人', '#888', 0);
+    }
+    renderQueueUI();
+}
 
         function updateMyProfileDisplay() {
             if (!currentUser) return;
