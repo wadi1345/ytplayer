@@ -45,7 +45,6 @@
         input[type="text"]:not(.room-input) { width: 100%; padding: 14px; margin-bottom: 12px; background: #2a2a2a; color: white; border: 1px solid #3d3d3d; border-radius: 12px; box-sizing: border-box; font-size: 15px; }
         .btn-search { width: 100%; padding: 15px; background: var(--spotify-green); color: #000; border: none; border-radius: 50px; font-weight: 900; font-size: 16px; cursor: pointer; margin-bottom: 12px; }
         
-        /* 🌟 優化後的網格按鈕排版 */
         .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
         .action-btn { padding: 11px 8px; background: #222; color: #fff; border: 1px solid #444; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 13px; text-align: center; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 4px; }
         .action-btn:active { transform: scale(0.98); }
@@ -147,7 +146,6 @@
             <input type="text" id="searchInput" placeholder="🔍 搜尋歌名或貼上 YouTube 清單網址">
             <button class="btn-search" onclick="searchYouTube()">即刻點歌</button>
             
-            <!-- 🌟 清爽寬敞的 2 列網格排版 -->
             <div class="action-grid">
                 <button class="action-btn" id="my-fav-btn" onclick="openFavModal()" style="display:none; border-color:var(--spotify-green); color:var(--spotify-green);">📂 私人歌單</button>
                 <button class="action-btn" onclick="openOnlineModal()">👥 在線名單</button>
@@ -215,11 +213,15 @@
         </div>
     </div>
 
+    <!-- 🌟 管理員天道照妖鏡與造化閣 -->
     <div id="auditModal" class="modal-overlay">
         <div class="modal-body" style="max-width: 500px;">
-            <h3 style="margin-top:0; color:var(--gold); text-align:center;">👁️ 天道之眼 (全服數據)</h3>
-            <div style="text-align:center; font-size:11px; color:#aaa; margin-bottom:10px;">(此畫面僅管理員可見，即時調閱底層數據)</div>
-            <div class="modal-list" id="auditItems" style="height: 400px; padding: 10px; font-size: 13px; line-height: 1.6; background:#111;">
+            <h3 style="margin-top:0; color:var(--gold); text-align:center;">👁️ 天道造化閣 (管理員後台)</h3>
+            <div style="display:flex; gap:8px; margin-bottom:10px;">
+                <button id="tab-btn-logs" onclick="switchAdminTab('logs')" style="flex:1; padding:8px; background:var(--spotify-green); color:black; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-size:12px;">📜 修練異動日誌</button>
+                <button id="tab-btn-users" onclick="switchAdminTab('users')" style="flex:1; padding:8px; background:#333; color:#fff; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-size:12px;">🧙‍♂️ 修士生殺調控</button>
+            </div>
+            <div class="modal-list" id="auditItems" style="height: 380px; padding: 10px; font-size: 13px; line-height: 1.6; background:#111;">
                 讀取中...
             </div>
             <button onclick="document.getElementById('auditModal').style.display='none'" style="width:100%; padding:12px; background:#555; color:white; border:none; border-radius:50px; font-weight:bold; cursor:pointer;">關閉後台</button>
@@ -303,6 +305,7 @@
 
         let myPoints = 0;
         let myBreakthroughs = {};
+        let myCustomRate = null;
         let myDailyStats = { jump: 0, skip: 0, thunder: 0 }; 
         let myCurrentRealm = "凡人";
         let myCurrentRealmColor = "#888";
@@ -311,18 +314,19 @@
         let countdownTimer = null;
         let hasUnreadChat = false;
         let isHeavenReward = false; 
+        let adminBypassTime = 0;
         let lastTiandaoCallTime = 0; 
 
         let lastActionTime = 0;
         let legitActionTime = 0;
         let cdTimer = null;
+        let currentAdminTab = 'logs';
 
         function getTodayKey() {
             const d = new Date();
             return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
         }
 
-        // 🌟 階梯式每日特權上限計算
         function getDailyLimits(level) {
             return {
                 jump: level >= 2 ? (level - 1) : 0,     // Lv2:1, Lv3:2, Lv4:3, Lv5:4, Lv6:5
@@ -409,9 +413,31 @@
             if (prompt("請輸入管理員密碼：") !== "1234") return alert("密碼錯誤！");
             document.getElementById('hotModal').style.display = 'none';
             document.getElementById('auditModal').style.display = 'flex';
+            switchAdminTab('logs');
+        }
+
+        function switchAdminTab(tab) {
+            currentAdminTab = tab;
+            const btnLogs = document.getElementById('tab-btn-logs');
+            const btnUsers = document.getElementById('tab-btn-users');
+            if (tab === 'logs') {
+                btnLogs.style.background = "var(--spotify-green)";
+                btnLogs.style.color = "black";
+                btnUsers.style.background = "#333";
+                btnUsers.style.color = "white";
+                renderAuditLogs();
+            } else {
+                btnUsers.style.background = "var(--spotify-green)";
+                btnUsers.style.color = "black";
+                btnLogs.style.background = "#333";
+                btnLogs.style.color = "white";
+                renderAdminUsers();
+            }
+        }
+
+        function renderAuditLogs() {
             const container = document.getElementById('auditItems');
             container.innerHTML = "調閱全服數據中...";
-            
             if (roomRef) {
                 roomRef.child('auditLogs').limitToLast(50).once('value', snap => {
                     const logs = snap.val() || {};
@@ -428,6 +454,100 @@
                         </div>`;
                     }).join('');
                 });
+            }
+        }
+
+        // 🌟 渲染修士生殺調控清單
+        function renderAdminUsers() {
+            const container = document.getElementById('auditItems');
+            container.innerHTML = "讀取全服修士檔案中...";
+
+            db.ref('users').once('value', snap => {
+                const users = snap.val() || {};
+                const uids = Object.keys(users);
+                if (uids.length === 0) return container.innerHTML = "<p style='text-align:center; color:#666;'>尚無註冊修士</p>";
+
+                container.innerHTML = uids.map(uid => {
+                    const u = users[uid];
+                    const name = u.nickname || u.displayName || '某修士';
+                    const cult = u.cultivation || 0;
+                    const bts = u.breakthroughs || {};
+                    const state = getUserRealmState(cult, bts);
+                    const customRate = u.customBreakthroughRate !== undefined ? `${(u.customBreakthroughRate * 100).toFixed(0)}%` : '預設';
+
+                    return `<div style="border-bottom:1px solid #333; padding:10px 0; font-size:12px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                            <div>
+                                <strong style="color:#fff; font-size:13px;">${name}</strong>
+                                <span style="color:${REALM_COLORS[state.currentLevel]}; font-size:11px; margin-left:5px;">[${state.realmName}]</span>
+                            </div>
+                            <div>修為：<strong style="color:var(--gold);">${cult}</strong> | 天劫率: <span style="color:#ff8c00;">${customRate}</span></div>
+                        </div>
+                        <div style="display:flex; gap:5px; flex-wrap:wrap;">
+                            <button onclick="adminAdjustCultivation('${uid}', '${name.replace(/'/g, "\\'")}', true)" style="background:#2a2a2a; border:1px solid var(--spotify-green); color:var(--spotify-green); padding:3px 8px; border-radius:6px; font-size:11px; cursor:pointer;">➕ 加修為</button>
+                            <button onclick="adminAdjustCultivation('${uid}', '${name.replace(/'/g, "\\'")}', false)" style="background:#2a2a2a; border:1px solid #ff4b2b; color:#ff4b2b; padding:3px 8px; border-radius:6px; font-size:11px; cursor:pointer;">➖ 扣修為</button>
+                            <button onclick="adminSetBreakthroughRate('${uid}', '${name.replace(/'/g, "\\'")}')" style="background:#2a2a2a; border:1px solid #ffd700; color:#ffd700; padding:3px 8px; border-radius:6px; font-size:11px; cursor:pointer;">⚡ 天劫機率</button>
+                            <button onclick="adminDirectUnlock('${uid}', '${name.replace(/'/g, "\\'")}')" style="background:#2a2a2a; border:1px solid #9400d3; color:#e066ff; padding:3px 8px; border-radius:6px; font-size:11px; cursor:pointer;">👑 直升境界</button>
+                        </div>
+                    </div>`;
+                }).join('');
+            });
+        }
+
+        // 🌟 管理員自由調整修為（下發 adminBypass，防止反噬）
+        function adminAdjustCultivation(targetUid, targetName, isAdd) {
+            const input = prompt(`請輸入要為【${targetName}】${isAdd ? '增加' : '扣除'}的修為點數：`);
+            if (!input) return;
+            const amount = parseInt(input, 10);
+            if (isNaN(amount) || amount <= 0) return alert("請輸入有效的正整數！");
+
+            const finalDelta = isAdd ? amount : -amount;
+
+            // 1. 下發天道豁免，防止防作弊誤抓
+            db.ref(`users/${targetUid}/adminBypass`).set(Date.now());
+            
+            // 2. 更新修為
+            db.ref(`users/${targetUid}/cultivation`).set(firebase.database.ServerValue.increment(finalDelta));
+            
+            // 3. 記錄日誌
+            logAction(targetUid, targetName, `天道造化閣${isAdd ? '賜予' : '削奪'}修為`, finalDelta);
+
+            alert(`✅ 已成功為【${targetName}】${isAdd ? '增加 +' : '扣除 -'}${amount} 點修為！`);
+            renderAdminUsers();
+        }
+
+        // 🌟 管理員設定專屬渡劫機率 (如 1.0 = 100% 必過)
+        function adminSetBreakthroughRate(targetUid, targetName) {
+            const choice = prompt(`⚙️ 設定【${targetName}】的渡劫成功機率：\n\n1. 輸入「100」設為 100% 必定突破\n2. 輸入指定機率 (例如「80」代表 80%)\n3. 輸入「0」恢復系統預設機率`);
+            if (choice === null || choice === "") return;
+
+            const val = parseFloat(choice);
+            if (isNaN(val) || val < 0 || val > 100) return alert("請輸入 0 ~ 100 的數值！");
+
+            if (val === 0) {
+                db.ref(`users/${targetUid}/customBreakthroughRate`).remove();
+                alert(`✅ 已恢復【${targetName}】為天道預設渡劫機率！`);
+            } else {
+                const rate = val / 100;
+                db.ref(`users/${targetUid}/customBreakthroughRate`).set(rate);
+                alert(`✅ 已成功將【${targetName}】的渡劫機率調整為 ${val}%！`);
+            }
+            renderAdminUsers();
+        }
+
+        // 🌟 管理員直接解鎖境界
+        function adminDirectUnlock(targetUid, targetName) {
+            const realmChoice = prompt(`👑 為【${targetName}】直接解鎖境界：\n\n輸入代碼解鎖：\n2 - 金丹期\n3 - 元嬰期\n4 - 化神期\n5 - 渡劫期\n6 - 大乘仙尊`);
+            if (!realmChoice) return;
+            const lvNum = parseInt(realmChoice, 10);
+            if (lvNum >= 2 && lvNum <= 6) {
+                const lvId = `lv${lvNum}`;
+                db.ref(`users/${targetUid}/breakthroughs/${lvId}`).set(true);
+                logAction(targetUid, targetName, `天道直接賜封【${REALM_DATA[lvNum].name}】`, 0);
+                alert(`✅ 已成功為【${targetName}】解鎖【${REALM_DATA[lvNum].name}】天劫！`);
+                renderAdminUsers();
+            } else {
+                alert("輸入無效！");
             }
         }
 
@@ -540,6 +660,18 @@
                 let myLastPoints = null;
                 let myLastGainTime = 0;
 
+                // 監聽天道豁免令
+                db.ref(`users/${user.uid}/adminBypass`).on('value', s => {
+                    adminBypassTime = s.val() || 0;
+                    legitActionTime = Date.now();
+                    myLastGainTime = Date.now();
+                });
+
+                // 監聽專屬渡劫機率
+                db.ref(`users/${user.uid}/customBreakthroughRate`).on('value', s => {
+                    myCustomRate = s.val();
+                });
+
                 db.ref(`users/${user.uid}/cultivation`).on('value', cultSnap => {
                     const currentPoints = cultSnap.val() || 0;
 
@@ -549,9 +681,10 @@
                         if (diff > 0) {
                             const now = Date.now();
 
-                            if (isHeavenReward) {
+                            if (isHeavenReward || (now - adminBypassTime < 15000)) {
                                 isHeavenReward = false;
                                 myLastGainTime = now;
+                                legitActionTime = now;
                             } else {
                                 const timeSinceLegit = now - legitActionTime;
                                 const timeSinceLastGain = now - myLastGainTime;
@@ -603,7 +736,7 @@
                 startGachaCountdown(); 
                 db.ref(`users/${user.uid}/favorites`).on('value', s => { myFavorites = s.val() || {}; updateAllStars(); });
             } else {
-                myPoints = 0; myBreakthroughs = {};
+                myPoints = 0; myBreakthroughs = {}; myCustomRate = null;
                 if (countdownTimer) clearInterval(countdownTimer);
                 document.getElementById('userName').style.display = 'block'; document.getElementById('login-btn').style.display = 'inline-block'; document.getElementById('logout-btn').style.display = 'none'; document.getElementById('my-fav-btn').style.display = 'none'; document.getElementById('gacha-btn').style.display = 'none';
                 document.getElementById('user-info').innerHTML = `<div class="avatar" style="background: url('https://cdn-icons-png.flaticon.com/512/149/149071.png') center/cover;"></div><span style="font-size: 14px; color: #888;">凡人 (未登入)</span>`;
@@ -648,9 +781,12 @@
             const target = state.nextTarget;
             const myName = currentUser.customName || "某修士";
             
-            const successRate = (target.rate * 100).toFixed(0);
+            // 🌟 支援自訂渡劫成功率
+            const actualRate = (myCustomRate !== null && myCustomRate !== undefined) ? myCustomRate : target.rate;
+            const successRate = (actualRate * 100).toFixed(0);
+
             if(confirm(`⚡ 突破【${target.name}】天劫！\n\n成功機率：${successRate}%\n失敗代價：扣除 ${target.penalty} 點修為\n\n請問是否引動天雷強行突破？`)) {
-                if (Math.random() < target.rate) {
+                if (Math.random() < actualRate) {
                     myBreakthroughs[target.id] = true;
                     db.ref(`users/${currentUser.uid}/breakthroughs/${target.id}`).set(true);
                     updateMyProfileDisplay();
@@ -763,7 +899,6 @@
                 }
 
                 let aiReply = data.candidates[0].content.parts[0].text.trim();
-
                 aiReply = aiReply.replace(/["']?\s*->\s*[a-zA-Z\s()/*._-]*/g, '').replace(/[a-zA-Z]{2,}/g, '').trim();
 
                 const hasScoreTag = /(?:賜予|增加|獎勵|扣除|扣你)\s*\d+\s*點修為/.test(aiReply);
@@ -773,7 +908,7 @@
                     if (aiReply.endsWith("，") || aiReply.endsWith("、")) {
                         aiReply = aiReply.slice(0, -1) + `！(賜予${randPts}點修為)`;
                     } else {
-                        aiReply += `！(賜予${randPts}點修微)`;
+                        aiReply += `！(賜予${randPts}點修為)`;
                     }
                 }
 
@@ -1198,24 +1333,24 @@
                 let actionBtns = "";
 
                 if (!isMe && u.uid && canStrike) {
-                    actionBtns += `<button onclick="strikeThunder('${u.uid}', '${u.name.replace(/'/g, "\\'")}')" style="background:linear-gradient(45deg, #ff4b2b, #9400d3); color:white; border:none; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:bold; cursor:pointer; margin-right:5px;" title="引動九天玄雷劈扣 50~100 修為">⚡ 降雷</button>`;
+                    actionBtns += `<button onclick="strikeThunder('${u.uid}', '${u.name.replace(/'/g, "\\'")}')" style="background:linear-gradient(45deg, #ff4b2b, #9400d3); color:white; border:none; padding:4px 7px; border-radius:6px; font-size:11px; font-weight:bold; cursor:pointer; margin-right:4px;" title="引動九天玄雷劈扣 50~100 修為">⚡ 降雷</button>`;
                 }
 
                 if (isMe) {
                     actionBtns += `<span style="color:var(--spotify-green); font-size:12px;">(你)</span>`;
                 } else if (lv >= 5) {
-                    actionBtns += `<span style="color:#9400d3; font-size:11px; font-weight:bold;">🛡️ 天道庇護</span>`;
+                    actionBtns += `<span style="color:#9400d3; font-size:11px; font-weight:bold;">🛡️ 庇護</span>`;
                 } else {
                     actionBtns += `<button class="member-btn" style="${isB?'color:#ff4b2b;border-color:#ff4b2b':''}" onclick="toggleBan('${id}', ${isB})">${isB?'解禁':'禁言'}</button>`;
                 }
 
                 return `<div class="member-item">
                     <img src="${u.photo}" class="avatar" style="width:36px; height:36px;">
-                    <div class="member-info">
-                        <div class="member-name"><span style="color:${rColor}; font-size:11px; margin-right:5px;">[${rName}]</span>${u.name}</div>
+                    <div class="member-info" style="flex-grow:1; overflow:hidden;">
+                        <div class="member-name" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><span style="color:${rColor}; font-size:11px; margin-right:5px;">[${rName}]</span>${u.name}</div>
                         <div style="font-size:11px; color:#666;">${isB?'🚫 業障禁言':'🟢 在線'} | 修為: ${u.points || 0}</div>
                     </div>
-                    <div style="display:flex; align-items:center;">${actionBtns}</div>
+                    <div style="display:flex; align-items:center; flex-shrink:0;">${actionBtns}</div>
                 </div>`;
             }).join('') || '無人上線';
         }
