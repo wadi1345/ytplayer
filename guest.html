@@ -457,7 +457,6 @@
             }
         }
 
-        // 🌟 渲染修士生殺調控清單
         function renderAdminUsers() {
             const container = document.getElementById('auditItems');
             container.innerHTML = "讀取全服修士檔案中...";
@@ -494,7 +493,7 @@
             });
         }
 
-        // 🌟 管理員自由調整修為（下發 adminBypass，防止反噬）
+        // 🌟 管理員自由調整修為（包含原子寫入與宗門趣味廣播）
         function adminAdjustCultivation(targetUid, targetName, isAdd) {
             const input = prompt(`請輸入要為【${targetName}】${isAdd ? '增加' : '扣除'}的修為點數：`);
             if (!input) return;
@@ -503,20 +502,50 @@
 
             const finalDelta = isAdd ? amount : -amount;
 
-            // 1. 下發天道豁免，防止防作弊誤抓
-            db.ref(`users/${targetUid}/adminBypass`).set(Date.now());
-            
-            // 2. 更新修為
-            db.ref(`users/${targetUid}/cultivation`).set(firebase.database.ServerValue.increment(finalDelta));
-            
-            // 3. 記錄日誌
-            logAction(targetUid, targetName, `天道造化閣${isAdd ? '賜予' : '削奪'}修為`, finalDelta);
+            if (currentUser && currentUser.uid === targetUid) {
+                isHeavenReward = true;
+            }
 
-            alert(`✅ 已成功為【${targetName}】${isAdd ? '增加 +' : '扣除 -'}${amount} 點修為！`);
-            renderAdminUsers();
+            const now = Date.now();
+            const updates = {};
+            updates[`users/${targetUid}/adminBypass`] = now;
+            updates[`users/${targetUid}/cultivation`] = firebase.database.ServerValue.increment(finalDelta);
+
+            db.ref().update(updates).then(() => {
+                logAction(targetUid, targetName, `天道造化閣${isAdd ? '賜予' : '削奪'}修為`, finalDelta);
+
+                if (isAdd) {
+                    const gainReasons = [
+                        "偶遇太上長老微服出巡，獲贈萬年靈芝",
+                        "在茶水間微波便當時突然頓悟無上大道",
+                        "拯救了宗門伺服器免於崩潰，天道賜下功德靈氣",
+                        "參透天地至理，走路撿到上古修仙密卷",
+                        "昨夜夜觀星象大徹大悟，靈力暴漲",
+                        "天道巡視心情大好，隨手降下一道祥瑞金光",
+                        "喝了一口極品手搖靈茶，任督二脈瞬間打通"
+                    ];
+                    const reason = gainReasons[Math.floor(Math.random() * gainReasons.length)];
+                    sendSystemMsg(`✨ 【天降機緣】${targetName} 因「${reason}」，獲天道造化賜予 ${amount} 點修為！`, 'mega');
+                } else {
+                    const loseReasons = [
+                        "練功摸魚打瞌睡被天道神識抓個正著",
+                        "偷吃宗門靈田仙草遭天罰反噬",
+                        "走在走廊不慎踩到香蕉皮跌落境界",
+                        "在宗門群組發錯幹話遭天道削奪道行"
+                    ];
+                    const reason = loseReasons[Math.floor(Math.random() * loseReasons.length)];
+                    sendSystemMsg(`⚡ 【天道懲戒】${targetName} 因「${reason}」，被天道削奪 ${amount} 點修為以示警惕！`, 'bad');
+                }
+
+                alert(`✅ 已成功為【${targetName}】${isAdd ? '增加 +' : '扣除 -'}${amount} 點修為！`);
+                renderAdminUsers();
+            }).catch(err => {
+                console.error("更新修為失敗:", err);
+                alert("更新失敗：" + err.message);
+            });
         }
 
-        // 🌟 管理員設定專屬渡劫機率 (如 1.0 = 100% 必過)
+        // 🌟 管理員設定專屬渡劫機率
         function adminSetBreakthroughRate(targetUid, targetName) {
             const choice = prompt(`⚙️ 設定【${targetName}】的渡劫成功機率：\n\n1. 輸入「100」設為 100% 必定突破\n2. 輸入指定機率 (例如「80」代表 80%)\n3. 輸入「0」恢復系統預設機率`);
             if (choice === null || choice === "") return;
@@ -535,7 +564,7 @@
             renderAdminUsers();
         }
 
-        // 🌟 管理員直接解鎖境界
+        // 🌟 管理員直接解鎖境界（包含趣味全服破境廣播）
         function adminDirectUnlock(targetUid, targetName) {
             const realmChoice = prompt(`👑 為【${targetName}】直接解鎖境界：\n\n輸入代碼解鎖：\n2 - 金丹期\n3 - 元嬰期\n4 - 化神期\n5 - 渡劫期\n6 - 大乘仙尊`);
             if (!realmChoice) return;
@@ -544,10 +573,21 @@
                 const lvId = `lv${lvNum}`;
                 db.ref(`users/${targetUid}/breakthroughs/${lvId}`).set(true);
                 logAction(targetUid, targetName, `天道直接賜封【${REALM_DATA[lvNum].name}】`, 0);
+                
+                const unlockReasons = [
+                    "天道欽點賜下「太乙九轉金丹」，原地免試飛升",
+                    "宗門老祖托夢傳承百年道行，強行破開天道桎梏",
+                    "立下驚天動地大功德，天道降下九彩金身直接保送",
+                    "翻閱上古藏經閣無字天書一朝頓悟，肉身直接破境",
+                    "天降九彩祥雲，天道本尊親自灌頂助其破境"
+                ];
+                const reason = unlockReasons[Math.floor(Math.random() * unlockReasons.length)];
+                sendSystemMsg(`👑 【神蹟降世】${targetName} 因「${reason}」，天道直接賜封破境至【${REALM_DATA[lvNum].name}】！`, 'mega');
+
                 alert(`✅ 已成功為【${targetName}】解鎖【${REALM_DATA[lvNum].name}】天劫！`);
                 renderAdminUsers();
             } else {
-                alert("輸入無效！");
+                alert("輸入代碼無效！");
             }
         }
 
@@ -660,14 +700,12 @@
                 let myLastPoints = null;
                 let myLastGainTime = 0;
 
-                // 監聽天道豁免令
                 db.ref(`users/${user.uid}/adminBypass`).on('value', s => {
                     adminBypassTime = s.val() || 0;
                     legitActionTime = Date.now();
                     myLastGainTime = Date.now();
                 });
 
-                // 監聽專屬渡劫機率
                 db.ref(`users/${user.uid}/customBreakthroughRate`).on('value', s => {
                     myCustomRate = s.val();
                 });
@@ -681,7 +719,7 @@
                         if (diff > 0) {
                             const now = Date.now();
 
-                            if (isHeavenReward || (now - adminBypassTime < 15000)) {
+                            if (isHeavenReward || (now - adminBypassTime < 60000)) {
                                 isHeavenReward = false;
                                 myLastGainTime = now;
                                 legitActionTime = now;
@@ -781,7 +819,6 @@
             const target = state.nextTarget;
             const myName = currentUser.customName || "某修士";
             
-            // 🌟 支援自訂渡劫成功率
             const actualRate = (myCustomRate !== null && myCustomRate !== undefined) ? myCustomRate : target.rate;
             const successRate = (actualRate * 100).toFixed(0);
 
