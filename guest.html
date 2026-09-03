@@ -213,7 +213,7 @@
         </div>
     </div>
 
-    <!-- 🌟 管理員天道照妖鏡與造化閣 -->
+    <!-- 🌟 管理員天道造化閣 -->
     <div id="auditModal" class="modal-overlay">
         <div class="modal-body" style="max-width: 500px;">
             <h3 style="margin-top:0; color:var(--gold); text-align:center;">👁️ 天道造化閣 (管理員後台)</h3>
@@ -236,7 +236,7 @@
                     <strong style="color: #fff;">【因果與修練】</strong><br>
                     🎵 點歌 +1 | 🔪 刪除歌曲 -1 (點了又切會扣除點數喔！)<br>
                     👼 獲贈仙丹 +2 / 贈人仙丹 +10 | 😈 心魔纏身 -1<br>
-                    🧭 每逢整點探尋秘境 (豐富修仙與職場奇遇，高額機緣與厄運挑戰)<br>
+                    🧭 每逢整點探尋秘境 (全新互動選擇題庫，修仙與職場奇遇面臨抉擇考驗)<br>
                     📢 宗門頻道使用「傳音符廣播」：每次扣除 2 點修為<br>
                     <span style="color:#ff4b2b; font-size:11px; font-weight:bold;">※ 天道法則重啟：切勿沉迷！</span>
                 </div>
@@ -314,7 +314,6 @@
         let countdownTimer = null;
         let hasUnreadChat = false;
         let isHeavenReward = false; 
-        let adminBypassTime = 0;
         let lastTiandaoCallTime = 0; 
 
         let lastActionTime = 0;
@@ -493,7 +492,6 @@
             });
         }
 
-        // 🌟 管理員自由調整修為（包含原子寫入與宗門趣味廣播）
         function adminAdjustCultivation(targetUid, targetName, isAdd) {
             const input = prompt(`請輸入要為【${targetName}】${isAdd ? '增加' : '扣除'}的修為點數：`);
             if (!input) return;
@@ -528,9 +526,6 @@
                     sendSystemMsg(`✨ 【天降機緣】${targetName} 因「${reason}」，獲天道造化賜予 ${amount} 點修為！`, 'mega');
                 } else {
                     const loseReasons = [
-                        "看到海苔精的老二，心魔纏身",
-                         "重複的歌一直點，聽到走火入魔",
-                        "點太多爛歌洗分數",
                         "練功摸魚打瞌睡被天道神識抓個正著",
                         "偷吃宗門靈田仙草遭天罰反噬",
                         "走在走廊不慎踩到香蕉皮跌落境界",
@@ -548,7 +543,6 @@
             });
         }
 
-        // 🌟 管理員設定專屬渡劫機率
         function adminSetBreakthroughRate(targetUid, targetName) {
             const choice = prompt(`⚙️ 設定【${targetName}】的渡劫成功機率：\n\n1. 輸入「100」設為 100% 必定突破\n2. 輸入指定機率 (例如「80」代表 80%)\n3. 輸入「0」恢復系統預設機率`);
             if (choice === null || choice === "") return;
@@ -567,7 +561,6 @@
             renderAdminUsers();
         }
 
-        // 🌟 管理員直接解鎖境界（包含趣味全服破境廣播）
         function adminDirectUnlock(targetUid, targetName) {
             const realmChoice = prompt(`👑 為【${targetName}】直接解鎖境界：\n\n輸入代碼解鎖：\n2 - 金丹期\n3 - 元嬰期\n4 - 化神期\n5 - 渡劫期\n6 - 大乘仙尊`);
             if (!realmChoice) return;
@@ -695,94 +688,93 @@
             });
         }
 
+        // 🌟 單一快照監聽，徹底解決豁免令與修為抵達的時間差
         function handleAuthChange(user) {
-    currentUser = user;
-    if (user) {
-        document.getElementById('userName').style.display = 'none'; 
-        document.getElementById('login-btn').style.display = 'none'; 
-        document.getElementById('logout-btn').style.display = 'inline-block'; 
-        document.getElementById('my-fav-btn').style.display = 'flex'; 
-        document.getElementById('gacha-btn').style.display = 'flex';
-        
-        let myLastPoints = null;
-        let myLastGainTime = 0;
-
-        // 🌟 合併為單一快照監聽，徹底解決豁免令與修為抵達的時間差
-        db.ref(`users/${user.uid}`).on('value', userSnap => {
-            const userData = userSnap.val() || {};
-            const currentPoints = userData.cultivation || 0;
-            const bypassTime = userData.adminBypass || 0;
-            myBreakthroughs = userData.breakthroughs || {};
-            myCustomRate = userData.customBreakthroughRate;
-
-            if (myLastPoints !== null) {
-                const diff = currentPoints - myLastPoints;
+            currentUser = user;
+            if (user) {
+                document.getElementById('userName').style.display = 'none'; 
+                document.getElementById('login-btn').style.display = 'none'; 
+                document.getElementById('logout-btn').style.display = 'inline-block'; 
+                document.getElementById('my-fav-btn').style.display = 'flex'; 
+                document.getElementById('gacha-btn').style.display = 'flex';
                 
-                if (diff > 0) {
-                    const now = Date.now();
-                    // 🌟 寬限期 5 分鐘，且允許跨裝置時間微小誤差
-                    const hasAdminBypass = Math.abs(now - bypassTime) < 300000;
+                let myLastPoints = null;
+                let myLastGainTime = 0;
 
-                    if (isHeavenReward || hasAdminBypass) {
-                        isHeavenReward = false;
-                        myLastGainTime = now;
-                        legitActionTime = now;
-                    } else {
-                        const timeSinceLegit = now - legitActionTime;
-                        const timeSinceLastGain = now - myLastGainTime;
-                        let isCheating = false;
+                db.ref(`users/${user.uid}`).on('value', userSnap => {
+                    const userData = userSnap.val() || {};
+                    const currentPoints = userData.cultivation || 0;
+                    const bypassTime = userData.adminBypass || 0;
+                    myBreakthroughs = userData.breakthroughs || {};
+                    myCustomRate = userData.customBreakthroughRate;
 
-                        if (diff > 10 && timeSinceLegit > 3000) {
-                            isCheating = true;
-                        } else if (timeSinceLastGain < 1500) {
-                            isCheating = true;
+                    if (myLastPoints !== null) {
+                        const diff = currentPoints - myLastPoints;
+                        
+                        if (diff > 0) {
+                            const now = Date.now();
+                            const hasAdminBypass = Math.abs(now - bypassTime) < 300000;
+
+                            if (isHeavenReward || hasAdminBypass) {
+                                isHeavenReward = false;
+                                myLastGainTime = now;
+                                legitActionTime = now;
+                            } else {
+                                const timeSinceLegit = now - legitActionTime;
+                                const timeSinceLastGain = now - myLastGainTime;
+                                let isCheating = false;
+
+                                if (diff > 10 && timeSinceLegit > 3000) {
+                                    isCheating = true;
+                                } else if (timeSinceLastGain < 1500) {
+                                    isCheating = true;
+                                }
+
+                                if (isCheating) {
+                                    const penalty = diff * 2;
+                                    console.error(`🚨 偵測到魔修行為！非法獲取 ${diff} 分，天道反噬扣除 ${penalty} 分！`);
+                                    
+                                    db.ref(`users/${user.uid}/cultivation`).set(firebase.database.ServerValue.increment(-penalty));
+                                    logAction(user.uid, currentUser.customName, '觸發天道防作弊反噬', -penalty);
+                                    
+                                    sendSystemMsg(`⚡ 【天道雷罰】${currentUser.customName} 妄圖施展禁術篡改修為，遭天道無情反噬，重挫 ${penalty} 點修為！`, 'bad');
+                                }
+                                myLastGainTime = now;
+                            }
                         }
-
-                        if (isCheating) {
-                            const penalty = diff * 2;
-                            console.error(`🚨 偵測到魔修行為！非法獲取 ${diff} 分，天道反噬扣除 ${penalty} 分！`);
-                            
-                            db.ref(`users/${user.uid}/cultivation`).set(firebase.database.ServerValue.increment(-penalty));
-                            logAction(user.uid, currentUser.customName, '觸發天道防作弊反噬', -penalty);
-                            
-                            sendSystemMsg(`⚡ 【天道雷罰】${currentUser.customName} 妄圖施展禁術篡改修為，遭天道無情反噬，重挫 ${penalty} 點修為！`, 'bad');
-                        }
-                        myLastGainTime = now;
                     }
-                }
+
+                    myLastPoints = currentPoints;
+                    myPoints = currentPoints;
+                    updateMyProfileDisplay();
+                });
+
+                const today = getTodayKey();
+                db.ref(`users/${user.uid}/dailyStats/${today}`).on('value', s => { 
+                    const data = s.val() || {};
+                    myDailyStats = {
+                        jump: data.jump || 0,
+                        skip: data.skip || 0,
+                        thunder: data.thunder || 0
+                    };
+                });
+
+                db.ref(`users/${user.uid}/gachaHour`).on('value', s => { myGachaHour = s.val() || ""; });
+                startGachaCountdown(); 
+                db.ref(`users/${user.uid}/favorites`).on('value', s => { myFavorites = s.val() || {}; updateAllStars(); });
+            } else {
+                myPoints = 0; myBreakthroughs = {}; myCustomRate = null;
+                if (countdownTimer) clearInterval(countdownTimer);
+                document.getElementById('userName').style.display = 'block'; 
+                document.getElementById('login-btn').style.display = 'inline-block'; 
+                document.getElementById('logout-btn').style.display = 'none'; 
+                document.getElementById('my-fav-btn').style.display = 'none'; 
+                document.getElementById('gacha-btn').style.display = 'none';
+                document.getElementById('user-info').innerHTML = `<div class="avatar" style="background: url('https://cdn-icons-png.flaticon.com/512/149/149071.png') center/cover;"></div><span style="font-size: 14px; color: #888;">凡人 (未登入)</span>`;
+                setupPresence('凡人', '#888', 0);
             }
-
-            myLastPoints = currentPoints;
-            myPoints = currentPoints;
-            updateMyProfileDisplay();
-        });
-
-        const today = getTodayKey();
-        db.ref(`users/${user.uid}/dailyStats/${today}`).on('value', s => { 
-            const data = s.val() || {};
-            myDailyStats = {
-                jump: data.jump || 0,
-                skip: data.skip || 0,
-                thunder: data.thunder || 0
-            };
-        });
-
-        db.ref(`users/${user.uid}/gachaHour`).on('value', s => { myGachaHour = s.val() || ""; });
-        startGachaCountdown(); 
-        db.ref(`users/${user.uid}/favorites`).on('value', s => { myFavorites = s.val() || {}; updateAllStars(); });
-    } else {
-        myPoints = 0; myBreakthroughs = {}; myCustomRate = null;
-        if (countdownTimer) clearInterval(countdownTimer);
-        document.getElementById('userName').style.display = 'block'; 
-        document.getElementById('login-btn').style.display = 'inline-block'; 
-        document.getElementById('logout-btn').style.display = 'none'; 
-        document.getElementById('my-fav-btn').style.display = 'none'; 
-        document.getElementById('gacha-btn').style.display = 'none';
-        document.getElementById('user-info').innerHTML = `<div class="avatar" style="background: url('https://cdn-icons-png.flaticon.com/512/149/149071.png') center/cover;"></div><span style="font-size: 14px; color: #888;">凡人 (未登入)</span>`;
-        setupPresence('凡人', '#888', 0);
-    }
-    renderQueueUI();
-}
+            renderQueueUI();
+        }
 
         function updateMyProfileDisplay() {
             if (!currentUser) return;
@@ -1012,82 +1004,177 @@
             spinLocalRoulette(currentHourKey);
         }
 
+        // 🌟 全新升級：多元互動選擇題庫秘境
         function spinLocalRoulette(currentHourKey) {
-            let rand = Math.random() * 100;
-            let diff = 0; let msg = "";
+            let diff = 0; 
+            let msg = "";
             let triggerBroadcast = null;
-
             const myName = currentUser.customName || "某修士";
+            const myState = getUserRealmState(myPoints, myBreakthroughs);
 
-            if (rand < 12) { 
-                const events = [
-                    {d: 50, m: "✨ 下班去抽盲盒，竟然一發入魂抽中超稀有大隱藏版！心境大突破，修為 +50！"},
-                    {d: 45, m: "🌀 去玩具店搶到了限量版爆款戰鬥陀螺，轉手現賺翻倍，道心堅定，修為 +45！"},
-                    {d: 40, m: "📊 月底的庫存與結帳報表一次對齊，帳目完美無瑕，被全公司膜拜，修為 +40！"},
-                    {d: 40, m: "⚡ 隨手寫了一段自動化批次腳本，直接幫全組提早兩小時收工下班，功德無量！修為 +40！"},
-                    {d: 35, m: "🍧 主管心情大好，無預警請全體同仁吃頂級下午茶與芒果雪花冰，靈氣大補，修為 +35！"},
-                    {d: 30, m: "🀄 週末打麻將連莊自摸清一色，順便拍了超有梗的手機殼短影音流量破萬，修為 +30！"}
+            let eventRoll = Math.random() * 100;
+
+            if (eventRoll < 75) {
+                // 🎲 75% 機率觸發：互動情境選擇題（8 大題庫隨機抽取）
+                const choicePool = [
+                    {
+                        // 1. 茶水間仙露
+                        run: () => {
+                            const choice = confirm(`🍵 【茶水間的神秘琥珀仙露】\n\n你在冰箱深處發現一杯無人認領、泛著金光的特調手搖飲，杯身貼著「誰喝誰倒楣」...\n\n👉 按【確定】：管他的！四下無人一飲而盡！(45% 機率大補靈力，55% 機率是過期酵素)\n👉 按【取消】：忍住口水，默默放回並貼上「天道注視」符咒。(穩健積攢功德)`);
+                            if (choice) {
+                                if (Math.random() < 0.45) {
+                                    diff = 35; msg = "🧋 咕嚕咕嚕... 竟然是剛送達的隱藏版芝士奶蓋烏龍！靈氣大補，任督二脈通暢！修為 +35！";
+                                    triggerBroadcast = { msg: `✨ 【天道廣播】機緣天降！${myName} 在茶水間偷喝仙露成功大補，修為暴增 35 點！`, type: 'good' };
+                                } else {
+                                    diff = -20; msg = "🚽 噗通！這居然是放了三週的苦瓜通便酵素！你捂著肚子在洗手間坐了一下午，修為 -20！";
+                                    triggerBroadcast = { msg: `💩 【天道廣播】拉到虛脫！${myName} 偷喝茶水間過期仙露中毒，狂瀉不止扣除 20 點修為！`, type: 'bad' };
+                                }
+                            } else {
+                                diff = 12; msg = "🕊️ 你克制了口腹之欲，道心愈發純淨，天道降下一縷清風，功德 +12！";
+                            }
+                        }
+                    },
+                    {
+                        // 2. 宗門早會
+                        run: () => {
+                            const choice = confirm(`📊 【宗門晨會的靈魂詰問】\n\n早會長老突然眼神如電看向你：「這次跨部門閉環協同的賦能痛點，你怎麼看？」\n\n👉 按【確定】：大談黑話胡言亂語「我們要拉通對齊底層邏輯打出組合拳！」(40% 唬住全場，60% 被當場抓包)\n👉 按【取消】：眼神呆滯裝作網路延遲發呆。(無功無過，神識微損)`);
+                            if (choice) {
+                                if (Math.random() < 0.40) {
+                                    diff = 35; msg = "🗣️ 「我們必須抓手下沉，賦能矩陣拉通！」全體長老肅然起敬紛紛點頭鼓掌，被你震懾！修為 +35！";
+                                    triggerBroadcast = { msg: `👑 【天道廣播】舌燦蓮花！${myName} 早會大噴黑話震懾全場長老，修為暴漲 35 點！`, type: 'good' };
+                                } else {
+                                    diff = -20; msg = "📉 長老冷笑一聲：「講人話好嗎？」你當場語無倫次冷汗直流，心態崩潰，修為 -20！";
+                                    triggerBroadcast = { msg: `🐾 【天道廣播】社死現場！${myName} 早會胡言亂語被長老當場無情拆穿，扣除 20 點修為！`, type: 'bad' };
+                                }
+                            } else {
+                                diff = -5; msg = "😐 你眼神空洞呆坐五分鐘，長老嘆了口氣轉頭問別人。保住了小命，但神識微損 -5。";
+                            }
+                        }
+                    },
+                    {
+                        // 3. 上古凶獸大老闆
+                        run: () => {
+                            let winRate = 0.15;
+                            if (myState.currentLevel >= 4) winRate = 0.70;
+                            else if (myState.currentLevel >= 2) winRate = 0.40;
+
+                            const choice = confirm(`💀 【走廊轉角的上古凶獸】\n\n轉角迎面走來傳說中的上古凶獸（大老闆）對你露出神秘微笑！\n\n👉 按【確定】：神級滑步閃進廁所逃避！(50% 幾率逃脫)\n👉 按【取消】：正面迎擊！掏出本月戰略 PPT！(當前境界勝率 ${(winRate*100).toFixed(0)}%)`);
+                            if (choice) {
+                                if (Math.random() < 0.5) {
+                                    diff = 0; msg = "💨 唰！你如同鬼魅般滑進茶水間，成功避開大老闆視線！無事發生。修為 +0。";
+                                } else {
+                                    diff = -15; msg = "💥 閃避不及！你一個急轉彎踢倒了清潔阿姨的水桶，在大老闆面前摔個狗吃屎，修為 -15！";
+                                }
+                            } else {
+                                if (Math.random() < winRate) {
+                                    diff = 45; msg = "🎉 【正面擊潰凶獸！】你從容不迫掏出完整的銷量分析報告，大老闆龍心大悅連連讚許！修為狂飆 +45！";
+                                    triggerBroadcast = { msg: `👑 【天道廣播】太神啦！${myName} 正面迎戰上古凶獸(大老闆)大獲全勝，修為狂飆 45 點！`, type: 'good' };
+                                } else {
+                                    diff = -30; msg = "🩸 【慘遭鎮壓！】大老闆連續靈魂拷問三道核心難題，你當場神魂俱滅，修為重挫 -30！";
+                                    triggerBroadcast = { msg: `💀 【天道廣播】慘烈！${myName} 挑戰大老闆失敗，遭恐怖威壓重創扣除 30 點修為！`, type: 'bad' };
+                                }
+                            }
+                        }
+                    },
+                    {
+                        // 4. 夜市盲盒拍賣
+                        run: () => {
+                            const choice = confirm(`📦 【暗巷地攤的神秘盲盒】\n\n夜市角落擺著一個散發微弱仙氣的戰鬥陀螺/動漫周邊盲盒，封條破損泛著幽光...\n\n👉 按【確定】：道心不可退縮，直接掏出靈石梭哈開盒！(30% 稀有隱藏款，70% 爛大街雜草款)\n👉 按【取消】：默念「色即是空，盲盒皆是執念」轉身離去。(道心通明)`);
+                            if (choice) {
+                                if (Math.random() < 0.30) {
+                                    diff = 50; msg = "✨ 咔嗒！金光萬丈！你居然一發入魂抽出全球限量 10 隻的金漆超隱藏版！心境大突破，修為 +50！";
+                                    triggerBroadcast = { msg: `✨ 【天道廣播】歐皇附體！${myName} 一發入魂抽中極品大隱藏盲盒，修為暴漲 50 點！`, type: 'good' };
+                                } else {
+                                    diff = -25; msg = "🗑️ 拆開一看... 是褪色的塑膠海苔精公仔，而且底座還是斷的！道心碎成一地，修為 -25！";
+                                    triggerBroadcast = { msg: `🐾 【天道廣播】非酋落淚！${myName} 盲盒梭哈抽出斷頭瑕疵品，道心崩潰損失 25 點修為！`, type: 'bad' };
+                                }
+                            } else {
+                                diff = 15; msg = "🧘‍♂️ 你克制住了賭徒心理，省下一筆靈石，心境通達無礙！修為 +15！";
+                            }
+                        }
+                    },
+                    {
+                        // 5. 祖傳代碼 Bug
+                        run: () => {
+                            const choice = confirm(`💻 【祖傳系統的定時炸彈】\n\n你在宗門系統底層發現一段寫滿「千萬別碰它否則會炸」的詭異古代代碼，但它拖慢了整個網速...\n\n👉 按【確定】：自詡技術大能，大膽動手重構優化！(35% 奇蹟修復，65% 伺服器爆炸)\n👉 按【取消】：裝作沒看見，默默把註解字體改小退出。(明哲保身)`);
+                            if (choice) {
+                                if (Math.random() < 0.35) {
+                                    diff = 45; msg = "⚡ 啪！代碼乾淨利落，系統提速 300% 全網絲滑！宗門長老特賜大功德！修為 +45！";
+                                    triggerBroadcast = { msg: `👑 【天道廣播】技術奇蹟！${myName} 神手重構祖傳代碼拯救宗門伺服器，修為暴增 45 點！`, type: 'good' };
+                                } else {
+                                    diff = -30; msg = "💥 轟隆！按下存檔的瞬間全宗門電腦藍屏當機！全體同仁追著你砍，修為重挫 -30！";
+                                    triggerBroadcast = { msg: `🚨 【天道廣播】大災難！${myName} 手癢亂動祖傳代碼引爆全服當機，慘遭懲戒扣除 30 點修為！`, type: 'bad' };
+                                }
+                            } else {
+                                diff = 5; msg = "😌 只要它還能跑就千萬不要碰它。你秉持資深工程師的直覺保全了伺服器，修為 +5。";
+                            }
+                        }
+                    },
+                    {
+                        // 6. 電梯巧遇財務長老
+                        run: () => {
+                            const choice = confirm(`🛗 【靈氣電梯的死寂窒息】\n\n電梯門打開，裡面只有眼神銳利、專抓報銷單據的財務長老一人冷冷看著你...\n\n👉 按【確定】：硬著頭皮走進去，主動尬聊「長老今天氣場真好！」(50% 順利過關，50% 被盤問單據)\n👉 按【取消】：假裝忘記拿手機，轉身衝去爬 8 樓樓梯！(鍛鍊體魄)`);
+                            if (choice) {
+                                if (Math.random() < 0.50) {
+                                    diff = 25; msg = "😊 長老被你的熱情問候打動，微笑道：「你上個月的報銷單我順手批了。」修為 +25！";
+                                } else {
+                                    diff = -18; msg = "🥶 電梯門關上，長老緩緩開口：「對了，你上個月那張連號發票...」你冷汗直流，修為 -18！";
+                                }
+                            } else {
+                                diff = 15; msg = "🏃‍♂️ 你一口氣衝上 8 樓，心肺功能大幅增強，氣血充盈道心堅定！修為 +15！";
+                            }
+                        }
+                    },
+                    {
+                        // 7. 深夜麻將貪心
+                        run: () => {
+                            const choice = confirm(`🀄 【深夜麻將的貪念考驗】\n\n同門修士切磋麻將，你單吊大四喜聽牌！此時下家剛好打出這張危險牌...\n\n👉 按【確定】：不屑吃胡！老子今天就要摸自摸絕張！(25% 奇蹟自摸通殺，75% 下手放銃大失血)\n👉 按【取消】：穩妥倒牌抓現成，落袋為安！(見好就收)`);
+                            if (choice) {
+                                if (Math.random() < 0.25) {
+                                    diff = 50; msg = "🀄 啪！自摸絕張大四喜！整張麻將桌掀起靈力狂潮，全場修士當場跪服！修為 +50！";
+                                    triggerBroadcast = { msg: `🀄 【天道廣播】雀神降臨！${myName} 豪賭自摸大四喜通殺全場，修為暴漲 50 點！`, type: 'good' };
+                                } else {
+                                    diff = -28; msg = "💸 下一手... 你摸到別人的銃牌直接放給莊家連五！籌碼輸個精光，修為 -28！";
+                                    triggerBroadcast = { msg: `💸 【天道廣播】貪心不足！${myName} 麻將拒胡硬要自摸結果大放銃，損失 28 點修為！`, type: 'bad' };
+                                }
+                            } else {
+                                diff = 15; msg = "💰 穩妥胡牌，籌碼入袋！不貪才是最高深的修仙哲學。修為 +15！";
+                            }
+                        }
+                    },
+                    {
+                        // 8. 靈禽便當魔鬼椒
+                        run: () => {
+                            const choice = confirm(`🍗 【靈禽外賣的加辣修練】\n\n中午訂的招牌排骨便當送來，店家附贈了一罐獨門「天火魔鬼朝天椒」...\n\n👉 按【確定】：修仙者無所畏懼！整匙朝天椒拌飯吞下！(40% 火毒淬體打通任督二脈，60% 狂拉虛脫)\n👉 按【取消】：果斷把辣椒挑掉，保養靈軀。(平淡才是真)`);
+                            if (choice) {
+                                if (Math.random() < 0.40) {
+                                    diff = 30; msg = "🔥 轟！渾身毛孔噴張，強烈的辛辣刺激化作純陽真氣打通全身經脈！修為 +30！";
+                                } else {
+                                    diff = -20; msg = "🥵 辣到神魂出竅！嘴唇腫成香腸，喝了三瓶牛奶依然胃如火燒，修為 -20！";
+                                }
+                            } else {
+                                diff = 8; msg = "🥗 乖乖吃原味便當，胃腸安康，下午工作精力充沛！修為 +8。";
+                            }
+                        }
+                    }
                 ];
-                let ev = events[Math.floor(Math.random() * events.length)]; diff = ev.d; msg = ev.m;
-                triggerBroadcast = { msg: `✨ 【天道廣播】氣運之子降臨！${myName} 在秘境獲得大機緣，修為暴漲！`, type: 'good' };
-            } 
-            else if (rand < 47) { 
-                const events = [
-                    {d: 25, m: "🍱 負責幫大家訂中和精緻便當，老闆不僅沒算錯錢還多送了招牌紅燒肉與小菜，修為 +25！"},
-                    {d: 20, m: "🎫 在辦公桌抽屜深處翻出一張沒過期的超商百元禮券，白吃一頓午餐，修為 +20！"},
-                    {d: 18, m: "💻 電腦突然當機重啟，原本以為心血泡湯，打開卻發現軟體有自動存檔！驚險過關，修為 +18！"},
-                    {d: 15, m: "🧋 下午茶訂了手搖飲，不僅準時送達，珍珠波霸還剛好起鍋超級軟Q，修為 +15！"},
-                    {d: 15, m: "📱 最新一季的 IP 聯名手機殼樣品寄來，顏色完全零色差，一次過審免修改！修為 +15！"},
-                    {d: 15, m: "🍪 去茶水間裝水，剛好遇到同事分食日本帶回來的超高級伴手禮點心，修為 +15！"},
+
+                const selectedEvent = choicePool[Math.floor(Math.random() * choicePool.length)];
+                selectedEvent.run();
+
+            } else {
+                // 🎁 25% 機率：純粹日常機緣與倒楣小事件
+                const instantEvents = [
+                    {d: 40, m: "🌀 去玩具店搶到了限量版爆款戰鬥陀螺，轉手現賺翻倍，道心堅定，修為 +40！", b: true},
+                    {d: 25, m: "🍱 幫大家訂中和精緻便當，老闆不僅沒算錯錢還多送了招牌紅燒肉與小菜，修為 +25！"},
+                    {d: 15, m: "🧋 下午茶訂的手搖飲準時送達，珍珠波霸剛好起鍋超級軟Q，修為 +15！"},
                     {d: 12, m: "🏃‍♂️ 早上跑步衝刺，在 08:59:59 壓線打卡成功，全勤獎金穩如泰山！修為 +12！"},
-                    {d: 10, m: "💡 坐在位子上發呆，突然想出一句超洗腦的 3C 配件行銷文案，修為 +10！"}
-                ];
-                let ev = events[Math.floor(Math.random() * events.length)]; diff = ev.d; msg = ev.m;
-            } 
-            else if (rand < 67) { 
-                const events = [
-                    {d: 5, m: "🍗 中午吃到一塊比手掌還大的現炸超巨型雞排，氣血翻湧，修為 +5！"},
-                    {d: 2, m: "💤 開會時大家都在靈魂出竅，整整坐了一小時沒人被點名，修為 +2。"},
-                    {d: 0, m: "😐 去茶水間裝水，望著窗外發呆了整整三分鐘，什麼事都沒發生。修為 +0。"},
-                    {d: 0, m: "🥤 自動販賣機投幣掉出兩罐飲料，但第二罐是你最討厭的苦瓜汁。修為 +0。"},
-                    {d: -5, m: "🔍 廠商寄來的樣品神秘失蹤，跟同事翻箱倒櫃找了半天才在最底層找到，修為 -5。"},
-                    {d: -5, m: "🗑️ 發現今天要倒的垃圾特別多，原來是海苔精又在亂丟碎紙，心累，修為 -5。"}
-                ];
-                let ev = events[Math.floor(Math.random() * events.length)]; diff = ev.d; msg = ev.m;
-            } 
-            else if (rand < 87) { 
-                const events = [
-                    {d: -10, m: "🥤 期待整下午的手搖飲送來，結果你的「無糖微冰」被做成「全糖去冰」，甜到走火入魔！修為 -10！"},
                     {d: -10, m: "⚡ 辦公室微波爐和電鍋同時啟動瞬間跳電，你的修仙日誌沒存到檔！修為 -10！"},
-                    {d: -12, m: "🦶 一邊滑手機一邊走路，大拇指直接狠狠踢到辦公桌桌腳，神魂劇痛！修為 -12！"},
-                    {d: -15, m: "🍛 中午頂著烈日排隊想吃的名店便當，走到門口才發現今日無預警公休，修為 -15！"},
-                    {d: -18, m: "📂 主管突然指派你去倉庫翻找三年前的手工紙本發票，灰塵漫天，心力交瘁，修為 -18！"},
-                    {d: -20, m: "📦 盤點門市庫存時發現少了一整箱盲盒，急忙調監視器排查，心神重創，修為 -20！"}
+                    {d: -12, m: "🦶 一邊滑手機一邊走路，大拇指直接狠狠踢到辦公桌桌腳，神魂劇痛！修為 -12！"}
                 ];
-                let ev = events[Math.floor(Math.random() * events.length)]; diff = ev.d; msg = ev.m;
-                triggerBroadcast = { msg: `🐾 【天道廣播】業障引爆！${myName} 遭遇日常厄運，損失了 ${Math.abs(diff)} 點修為！`, type: 'bad' };
-            } 
-            else { 
-                const myState = getUserRealmState(myPoints, myBreakthroughs);
-                let winRate = 0.15; 
-                if (myState.currentLevel >= 4) winRate = 0.70; 
-                else if (myState.currentLevel >= 2) winRate = 0.40; 
-
-                if (confirm(`💀 警告！你在走廊轉角遭遇了傳說中的上古凶獸（大老闆）對你微笑！\n你要嘗試「閃避」還是「正面迎擊」？\n\n👉 按『確定』嘗試閃避 (50%機率無事逃脫)\n👉 按『取消』正面迎擊 (依境界當前勝率為 ${(winRate*100).toFixed(0)}%)`)) {
-                    if (Math.random() < 0.5) {
-                        diff = 0; msg = "💨 你一個神級滑步閃進了茶水間，成功避開視線逃過一劫！修為不變。";
-                    } else {
-                        diff = -10; msg = "💥 你閃避不及被叫住問專案進度，冷汗直流支支吾吾，修為 -10！";
-                    }
-                } else {
-                    if (Math.random() < winRate) {
-                        diff = 40; msg = "🎉 【正面擊潰凶獸！】你從容不迫地拿出了完整的數據報表與銷量分析，大老闆龍心大悅！修為暴增 +40！";
-                        triggerBroadcast = { msg: `👑 【天道廣播】太神啦！${myName} 竟然正面迎戰上古凶獸(大老闆)大獲全勝，修為狂飆 40 點！`, type: 'good' };
-                    } else {
-                        diff = -25; msg = "🩸 【慘遭鎮壓！】你被連續靈魂拷問三道致命難題，當場神魂俱滅，修為重挫 -25！";
-                        triggerBroadcast = { msg: `💀 【天道廣播】慘烈！${myName} 挑戰上古凶獸(大老闆)失敗，遭恐怖威壓重創扣除 25 點修為！`, type: 'bad' };
-                    }
-                }
+                let ev = instantEvents[Math.floor(Math.random() * instantEvents.length)];
+                diff = ev.d; msg = ev.m;
+                if (ev.b) triggerBroadcast = { msg: `✨ 【天道廣播】氣運之子降臨！${myName} 在秘境獲得大機緣，修為暴漲！`, type: 'good' };
             }
 
             db.ref(`users/${currentUser.uid}/gachaHour`).set(currentHourKey);
