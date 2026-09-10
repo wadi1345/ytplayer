@@ -163,9 +163,9 @@
     <!-- Modals -->
     <div id="onlineModal" class="modal-overlay"><div class="modal-body"><h3 style="color:var(--spotify-green); margin-top:0;">👥 在線成員與修為</h3><div class="modal-list" id="onlineItems"></div><button onclick="document.getElementById('onlineModal').style.display='none'" style="width:100%; padding:14px; background:#333; border:none; color:white; border-radius:50px; font-weight:bold;">關閉</button></div></div>
     
-    <div id="favModal" class="modal-overlay"><div class="modal-body"><h3 style="color:var(--spotify-green); margin-top:0; display:flex; justify-content:space-between; align-items:center;">⭐ 我的專屬歌單<select id="favSortSelect" onchange="renderFavItems()" style="background:#222; color:#888; border:1px solid #444; padding:4px 8px; border-radius:8px; font-size:12px; outline:none; cursor:pointer;"><option value="dateDesc">最新加入</option><option value="dateAsc">最舊加入</option><option value="az">名稱 (A-Z)</option></select></h3><div style="font-size: 11px; color: #888; display: flex; justify-content: space-between; margin-bottom:5px;"><span><input type="checkbox" id="selAllFav" checked onchange="toggleAllFav()"> 全選</span><span>特權解鎖數量上限</span></div><div class="modal-list" id="favItems"></div><div style="display:flex; gap:10px;"><button onclick="document.getElementById('favModal').style.display='none'" style="flex:1; padding:12px; background:#333; border:none; color:white; border-radius:50px; font-weight:bold; cursor:pointer;">關閉</button><button onclick="batchAddFromFav()" style="flex:1; padding:12px; background:var(--spotify-green); color:black; border-radius:50px; font-weight:bold; cursor:pointer;">批次點播</button></div></div></div>
+    <div id="favModal" class="modal-overlay"><div class="modal-body"><h3 style="color:var(--spotify-green); margin-top:0; display:flex; justify-content:space-between; align-items:center;">⭐ 我的專屬歌單<select id="favSortSelect" onchange="renderFavItems()" style="background:#222; color:#888; border:1px solid #444; padding:4px 8px; border-radius:8px; font-size:12px; outline:none; cursor:pointer;"><option value="dateDesc">最新加入</option><option value="dateAsc">最舊加入</option><option value="az">名稱 (A-Z)</option></select></h3><div style="font-size: 11px; color: #888; display: flex; justify-content: space-between; margin-bottom:5px;"><span><input type="checkbox" id="selAllFav" checked onchange="toggleAllFav()"> 全選 (已自動跳過封印禁曲)</span><span>特權解鎖數量上限</span></div><div class="modal-list" id="favItems"></div><div style="display:flex; gap:10px;"><button onclick="document.getElementById('favModal').style.display='none'" style="flex:1; padding:12px; background:#333; border:none; color:white; border-radius:50px; font-weight:bold; cursor:pointer;">關閉</button><button onclick="batchAddFromFav()" style="flex:1; padding:12px; background:var(--spotify-green); color:black; border-radius:50px; font-weight:bold; cursor:pointer;">批次點播</button></div></div></div>
     
-    <div id="playlistModal" class="modal-overlay"><div class="modal-body"><h3 style="color:var(--spotify-green); margin-top:0;">📋 匯入播放清單</h3><div style="font-size: 11px; color: #888; display: flex; justify-content: space-between; margin-bottom:5px;"><span><input type="checkbox" id="selAllPl" checked onchange="toggleAllPl()"> 全選</span><span>特權解鎖數量上限</span></div><div class="modal-list" id="plItems"></div><div style="display:flex; gap:12px;"><button onclick="document.getElementById('playlistModal').style.display='none'" style="flex:1; padding:14px; background:#333; border:none; color:white; border-radius:50px; font-weight:bold;">取消</button><button onclick="batchAdd()" style="flex:1; padding:14px; background:var(--spotify-green); color:black; border-radius:50px; font-weight:bold;">確認匯入</button></div></div></div>
+    <div id="playlistModal" class="modal-overlay"><div class="modal-body"><h3 style="color:var(--spotify-green); margin-top:0;">📋 匯入播放清單</h3><div style="font-size: 11px; color: #888; display: flex; justify-content: space-between; margin-bottom:5px;"><span><input type="checkbox" id="selAllPl" checked onchange="toggleAllPl()"> 全選 (已自動跳過封印禁曲)</span><span>特權解鎖數量上限</span></div><div class="modal-list" id="plItems"></div><div style="display:flex; gap:12px;"><button onclick="document.getElementById('playlistModal').style.display='none'" style="flex:1; padding:14px; background:#333; border:none; color:white; border-radius:50px; font-weight:bold;">取消</button><button onclick="batchAdd()" style="flex:1; padding:14px; background:var(--spotify-green); color:black; border-radius:50px; font-weight:bold;">確認匯入</button></div></div></div>
 
     <div id="radioModal" class="modal-overlay">
         <div class="modal-body">
@@ -239,7 +239,7 @@
                     👼 獲贈仙丹 +2 / 贈人仙丹 +10 | 😈 心魔纏身 -1<br>
                     🧭 每逢整點探尋秘境 (全新互動選擇題庫，修仙與職場奇遇面臨抉擇考驗)<br>
                     📢 宗門頻道使用「傳音符廣播」：每次扣除 2 點修為<br>
-                    <span style="color:#ff4b2b; font-size:11px; font-weight:bold;">※ 警告：意圖搜尋「天道誅絕禁字」將直接觸發心魔反噬，重挫 100 點修為！</span>
+                    <span style="color:#ff4b2b; font-size:11px; font-weight:bold;">※ 警告：意圖搜尋或點播「天道誅絕禁字」將直接觸發心魔反噬，重挫 100 點修為！</span>
                 </div>
                 <div style="margin-bottom: 10px; border-top: 1px dashed #444; padding-top: 10px;">
                     <strong style="color: #ff4b2b;">【⚡ 天劫突破法則】</strong><br>
@@ -521,7 +521,7 @@
             let html = `
                 <div style="background:#222; padding:10px; border-radius:10px; margin-bottom:12px; border:1px solid #444;">
                     <div style="font-size:12px; color:#aaa; margin-bottom:6px;">🛑 <b>天道誅絕令 (關鍵字絕對封殺)</b>：</div>
-                    <div style="font-size:11px; color:#888; margin-bottom:10px;">設定後只要歌名包含該詞（無論原曲、Cover、Remix），全服皆無法點播。<b>意圖搜尋此關鍵字者，直接觸發心魔纏身狂扣 100 點修為！</b></div>
+                    <div style="font-size:11px; color:#888; margin-bottom:10px;">只要歌名包含該詞（無論原曲、Cover、Remix），全服皆無法點播，私人歌單亦全面反灰鎖定。<b>意圖搜尋此關鍵字者，直接心魔纏身狂扣 100 點修為！</b></div>
                     <button onclick="addBannedKeyword()" style="width:100%; padding:10px; background:linear-gradient(45deg, #ff4b2b, #ff416c); color:white; border:none; border-radius:8px; font-weight:bold; font-size:13px; cursor:pointer;">➕ 新增絕對封殺關鍵字</button>
                 </div>
             `;
@@ -550,9 +550,9 @@
             container.innerHTML = html;
         }
 
-        // 🌟 新增封殺關鍵字
+        // 🌟 新增封殺關鍵字（含即時掃蕩排隊清單機制）
         function addBannedKeyword() {
-            const kw = prompt("請輸入要絕對封殺的歌名/歌手/關鍵字：\n(提示：只要歌名包含此字串，無論原版、COVER、REMIX 皆會被全網攔截，且意圖搜尋者直接扣 100 修為！)");
+            const kw = prompt("請輸入要絕對封殺的歌名/歌手/關鍵字：\n(提示：只要歌名包含此字串，無論原版、COVER、REMIX 皆會被全網攔截，排隊清單將同步抹殺，且意圖搜尋者直接扣 100 修為！)");
             if (!kw || !kw.trim()) return;
             const cleanKw = kw.trim();
 
@@ -568,8 +568,30 @@
                 addedBy: myName,
                 addedAt: Date.now()
             }).then(() => {
-                sendSystemMsg(`🛑 【天道誅絕令】管理員頒布無上封殺令：凡包含「${cleanKw}」之歌曲(包含翻唱/REMIX)一律禁止奏響！妄圖神識搜尋者將引動心魔噬魂扣除 100 修為！`, 'bad');
-                alert(`✅ 已成功將「${cleanKw}」列入絕對封殺黑名單！`);
+                sendSystemMsg(`🛑 【天道誅絕令】管理員頒布無上封殺令：凡包含「${cleanKw}」之歌曲(包含翻唱/REMIX)一律禁止奏響！神識打探者扣 100 修為！`, 'bad');
+
+                // 即刻雷霆掃蕩待播清單
+                roomRef.child('queue').once('value', snap => {
+                    const queueData = snap.val() || {};
+                    let purgedCount = 0;
+                    const updates = {};
+
+                    Object.keys(queueData).forEach(key => {
+                        const song = queueData[key];
+                        if (song && song.title && song.title.toLowerCase().includes(cleanKw.toLowerCase())) {
+                            updates[`queue/${key}`] = null;
+                            purgedCount++;
+                        }
+                    });
+
+                    if (purgedCount > 0) {
+                        roomRef.update(updates).then(() => {
+                            sendSystemMsg(`⚡ 【雷霆誅滅】天道神威降世！排隊清單中共有 ${purgedCount} 首含「${cleanKw}」的魔曲已被強制抹殺除名！`, 'bad');
+                        });
+                    }
+                });
+
+                alert(`✅ 已成功將「${cleanKw}」列入絕對封殺！排隊清單與私人偷渡管道已全數封死！`);
                 renderAdminKeywords();
             });
         }
@@ -749,7 +771,10 @@
             auth.onAuthStateChanged(handleAuthChange);
             roomRef.child('banned').on('value', s => { bannedList = s.val() || {}; renderOnlineModal(); });
             roomRef.child('bannedSongs').on('value', s => { bannedSongs = s.val() || {}; });
-            roomRef.child('bannedKeywords').on('value', s => { bannedKeywords = s.val() || {}; });
+            roomRef.child('bannedKeywords').on('value', s => { 
+                bannedKeywords = s.val() || {}; 
+                if (document.getElementById('favModal').style.display === 'flex') renderFavItems();
+            });
             roomRef.child('online').on('value', s => { onlineUsers = s.val() || {}; renderOnlineModal(); });
             db.ref('leaderboard').on('value', updateLeaderboard);
             roomRef.child('queue').on('value', syncQueue);
@@ -1455,7 +1480,15 @@
                     if(!data.items || data.items.length === 0) return alert("無法讀取清單或清單為空！"); 
                     if (!currentUser) return render({ items: [data.items[0]] }); 
                     tempPlaylist = data.items.map(it => ({ id: it.snippet.resourceId.videoId, title: it.snippet.title })); 
-                    document.getElementById('plItems').innerHTML = tempPlaylist.map((it, i) => `<div style="padding:10px 0; border-bottom:1px solid #111; font-size:12px;"><input type="checkbox" class="pl-chk" value="${i}" checked> ${it.title}</div>`).join(''); 
+                    document.getElementById('plItems').innerHTML = tempPlaylist.map((it, i) => {
+                        const kw = checkBannedKeyword(it.title);
+                        const isB = !!kw;
+                        return `<div style="padding:10px 0; border-bottom:1px solid #111; font-size:12px; display:flex; align-items:center;">
+                            <input type="checkbox" class="pl-chk" value="${i}" ${isB ? 'disabled' : 'checked'} style="margin-right:8px;">
+                            <span style="${isB ? 'text-decoration:line-through; color:#ff4b2b;' : ''}">${it.title}</span>
+                            ${isB ? `<span style="color:#ff4b2b; font-size:10px; margin-left:5px; font-weight:bold;">[🚫 誅絕禁曲]</span>` : ''}
+                        </div>`;
+                    }).join(''); 
                     document.getElementById('playlistModal').style.display = 'flex'; 
                 }); 
             } else if (vid) { 
@@ -1468,7 +1501,7 @@
         function addToQueue(id, title) {
             if (!checkCooldown()) return; 
             
-            // 🛑 核心防線：檢查關鍵字絕對黑名單 (不論原曲、Cover、Remix 通殺)
+            // 🛑 核心防線：檢查關鍵字絕對黑名單
             const matchedKw = checkBannedKeyword(title);
             if (matchedKw) {
                 return alert(`🛑 【天誅禁令】點歌失敗！\n\n此曲標題包含天道絕對封殺禁字「${matchedKw}」！\n無論原曲、翻唱(Cover)或混音(Remix)，皆已被天道永久打入九幽魔淵，不得奏響！`);
@@ -1869,16 +1902,23 @@
             }
         }
 
+        // 🌟 批次匯入播放清單：自動剔除禁字歌曲
         function batchAdd() { 
             if (!checkCooldown()) return; 
             const myState = getUserRealmState(myPoints, myBreakthroughs); 
             const chks = document.querySelectorAll('.pl-chk:checked'), now = Date.now(); 
             if (chks.length > 20 && (myState.currentLevel < 6)) return alert('❌ 境界不足！【大乘仙尊】才能匯入超過 20首！'); 
+            
             let added = 0; 
+            let bannedCount = 0;
+
             chks.forEach((chk, i) => { 
                 const it = tempPlaylist[chk.value]; 
-                if (bannedSongs[it.id]) return; 
-                if (checkBannedKeyword(it.title)) return;
+                if (bannedSongs[it.id] || checkBannedKeyword(it.title)) {
+                    bannedCount++;
+                    return; 
+                }
+
                 if (!currentQueue.some(s => s.videoId === it.id)) { 
                     roomRef.child('queue').push({ videoId: it.id, title: it.title, nickname: currentUser.customName, uid: currentUser.uid, timestamp: now + i }); 
                     roomRef.child(`songStats/${it.id}/count`).set(firebase.database.ServerValue.increment(1)); 
@@ -1887,22 +1927,36 @@
                     added++; 
                 } 
             }); 
-            db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(added)); 
-            logAction(currentUser.uid, currentUser.customName, '批次匯入歌單', added); 
-            incrementScore(added); 
+            
+            if (added > 0) {
+                db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(added)); 
+                logAction(currentUser.uid, currentUser.customName, '批次匯入歌單', added); 
+                incrementScore(added); 
+            }
+
             document.getElementById('playlistModal').style.display = 'none'; 
+            if (bannedCount > 0) {
+                alert(`⚠️ 匯入完成！但清單中有 ${bannedCount} 首歌曲命中天道誅絕令，已全數封印剔除！`);
+            }
         }
 
+        // 🌟 批次從私人歌單點播：自動剔除禁字歌曲
         function batchAddFromFav() { 
             if (!checkCooldown()) return; 
             const myState = getUserRealmState(myPoints, myBreakthroughs); 
             const chks = document.querySelectorAll('.fav-chk:checked'), now = Date.now(); 
             if (chks.length > 10 && (myState.currentLevel < 6)) return alert('❌ 境界不足！【大乘仙尊】才能一次點超過 10 首！'); 
+            
             let added = 0; 
+            let bannedCount = 0;
+
             chks.forEach((chk, i) => { 
                 const vid = chk.getAttribute('data-vid'), t = chk.getAttribute('data-title'); 
-                if (bannedSongs[vid]) return; 
-                if (checkBannedKeyword(t)) return;
+                if (bannedSongs[vid] || checkBannedKeyword(t)) {
+                    bannedCount++;
+                    return; 
+                }
+
                 if (!currentQueue.some(s => s.videoId === vid)) { 
                     roomRef.child('queue').push({ videoId: vid, title: t, nickname: currentUser.customName, uid: currentUser.uid, timestamp: now + i }); 
                     roomRef.child(`songStats/${vid}/count`).set(firebase.database.ServerValue.increment(1)); 
@@ -1911,26 +1965,61 @@
                     added++; 
                 } 
             }); 
-            db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(added)); 
-            logAction(currentUser.uid, currentUser.customName, '批次匯入收藏', added); 
-            incrementScore(added); 
+            
+            if (added > 0) {
+                db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(added)); 
+                logAction(currentUser.uid, currentUser.customName, '批次匯入收藏', added); 
+                incrementScore(added); 
+            }
+
             document.getElementById('favModal').style.display = 'none'; 
+            if (bannedCount > 0) {
+                alert(`⚠️ 點播完成！但你的私人歌單中有 ${bannedCount} 首歌曲命中天道誅絕令，已全數封印剔除！`);
+            }
         }
         
         function updateLeaderboard(s) { const data = s.val() || {}; let maxCount = 0; topKing = null; const today = new Date().toLocaleDateString(); Object.keys(data).forEach(uid => { if(data[uid].date === today && data[uid].count > maxCount) { maxCount = data[uid].count; topKing = data[uid]; } }); document.querySelector('.king-text').innerHTML = topKing ? `👑 本日大香腸之王：${topKing.name}` : "👑 尚未產生今日大香腸王"; document.querySelector('.king-count').innerText = `${maxCount} 首`; }
         function incrementScore(c) { if(!currentUser)return; const t = new Date().toLocaleDateString(), r = db.ref(`leaderboard/${currentUser.uid}`); r.once('value', s => { const d = s.val() || {}; r.set({ count: (d.date === t) ? (d.count || 0) + c : c, name: currentUser.customName, date: t }); }); }
 
-        function toggleAllPl() { const s = document.getElementById('selAllPl').checked; document.querySelectorAll('.pl-chk').forEach(c => c.checked = s); }
+        function toggleAllPl() { const s = document.getElementById('selAllPl').checked; document.querySelectorAll('.pl-chk:not(:disabled)').forEach(c => c.checked = s); }
         function toggleFav(id, title) { if(currentUser) { const r = db.ref(`users/${currentUser.uid}/favorites/${id}`); myFavorites[id]?r.remove():r.set({title, addedAt:Date.now()}); } }
         function updateAllStars() { document.querySelectorAll('.star-btn').forEach(btn => { const vid = btn.getAttribute('data-vid'); btn.innerHTML = myFavorites[vid]?'★':'☆'; btn.style.color = myFavorites[vid]?'var(--spotify-green)':'#888'; }); }
         function openFavModal() { if(currentUser){ document.getElementById('favModal').style.display='flex'; renderFavItems(); } }
-        function toggleAllFav() { const s = document.getElementById('selAllFav').checked; document.querySelectorAll('.fav-chk').forEach(c => c.checked = s); }
+        function toggleAllFav() { const s = document.getElementById('selAllFav').checked; document.querySelectorAll('.fav-chk:not(:disabled)').forEach(c => c.checked = s); }
         function openOnlineModal() { document.getElementById('onlineModal').style.display = 'flex'; renderOnlineModal(); }
         function toggleBan(id, isB) { if(prompt("密碼：")==="1234") isB ? roomRef.child(`banned/${id}`).remove() : roomRef.child(`banned/${id}`).set(true); }
         function togglePlayPause() { roomRef.child('isPaused').once('value', s => roomRef.child('isPaused').set(!s.val())); }
         function changeVolume(v) { roomRef.child('volume').set(parseInt(v)); }
         function openHotModal() { const m = document.getElementById('hotModal'); if(!m)return; m.style.display='flex'; const c = document.getElementById('hotItems'); c.innerHTML='<p style="text-align:center; color:#888;">📊 統計中...</p>'; roomRef.child('songStats').once('value', snap => { const d = snap.val()||{}; const s = Object.keys(d).map(id=>({id,...d[id]})).sort((a,b)=>b.count-a.count).slice(0,10); if(s.length===0) return c.innerHTML='<p style="text-align:center; color:#555;">還沒有點歌紀錄喔！</p>'; c.innerHTML=s.map((it,i)=>{ let m = i===0?'🥇':i===1?'🥈':i===2?'🥉':`<span style="color:#888; font-size:12px;">${i+1}.</span>`; return `<div class="res-item" style="display:flex; align-items:center; border-bottom:1px solid #444; padding:10px 0; margin:0;"><div style="width:30px; text-align:center; font-size:18px;">${m}</div><div style="flex-grow:1; margin:0 10px; overflow:hidden;"><div style="font-size:13px; color:white; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${it.title}</div><div style="font-size:11px; color:#1DB954; font-weight:bold; margin-top:3px;">被點了 ${it.count} 次</div></div><button onclick="addToQueue('${it.id}', '${it.title.replace(/'/g, "\\'")}')" style="background:var(--spotify-green); border:none; padding:6px 12px; border-radius:8px; font-weight:bold; cursor:pointer; font-size:11px; color:black; flex-shrink:0;">點播</button></div>`; }).join(''); }); }
-        function renderFavItems() { const c = document.getElementById('favItems'); const sortSelect = document.getElementById('favSortSelect'); const sortType = sortSelect ? sortSelect.value : 'dateDesc'; let sorted = Object.keys(myFavorites).map(id => ({ id, ...myFavorites[id] })); if (sortType === 'dateDesc') sorted.sort((a,b) => b.addedAt - a.addedAt); else if (sortType === 'dateAsc') sorted.sort((a,b) => a.addedAt - b.addedAt); else if (sortType === 'az') sorted.sort((a,b) => a.title.localeCompare(b.title)); let adminBtn = `<button onclick="syncFavToRadio()" style="width:100%; margin-bottom:15px; padding:12px; background:linear-gradient(45deg, #ff4b2b, #ff416c); color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-size:14px; box-shadow: 0 4px 10px rgba(255,75,43,0.3);">📻 將這份歌單設為大螢幕「派對電台」</button>`; if (sorted.length === 0) return c.innerHTML = adminBtn + '<p style="text-align:center; color:#555;">無收藏</p>'; c.innerHTML = adminBtn + sorted.map(s => `<div class="res-item" style="border:none; padding:8px 0; margin:0;"><input type="checkbox" class="fav-chk" data-vid="${s.id}" data-title="${s.title.replace(/'/g, "\\'")}" checked style="margin-right:10px;"><span class="res-title" style="flex-grow:1;">${s.title}</span><button onclick="toggleFav('${s.id}', '')" style="background:none; border:none; color:#ff4b2b; font-size:10px;">移除</button></div>`).join(''); }
+        
+        // 🌟 渲染私人歌單：自動標記封印禁曲，打紅線並禁用 checkbox
+        function renderFavItems() { 
+            const c = document.getElementById('favItems'); 
+            const sortSelect = document.getElementById('favSortSelect'); 
+            const sortType = sortSelect ? sortSelect.value : 'dateDesc'; 
+            let sorted = Object.keys(myFavorites).map(id => ({ id, ...myFavorites[id] })); 
+            
+            if (sortType === 'dateDesc') sorted.sort((a,b) => b.addedAt - a.addedAt); 
+            else if (sortType === 'dateAsc') sorted.sort((a,b) => a.addedAt - b.addedAt); 
+            else if (sortType === 'az') sorted.sort((a,b) => (a.title||'').localeCompare(b.title||'')); 
+            
+            let adminBtn = `<button onclick="syncFavToRadio()" style="width:100%; margin-bottom:15px; padding:12px; background:linear-gradient(45deg, #ff4b2b, #ff416c); color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-size:14px; box-shadow: 0 4px 10px rgba(255,75,43,0.3);">📻 將這份歌單設為大螢幕「派對電台」</button>`; 
+            if (sorted.length === 0) return c.innerHTML = adminBtn + '<p style="text-align:center; color:#555;">無收藏</p>'; 
+            
+            c.innerHTML = adminBtn + sorted.map(s => {
+                const kw = checkBannedKeyword(s.title);
+                const isB = !!kw;
+
+                return `<div class="res-item" style="border:none; padding:8px 0; margin:0; opacity:${isB ? '0.6' : '1'};">
+                    <input type="checkbox" class="fav-chk" data-vid="${s.id}" data-title="${(s.title||'').replace(/'/g, "\\'")}" ${isB ? 'disabled' : 'checked'} style="margin-right:10px;">
+                    <div style="flex-grow:1; overflow:hidden;">
+                        <span class="res-title" style="${isB ? 'text-decoration:line-through; color:#ff4b2b;' : ''}">${s.title || s.id}</span>
+                        ${isB ? `<div style="font-size:10px; color:#ff4b2b; font-weight:bold;">[🚫 遭天道誅絕封印：含「${kw}」]</div>` : ''}
+                    </div>
+                    <button onclick="toggleFav('${s.id}', '')" style="background:none; border:none; color:#ff4b2b; font-size:10px; cursor:pointer; flex-shrink:0; margin-left:8px;">移除</button>
+                </div>`;
+            }).join(''); 
+        }
         
         function syncFavToRadio() { 
             const myState = getUserRealmState(myPoints, myBreakthroughs); 
@@ -1942,10 +2031,16 @@
             const uid = currentUser ? currentUser.uid : null;
             const now = Date.now();
 
+            let added = 0;
+            let skipped = 0;
+
             ids.forEach((id, idx) => {
                 const item = myFavorites[id];
                 const t = item.title || id;
-                if (checkBannedKeyword(t)) return;
+                if (checkBannedKeyword(t)) {
+                    skipped++;
+                    return;
+                }
                 roomRef.child('radioPlaylist').push({
                     videoId: id,
                     title: t,
@@ -1953,8 +2048,10 @@
                     nickname: myName,
                     addedAt: now + idx
                 });
+                added++;
             }); 
-            alert(`✅ 已成功將符合天道法則之歌曲擴充至電台輪播池！`); 
+
+            alert(`✅ 已成功將 ${added} 首歌曲擴充至電台！${skipped > 0 ? `(另有 ${skipped} 首命中誅絕令已被自動過濾)` : ''}`); 
         }
 
         function renderChatMessage(data) {
