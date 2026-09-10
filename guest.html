@@ -143,7 +143,7 @@
 
         <div class="search-box">
             <input type="text" id="userName" placeholder="👤 點歌稱號 (預設: 臭香腸)" oninput="setupPresence('凡人', '#888')">
-            <input type="text" id="searchInput" placeholder="🔍 搜尋歌名或貼上 YouTube 清單網址">
+            <input type="text" id="searchInput" placeholder="🔍 搜尋歌名或貼上 YouTube 清單網址" onkeypress="if(event.key === 'Enter') searchYouTube()">
             <button class="btn-search" onclick="searchYouTube()">即刻點歌</button>
             
             <div class="action-grid">
@@ -213,13 +213,14 @@
         </div>
     </div>
 
-    <!-- 🌟 管理員天道造化閣 -->
+    <!-- 🌟 管理員天道造化閣 (含：修練日誌 / 修士生殺 / 誅絕禁字) -->
     <div id="auditModal" class="modal-overlay">
         <div class="modal-body" style="max-width: 500px;">
             <h3 style="margin-top:0; color:var(--gold); text-align:center;">👁️ 天道造化閣 (管理員後台)</h3>
-            <div style="display:flex; gap:8px; margin-bottom:10px;">
-                <button id="tab-btn-logs" onclick="switchAdminTab('logs')" style="flex:1; padding:8px; background:var(--spotify-green); color:black; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-size:12px;">📜 修練異動日誌</button>
-                <button id="tab-btn-users" onclick="switchAdminTab('users')" style="flex:1; padding:8px; background:#333; color:#fff; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-size:12px;">🧙‍♂️ 修士生殺調控</button>
+            <div style="display:flex; gap:6px; margin-bottom:10px;">
+                <button id="tab-btn-logs" onclick="switchAdminTab('logs')" style="flex:1; padding:8px 4px; background:var(--spotify-green); color:black; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-size:11px;">📜 修練日誌</button>
+                <button id="tab-btn-users" onclick="switchAdminTab('users')" style="flex:1; padding:8px 4px; background:#333; color:#fff; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-size:11px;">🧙‍♂️ 生殺調控</button>
+                <button id="tab-btn-keywords" onclick="switchAdminTab('keywords')" style="flex:1; padding:8px 4px; background:#333; color:#fff; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-size:11px;">🛑 誅絕禁字</button>
             </div>
             <div class="modal-list" id="auditItems" style="height: 380px; padding: 10px; font-size: 13px; line-height: 1.6; background:#111;">
                 讀取中...
@@ -238,7 +239,7 @@
                     👼 獲贈仙丹 +2 / 贈人仙丹 +10 | 😈 心魔纏身 -1<br>
                     🧭 每逢整點探尋秘境 (全新互動選擇題庫，修仙與職場奇遇面臨抉擇考驗)<br>
                     📢 宗門頻道使用「傳音符廣播」：每次扣除 2 點修為<br>
-                    <span style="color:#ff4b2b; font-size:11px; font-weight:bold;">※ 天道法則重啟：切勿沉迷！</span>
+                    <span style="color:#ff4b2b; font-size:11px; font-weight:bold;">※ 警告：意圖搜尋「天道誅絕禁字」將直接觸發心魔反噬，重挫 100 點修為！</span>
                 </div>
                 <div style="margin-bottom: 10px; border-top: 1px dashed #444; padding-top: 10px;">
                     <strong style="color: #ff4b2b;">【⚡ 天劫突破法則】</strong><br>
@@ -298,7 +299,7 @@
         const YOUTUBE_API_KEYS = ["AIzaSyB93SDscF6QCzu0a2-vDasQADQ6tow2m5k", "AIzaSyBWu-419w2f2cpUpJaQegWP7x_LfUKiUWw"];
         
         let currentKeyIndex = 0, currentQueue = [], tempPlaylist = [], myFavorites = {}, currentUser = null; 
-        let onlineUsers = {}, bannedList = {}, bannedSongs = {}, topKing = null;
+        let onlineUsers = {}, bannedList = {}, bannedSongs = {}, bannedKeywords = {}, topKing = null;
         let localGuestId = localStorage.getItem('guestId') || ('guest_' + Math.random().toString(36).substr(2, 9));
         localStorage.setItem('guestId', localGuestId);
         let currentRoomId = null, roomRef = null, presenceRef = null;
@@ -371,6 +372,19 @@
             }, 100);
         }
 
+        // 🌟 絕對上限黑名單比對函數 (不分大小寫模糊匹配)
+        function checkBannedKeyword(title) {
+            if (!title || typeof title !== 'string') return null;
+            const lowerTitle = title.toLowerCase();
+            for (let k in bannedKeywords) {
+                const kw = bannedKeywords[k].keyword;
+                if (kw && lowerTitle.includes(kw.toLowerCase().trim())) {
+                    return kw;
+                }
+            }
+            return null;
+        }
+
         const REALM_DATA = [
             { id: 'lv0', name: "煉氣期", req: 0 },
             { id: 'lv1', name: "築基期", req: 100 }, 
@@ -419,18 +433,25 @@
             currentAdminTab = tab;
             const btnLogs = document.getElementById('tab-btn-logs');
             const btnUsers = document.getElementById('tab-btn-users');
+            const btnKeywords = document.getElementById('tab-btn-keywords');
+
+            [btnLogs, btnUsers, btnKeywords].forEach(b => {
+                b.style.background = "#333";
+                b.style.color = "white";
+            });
+
             if (tab === 'logs') {
                 btnLogs.style.background = "var(--spotify-green)";
                 btnLogs.style.color = "black";
-                btnUsers.style.background = "#333";
-                btnUsers.style.color = "white";
                 renderAuditLogs();
-            } else {
+            } else if (tab === 'users') {
                 btnUsers.style.background = "var(--spotify-green)";
                 btnUsers.style.color = "black";
-                btnLogs.style.background = "#333";
-                btnLogs.style.color = "white";
                 renderAdminUsers();
+            } else if (tab === 'keywords') {
+                btnKeywords.style.background = "var(--spotify-green)";
+                btnKeywords.style.color = "black";
+                renderAdminKeywords();
             }
         }
 
@@ -490,6 +511,78 @@
                     </div>`;
                 }).join('');
             });
+        }
+
+        // 🌟 渲染管理員絕對禁字管理面板
+        function renderAdminKeywords() {
+            const container = document.getElementById('auditItems');
+            const keys = Object.keys(bannedKeywords);
+
+            let html = `
+                <div style="background:#222; padding:10px; border-radius:10px; margin-bottom:12px; border:1px solid #444;">
+                    <div style="font-size:12px; color:#aaa; margin-bottom:6px;">🛑 <b>天道誅絕令 (關鍵字絕對封殺)</b>：</div>
+                    <div style="font-size:11px; color:#888; margin-bottom:10px;">設定後只要歌名包含該詞（無論原曲、Cover、Remix），全服皆無法點播。<b>意圖搜尋此關鍵字者，直接觸發心魔纏身狂扣 100 點修為！</b></div>
+                    <button onclick="addBannedKeyword()" style="width:100%; padding:10px; background:linear-gradient(45deg, #ff4b2b, #ff416c); color:white; border:none; border-radius:8px; font-weight:bold; font-size:13px; cursor:pointer;">➕ 新增絕對封殺關鍵字</button>
+                </div>
+            `;
+
+            if (keys.length === 0) {
+                html += `<p style="text-align:center; color:#666; padding:20px;">目前尚無封殺關鍵字，天地清明！</p>`;
+            } else {
+                html += keys.map(k => {
+                    const item = bannedKeywords[k];
+                    const kw = item.keyword;
+                    const by = item.addedBy || '天道管理員';
+                    const timeStr = item.addedAt ? new Date(item.addedAt).toLocaleDateString() : '';
+
+                    return `
+                        <div style="background:#1a1a1a; padding:10px 12px; border-radius:8px; margin-bottom:8px; border-left:3px solid #ff4b2b; display:flex; justify-content:space-between; align-items:center;">
+                            <div>
+                                <div style="color:#fff; font-size:14px; font-weight:bold;">🚫 ${kw}</div>
+                                <div style="color:#777; font-size:11px;">執行者：${by} | ${timeStr}</div>
+                            </div>
+                            <button onclick="removeBannedKeyword('${k}', '${kw.replace(/'/g, "\\'")}')" style="background:#333; border:1px solid #ff4b2b; color:#ff4b2b; padding:4px 8px; border-radius:6px; font-size:11px; cursor:pointer;">❌ 解除</button>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            container.innerHTML = html;
+        }
+
+        // 🌟 新增封殺關鍵字
+        function addBannedKeyword() {
+            const kw = prompt("請輸入要絕對封殺的歌名/歌手/關鍵字：\n(提示：只要歌名包含此字串，無論原版、COVER、REMIX 皆會被全網攔截，且意圖搜尋者直接扣 100 修為！)");
+            if (!kw || !kw.trim()) return;
+            const cleanKw = kw.trim();
+
+            for (let k in bannedKeywords) {
+                if (bannedKeywords[k].keyword.toLowerCase() === cleanKw.toLowerCase()) {
+                    return alert("此關鍵字已在誅絕黑名單中！");
+                }
+            }
+
+            const myName = currentUser ? (currentUser.customName || currentUser.displayName) : '天道管理員';
+            roomRef.child('bannedKeywords').push({
+                keyword: cleanKw,
+                addedBy: myName,
+                addedAt: Date.now()
+            }).then(() => {
+                sendSystemMsg(`🛑 【天道誅絕令】管理員頒布無上封殺令：凡包含「${cleanKw}」之歌曲(包含翻唱/REMIX)一律禁止奏響！妄圖神識搜尋者將引動心魔噬魂扣除 100 修為！`, 'bad');
+                alert(`✅ 已成功將「${cleanKw}」列入絕對封殺黑名單！`);
+                renderAdminKeywords();
+            });
+        }
+
+        // 🌟 解除封殺關鍵字
+        function removeBannedKeyword(key, kw) {
+            if (confirm(`確定要解除對「${kw}」的絕對封殺令嗎？`)) {
+                roomRef.child(`bannedKeywords/${key}`).remove().then(() => {
+                    sendSystemMsg(`🕊️ 【天道赦免】管理員解除了對「${kw}」的絕對誅絕令，該曲庫重獲天日！`, 'good');
+                    alert(`✅ 已解除對「${kw}」的封殺！`);
+                    renderAdminKeywords();
+                });
+            }
         }
 
         function adminAdjustCultivation(targetUid, targetName, isAdd) {
@@ -656,6 +749,7 @@
             auth.onAuthStateChanged(handleAuthChange);
             roomRef.child('banned').on('value', s => { bannedList = s.val() || {}; renderOnlineModal(); });
             roomRef.child('bannedSongs').on('value', s => { bannedSongs = s.val() || {}; });
+            roomRef.child('bannedKeywords').on('value', s => { bannedKeywords = s.val() || {}; });
             roomRef.child('online').on('value', s => { onlineUsers = s.val() || {}; renderOnlineModal(); });
             db.ref('leaderboard').on('value', updateLeaderboard);
             roomRef.child('queue').on('value', syncQueue);
@@ -688,7 +782,6 @@
             });
         }
 
-        // 🌟 單一快照監聽，徹底解決豁免令與修為抵達的時間差
         function handleAuthChange(user) {
             currentUser = user;
             if (user) {
@@ -1004,7 +1097,6 @@
             spinLocalRoulette(currentHourKey);
         }
 
-        // 🌟 全新升級：多元互動選擇題庫秘境
         function spinLocalRoulette(currentHourKey) {
             let diff = 0; 
             let msg = "";
@@ -1015,10 +1107,8 @@
             let eventRoll = Math.random() * 100;
 
             if (eventRoll < 75) {
-                // 🎲 75% 機率觸發：互動情境選擇題（8 大題庫隨機抽取）
                 const choicePool = [
                     {
-                        // 1. 茶水間仙露
                         run: () => {
                             const choice = confirm(`🍵 【茶水間的神秘琥珀仙露】\n\n你在冰箱深處發現一杯無人認領、泛著金光的特調手搖飲，杯身貼著「誰喝誰倒楣」...\n\n👉 按【確定】：管他的！四下無人一飲而盡！(45% 機率大補靈力，55% 機率是過期酵素)\n👉 按【取消】：忍住口水，默默放回並貼上「天道注視」符咒。(穩健積攢功德)`);
                             if (choice) {
@@ -1035,7 +1125,6 @@
                         }
                     },
                     {
-                        // 2. 宗門早會
                         run: () => {
                             const choice = confirm(`📊 【宗門晨會的靈魂詰問】\n\n早會長老突然眼神如電看向你：「這次跨部門閉環協同的賦能痛點，你怎麼看？」\n\n👉 按【確定】：大談黑話胡言亂語「我們要拉通對齊底層邏輯打出組合拳！」(40% 唬住全場，60% 被當場抓包)\n👉 按【取消】：眼神呆滯裝作網路延遲發呆。(無功無過，神識微損)`);
                             if (choice) {
@@ -1052,7 +1141,6 @@
                         }
                     },
                     {
-                        // 3. 上古凶獸大老闆
                         run: () => {
                             let winRate = 0.15;
                             if (myState.currentLevel >= 4) winRate = 0.70;
@@ -1077,7 +1165,6 @@
                         }
                     },
                     {
-                        // 4. 夜市盲盒拍賣
                         run: () => {
                             const choice = confirm(`📦 【暗巷地攤的神秘盲盒】\n\n夜市角落擺著一個散發微弱仙氣的戰鬥陀螺/動漫周邊盲盒，封條破損泛著幽光...\n\n👉 按【確定】：道心不可退縮，直接掏出靈石梭哈開盒！(30% 稀有隱藏款，70% 爛大街雜草款)\n👉 按【取消】：默念「色即是空，盲盒皆是執念」轉身離去。(道心通明)`);
                             if (choice) {
@@ -1094,7 +1181,6 @@
                         }
                     },
                     {
-                        // 5. 祖傳代碼 Bug
                         run: () => {
                             const choice = confirm(`💻 【祖傳系統的定時炸彈】\n\n你在宗門系統底層發現一段寫滿「千萬別碰它否則會炸」的詭異古代代碼，但它拖慢了整個網速...\n\n👉 按【確定】：自詡技術大能，大膽動手重構優化！(35% 奇蹟修復，65% 伺服器爆炸)\n👉 按【取消】：裝作沒看見，默默把註解字體改小退出。(明哲保身)`);
                             if (choice) {
@@ -1111,7 +1197,6 @@
                         }
                     },
                     {
-                        // 6. 電梯巧遇財務長老
                         run: () => {
                             const choice = confirm(`🛗 【靈氣電梯的死寂窒息】\n\n電梯門打開，裡面只有眼神銳利、專抓報銷單據的財務長老一人冷冷看著你...\n\n👉 按【確定】：硬著頭皮走進去，主動尬聊「長老今天氣場真好！」(50% 順利過關，50% 被盤問單據)\n👉 按【取消】：假裝忘記拿手機，轉身衝去爬 8 樓樓梯！(鍛鍊體魄)`);
                             if (choice) {
@@ -1126,7 +1211,6 @@
                         }
                     },
                     {
-                        // 7. 深夜麻將貪心
                         run: () => {
                             const choice = confirm(`🀄 【深夜麻將的貪念考驗】\n\n同門修士切磋麻將，你單吊大四喜聽牌！此時下家剛好打出這張危險牌...\n\n👉 按【確定】：不屑吃胡！老子今天就要摸自摸絕張！(25% 奇蹟自摸通殺，75% 下手放銃大失血)\n👉 按【取消】：穩妥倒牌抓現成，落袋為安！(見好就收)`);
                             if (choice) {
@@ -1143,7 +1227,6 @@
                         }
                     },
                     {
-                        // 8. 靈禽便當魔鬼椒
                         run: () => {
                             const choice = confirm(`🍗 【靈禽外賣的加辣修練】\n\n中午訂的招牌排骨便當送來，店家附贈了一罐獨門「天火魔鬼朝天椒」...\n\n👉 按【確定】：修仙者無所畏懼！整匙朝天椒拌飯吞下！(40% 火毒淬體打通任督二脈，60% 狂拉虛脫)\n👉 按【取消】：果斷把辣椒挑掉，保養靈軀。(平淡才是真)`);
                             if (choice) {
@@ -1163,7 +1246,6 @@
                 selectedEvent.run();
 
             } else {
-                // 🎁 25% 機率：純粹日常機緣與倒楣小事件
                 const instantEvents = [
                     {d: 40, m: "🌀 去玩具店搶到了限量版爆款戰鬥陀螺，轉手現賺翻倍，道心堅定，修為 +40！", b: true},
                     {d: 25, m: "🍱 幫大家訂中和精緻便當，老闆不僅沒算錯錢還多送了招牌紅燒肉與小菜，修為 +25！"},
@@ -1227,7 +1309,7 @@
             }
         }
 
-        // 🌟 永久封印黑名單處理函數
+        // 🌟 永久封印黑名單處理函數 (單曲 ID)
         function banSong(videoId, title, reason, bannerName) {
             if (!roomRef || !videoId) return;
             roomRef.child(`bannedSongs/${videoId}`).set({
@@ -1306,6 +1388,11 @@
 
         function secretInsert(id, title) {
             if (!checkCooldown()) return;
+
+            // 🛑 檢查關鍵字絕對黑名單
+            const matchedKw = checkBannedKeyword(title);
+            if (matchedKw) return alert(`🛑 【天誅禁令】此曲包含絕對封殺禁字「${matchedKw}」！天道暗門亦無法通融！`);
+
             if (bannedSongs[id]) return alert(`🚫 此曲《${title}》已被天道永久封印！\n封印原因：${bannedSongs[id].reason || '心魔反噬'}\n需由【化神期】以上大能破除封印。`);
             if (prompt("🤫 觸發天道暗門，請輸入暗號：") !== "1234") return alert("暗號錯誤！");
 
@@ -1335,9 +1422,58 @@
             alert(`🤫 《${title}》已偷偷插播至下一首！`);
         }
 
+        // 🌟 搜尋核心：含「意圖搜尋禁字扣 100 修為」反噬機制
+        function searchYouTube() { 
+            const input = document.getElementById('searchInput').value.trim(); 
+            if (!input) return; 
+
+            // 🛑 意圖搜尋天道誅絕禁字判定：心魔纏身，狂扣 100 修為！
+            const matchedKw = checkBannedKeyword(input);
+            if (matchedKw) {
+                const myName = currentUser ? (currentUser.customName || currentUser.displayName) : (document.getElementById('userName').value || '某修士');
+                
+                if (currentUser) {
+                    db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(-100));
+                    logAction(currentUser.uid, myName, `意圖搜尋禁字(${matchedKw})遭心魔噬魂`, -100);
+                }
+                
+                sendSystemMsg(`👿 【心魔反噬】${myName} 妄圖神識打探魔曲禁詞「${matchedKw}」，神魂遭心魔反噬，當場狂跌 100 點修為！`, 'bad');
+                alert(`👿 【心魔噬魂・天道懲戒】\n\n警告！你大膽妄為，竟意圖打探天道誅絕禁詞「${matchedKw}」！\n\n無盡心魔從識海深處湧出噬咬元神，修為當場狂跌 -100 點！\n望你迷途知返，切勿再犯！`);
+                
+                document.getElementById('searchInput').value = '';
+                document.getElementById('results').innerHTML = '';
+                return;
+            }
+
+            const lid = (input.match(/[?&]list=([^#\&\?]+)/) || [])[1]; 
+            const vid = (input.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/) || [])[2]; 
+            const key = YOUTUBE_API_KEYS[currentKeyIndex]; 
+            let loadPlaylist = (lid && vid) ? confirm("這個網址包含「播放清單」！要讀取整張清單嗎？") : (!!lid); 
+            
+            if (loadPlaylist && lid) { 
+                fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=${lid}&key=${key}`).then(r => r.json()).then(data => { 
+                    if(!data.items || data.items.length === 0) return alert("無法讀取清單或清單為空！"); 
+                    if (!currentUser) return render({ items: [data.items[0]] }); 
+                    tempPlaylist = data.items.map(it => ({ id: it.snippet.resourceId.videoId, title: it.snippet.title })); 
+                    document.getElementById('plItems').innerHTML = tempPlaylist.map((it, i) => `<div style="padding:10px 0; border-bottom:1px solid #111; font-size:12px;"><input type="checkbox" class="pl-chk" value="${i}" checked> ${it.title}</div>`).join(''); 
+                    document.getElementById('playlistModal').style.display = 'flex'; 
+                }); 
+            } else if (vid) { 
+                fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${vid}&key=${key}`).then(r=>r.json()).then(render); 
+            } else { 
+                fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=5&q=${encodeURIComponent(input)}&type=video&key=${key}`).then(r=>r.json()).then(render); 
+            } 
+        }
+
         function addToQueue(id, title) {
             if (!checkCooldown()) return; 
             
+            // 🛑 核心防線：檢查關鍵字絕對黑名單 (不論原曲、Cover、Remix 通殺)
+            const matchedKw = checkBannedKeyword(title);
+            if (matchedKw) {
+                return alert(`🛑 【天誅禁令】點歌失敗！\n\n此曲標題包含天道絕對封殺禁字「${matchedKw}」！\n無論原曲、翻唱(Cover)或混音(Remix)，皆已被天道永久打入九幽魔淵，不得奏響！`);
+            }
+
             if (bannedSongs[id]) {
                 return alert(`🚫 此曲《${title}》已被天道永久封印！\n\n封印原因：${bannedSongs[id].reason || '心魔反噬'}\n需由【化神期】以上大能開壇解封。`);
             }
@@ -1573,8 +1709,6 @@
             }
         }
 
-        function searchYouTube() { const input = document.getElementById('searchInput').value.trim(); if (!input) return; const lid = (input.match(/[?&]list=([^#\&\?]+)/) || [])[1]; const vid = (input.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/) || [])[2]; const key = YOUTUBE_API_KEYS[currentKeyIndex]; let loadPlaylist = (lid && vid) ? confirm("這個網址包含「播放清單」！要讀取整張清單嗎？") : (!!lid); if (loadPlaylist && lid) { fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=${lid}&key=${key}`).then(r => r.json()).then(data => { if(!data.items || data.items.length === 0) return alert("無法讀取清單或清單為空！"); if (!currentUser) return render({ items: [data.items[0]] }); tempPlaylist = data.items.map(it => ({ id: it.snippet.resourceId.videoId, title: it.snippet.title })); document.getElementById('plItems').innerHTML = tempPlaylist.map((it, i) => `<div style="padding:10px 0; border-bottom:1px solid #111; font-size:12px;"><input type="checkbox" class="pl-chk" value="${i}" checked> ${it.title}</div>`).join(''); document.getElementById('playlistModal').style.display = 'flex'; }); } else if (vid) { fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${vid}&key=${key}`).then(r=>r.json()).then(render); } else { fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=5&q=${encodeURIComponent(input)}&type=video&key=${key}`).then(r=>r.json()).then(render); } }
-        
         function render(data) { 
             document.getElementById('results').innerHTML = (data.items || []).map(it => { 
                 const id = it.id.videoId || it.id; 
@@ -1599,6 +1733,9 @@
             const myState = getUserRealmState(myPoints, myBreakthroughs);
             if (myState.currentLevel < 4) return alert("❌ 境界不足！【化神期】以上方可將歌曲刻印至派對電台！");
             
+            const matchedKw = checkBannedKeyword(title);
+            if (matchedKw) return alert(`🛑 【天誅禁令】無法收錄！標題包含絕對封殺禁字「${matchedKw}」！`);
+
             roomRef.child('radioPlaylist').push({
                 videoId: id,
                 title: title,
@@ -1741,6 +1878,7 @@
             chks.forEach((chk, i) => { 
                 const it = tempPlaylist[chk.value]; 
                 if (bannedSongs[it.id]) return; 
+                if (checkBannedKeyword(it.title)) return;
                 if (!currentQueue.some(s => s.videoId === it.id)) { 
                     roomRef.child('queue').push({ videoId: it.id, title: it.title, nickname: currentUser.customName, uid: currentUser.uid, timestamp: now + i }); 
                     roomRef.child(`songStats/${it.id}/count`).set(firebase.database.ServerValue.increment(1)); 
@@ -1764,6 +1902,7 @@
             chks.forEach((chk, i) => { 
                 const vid = chk.getAttribute('data-vid'), t = chk.getAttribute('data-title'); 
                 if (bannedSongs[vid]) return; 
+                if (checkBannedKeyword(t)) return;
                 if (!currentQueue.some(s => s.videoId === vid)) { 
                     roomRef.child('queue').push({ videoId: vid, title: t, nickname: currentUser.customName, uid: currentUser.uid, timestamp: now + i }); 
                     roomRef.child(`songStats/${vid}/count`).set(firebase.database.ServerValue.increment(1)); 
@@ -1805,15 +1944,17 @@
 
             ids.forEach((id, idx) => {
                 const item = myFavorites[id];
+                const t = item.title || id;
+                if (checkBannedKeyword(t)) return;
                 roomRef.child('radioPlaylist').push({
                     videoId: id,
-                    title: item.title || id,
+                    title: t,
                     uid: uid,
                     nickname: myName,
                     addedAt: now + idx
                 });
             }); 
-            alert(`✅ 已成功將 ${ids.length} 首歌曲擴充至電台輪播池！`); 
+            alert(`✅ 已成功將符合天道法則之歌曲擴充至電台輪播池！`); 
         }
 
         function renderChatMessage(data) {
