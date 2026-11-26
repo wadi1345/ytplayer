@@ -22,7 +22,7 @@ let currentPlayingKey = null;
 let currentPlayingVid = null;
 let lastFallbackVideo = null;
 
-// 📻 派對電台基礎曲庫
+// 📻 派對電台基礎曲庫與歌名快取表
 const baseRadio = [
     'GVv4kCa9jj8',
     'i2Z4JaFnMjU', 
@@ -30,6 +30,9 @@ const baseRadio = [
 ];
 
 let fallbackPlaylist = [...baseRadio]; 
+let radioTitleMap = {};
+let radioSenderMap = {};
+let currentRadioInfo = { videoId: null, title: '', nickname: '' };
 
 // ==========================================
 // 🚪 2. 房間代碼管理
@@ -90,6 +93,18 @@ function onYouTubeIframeAPIReady() {
                 evaluatePlayback();
             },
             'onStateChange': (e) => { 
+                // 🎵 影片開始播放時，自動抓取真實標題並同步電台曲名
+                if (e.data === 1 && isPlayingFallback && player && typeof player.getVideoData === 'function') {
+                    const vData = player.getVideoData();
+                    if (vData && vData.title && currentRadioInfo.title !== vData.title) {
+                        currentRadioInfo.title = vData.title;
+                        if (currentRadioInfo.videoId) {
+                            radioTitleMap[currentRadioInfo.videoId] = vData.title;
+                        }
+                        roomRef.child('currentRadio').update({ title: vData.title });
+                        renderHostUI();
+                    }
+                }
                 if (e.data === 0) {
                     console.log("🎵 當前曲目播放完畢，推進下一首！");
                     handleSongEnded(); 
@@ -138,17 +153,26 @@ roomRef.child('queue').on('value', (snapshot) => {
     }
 });
 
-// 📻 監聽並解析雲端電台曲庫（嚴格提取純 videoId）
+// 📻 監聽並解析雲端電台曲庫（同步建立歌名對照表）
 roomRef.child('radioPlaylist').on('value', (snapshot) => {
     const data = snapshot.val();
+    const newTitleMap = {};
+    const newSenderMap = {};
+
     if (data) {
         const rawList = Array.isArray(data) ? data : Object.values(data);
         const cleanIds = rawList.map(item => {
             if (typeof item === 'string') return item;
-            if (item && typeof item === 'object' && item.videoId) return item.videoId;
+            if (item && typeof item === 'object' && item.videoId) {
+                if (item.title) newTitleMap[item.videoId] = item.title;
+                if (item.nickname) newSenderMap[item.videoId] = item.nickname;
+                return item.videoId;
+            }
             return null;
         }).filter(Boolean);
         
+        radioTitleMap = { ...radioTitleMap, ...newTitleMap };
+        radioSenderMap = newSenderMap;
         fallbackPlaylist = Array.from(new Set([...baseRadio, ...cleanIds]));
         console.log("📻 電台曲庫已校準，共", fallbackPlaylist.length, "首");
     } else {
@@ -171,6 +195,10 @@ function evaluatePlayback() {
             currentPlayingKey = topSong.key;
             currentPlayingVid = topSong.videoId;
             
+            // 清除電台現正播放狀態
+            currentRadioInfo = { videoId: null, title: '', nickname: '' };
+            roomRef.child('currentRadio').remove();
+
             player.loadVideoById(topSong.videoId);
             roomRef.child('isPaused').set(false);
             
@@ -204,7 +232,18 @@ function playNextRadioSong() {
     currentPlayingVid = targetVid;
     isPlayingFallback = true;
 
-    console.log("📻 電台播放中，曲目 ID：", targetVid);
+    const initTitle = radioTitleMap[targetVid] || '電台曲目讀取中...';
+    const initSender = radioSenderMap[targetVid] || '派對電台';
+    currentRadioInfo = {
+        videoId: targetVid,
+        title: initTitle,
+        nickname: initSender
+    };
+
+    roomRef.child('currentRadio').set(currentRadioInfo);
+    renderHostUI();
+
+    console.log("📻 電台播放中，曲目 ID：", targetVid, "歌名：", initTitle);
     player.loadVideoById(targetVid);
     roomRef.child('isPaused').set(false);
 }
@@ -270,8 +309,21 @@ function renderHostUI() {
                 </div>`;
         }
     } else {
-        document.title = "📻 派對電台播放中";
-        listDiv.innerHTML = '<div class="queue-item" style="color:#1DB954; justify-content:center; border: 1px dashed #1DB954;">📻 派對電台隨機放送中...</div>';
+        const radioTitle = currentRadioInfo.title || '派對電台隨機放送中...';
+        const radioSender = (currentRadioInfo.nickname && currentRadioInfo.nickname !== '派對電台')
+            ? `（收錄：${currentRadioInfo.nickname}）`
+            : '';
+        document.title = currentRadioInfo.title ? `📻 電台: ${currentRadioInfo.title}` : "📻 派對電台播放中";
+        
+        listDiv.innerHTML = `
+            <div class="queue-item" style="color:#1DB954; border: 1px dashed #1DB954; background: rgba(29, 185, 84, 0.05);">
+                <div style="flex-grow: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    <span style="font-weight:bold;">📻 [派對電台]</span> 
+                    <span style="color:#fff;">${radioTitle}</span>
+                    <span style="color:#888; font-size:12px;">${radioSender}</span>
+                </div>
+                <button class="remove-btn" onclick="requestSkip()">換首</button>
+            </div>`;
     }
 }
 
