@@ -103,7 +103,7 @@ function onYouTubeIframeAPIReady() {
     });
 }
 
-// 🎧 監聽待播清單 (含心魔雷罰抹殺)
+// 🎧 監聽待播清單 (含護道金身保護的心魔檢測)
 roomRef.child('queue').on('value', (snapshot) => {
     const data = snapshot.val() || {};
     let newList = [];
@@ -115,10 +115,10 @@ roomRef.child('queue').on('value', (snapshot) => {
 
     newList.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
     
-    // ⚡ 心魔滿 3 個直接抹殺
+    // ⚡ 心魔滿 3 個檢測（護道金身免疫抹殺）
     if (newList.length > 0) {
         const currentSong = newList[0];
-        if (currentSong.votes) {
+        if (currentSong.votes && !currentSong.isGolden) {
             const votes = Object.values(currentSong.votes);
             const dislikes = votes.filter(v => v === 'dislike').length;
             
@@ -133,7 +133,6 @@ roomRef.child('queue').on('value', (snapshot) => {
     songQueue = newList;
     renderHostUI();
     
-    // 只要有排隊變動且播放器就緒，立刻評估播放（不再受 isStarted 阻擋）
     if (isPlayerReady) {
         evaluatePlayback();
     }
@@ -164,10 +163,8 @@ function evaluatePlayback() {
     if (!isPlayerReady || !player || typeof player.loadVideoById !== 'function') return;
 
     if (songQueue.length > 0) {
-        // === 情況 A：有人點歌 ===
         const topSong = songQueue[0]; 
         
-        // 如果目前不是在播這首歌，立即強制換歌
         if (currentPlayingKey !== topSong.key || isPlayingFallback) {
             console.log("🚀 即刻切換至道友點播歌曲：", topSong.title);
             isPlayingFallback = false;
@@ -181,9 +178,7 @@ function evaluatePlayback() {
             if (startBtn) startBtn.style.display = 'none';
         }
     } else {
-        // === 情況 B：待播清單已空，無縫進入派對電台 ===
         currentPlayingKey = null;
-        
         if (!isPlayingFallback) {
             console.log("📻 待播清單為空，無縫切入派對電台！");
             isPlayingFallback = true;
@@ -204,9 +199,7 @@ function playNextRadioSong() {
         randomVideo = fallbackPlaylist[0] || baseRadio[0];
     }
     
-    // 防呆確認純字串 ID
     const targetVid = (typeof randomVideo === 'object' && randomVideo.videoId) ? randomVideo.videoId : randomVideo;
-    
     lastFallbackVideo = targetVid;
     currentPlayingVid = targetVid;
     isPlayingFallback = true;
@@ -216,14 +209,11 @@ function playNextRadioSong() {
     roomRef.child('isPaused').set(false);
 }
 
-// 歌曲自然唱完時的處理邏輯
 function handleSongEnded() {
     if (songQueue.length > 0 && !isPlayingFallback) {
-        // 唱完的是排隊歌：將第一首從 Firebase 移除，觸發監聽自動接下一首
         const finishedKey = songQueue[0].key;
         roomRef.child('queue').child(finishedKey).remove();
     } else {
-        // 唱完的是電台歌：如果此時有人點歌則播點歌，否則隨機播下一首電台
         if (songQueue.length > 0) {
             evaluatePlayback();
         } else {
@@ -239,7 +229,7 @@ function renderHostUI() {
     
     if (songQueue.length > 0) {
         const cur = songQueue[0];
-        document.title = "正在播放: " + cur.title;
+        document.title = (cur.isGolden ? "🛡️ " : "") + "正在播放: " + cur.title;
         
         let likes = 0, dislikes = 0;
         if (cur.votes) {
@@ -256,10 +246,13 @@ function renderHostUI() {
                        </span>`;
         }
 
+        const goldenBorder = cur.isGolden ? 'border: 2px solid #ffd700; background: linear-gradient(90deg, rgba(255,215,0,0.2), rgba(29, 185, 84, 0.1));' : 'border: 2px solid #1DB954; background: rgba(29, 185, 84, 0.1);';
+
         listDiv.innerHTML += `
-            <div class="queue-item" style="border: 2px solid #1DB954; background: rgba(29, 185, 84, 0.1);">
+            <div class="queue-item" style="${goldenBorder}">
                 <div style="flex-grow: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                     <span style="color:#1DB954; font-size:12px; font-weight:bold;">[現正播放]</span> 
+                    ${cur.isGolden ? '<strong style="color:#ffd700;">[🛡️護道金身]</strong> ' : ''}
                     <strong>${cur.nickname || '神秘修士'}</strong>：${cur.title} ${voteStr}
                 </div>
                 <button class="remove-btn" onclick="requestSkip()">切歌</button>
@@ -268,8 +261,9 @@ function renderHostUI() {
         for (let i = 1; i < songQueue.length; i++) {
             const data = songQueue[i];
             listDiv.innerHTML += `
-                <div class="queue-item">
+                <div class="queue-item" style="${data.isGolden ? 'border-left: 3px solid #ffd700;' : ''}">
                     <div style="flex-grow: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        ${data.isGolden ? '<span style="color:#ffd700; font-size:11px; font-weight:bold;">[🛡️金身]</span> ' : ''}
                         <strong>${data.nickname || '神秘修士'}</strong>：${data.title}
                     </div>
                     <button class="remove-btn" onclick="removeSong('${data.key}')">移除</button>
@@ -281,21 +275,25 @@ function renderHostUI() {
     }
 }
 
-// 點擊「切歌」按鈕
 function requestSkip() {
     if (songQueue.length > 0 && !isPlayingFallback) {
-        // 如果正在播排隊歌，直接移除
-        roomRef.child('queue').child(songQueue[0].key).remove();
+        const cur = songQueue[0];
+        if (cur.isGolden) {
+            if (prompt("🛡️ 此曲有「護道金身」加持，強制切除請輸入管理員密碼：") === ADMIN_PASSWORD) {
+                roomRef.child('queue').child(cur.key).remove();
+            } else {
+                alert("❌ 金身護體，凡人無法撼動！");
+            }
+            return;
+        }
+        roomRef.child('queue').child(cur.key).remove();
     } else if (songQueue.length > 0 && isPlayingFallback) {
-        // 如果卡在電台但隊列有歌，強制切到第一首
         evaluatePlayback();
     } else {
-        // 清單沒歌，強制切下一首電台
         playNextRadioSong();
     }
 }
 
-// 手動點擊「啟動點唱機」按鈕（解除瀏覽器靜音限制）
 function startParty() {
     isPlayerReady = true;
     const startBtn = document.getElementById('startBtn');
@@ -312,14 +310,12 @@ function removeSong(key) {
     }
 }
 
-// 💡 音量同步
 roomRef.child('volume').on('value', s => {
     let vol = s.val();
     if (vol === null) vol = 100;
     if (player && typeof player.setVolume === 'function') player.setVolume(vol);
 });
 
-// 💡 播放/暫停同步
 roomRef.child('isPaused').on('value', s => {
     let paused = s.val() || false;
     if (player && typeof player.pauseVideo === 'function' && typeof player.playVideo === 'function') {
