@@ -150,7 +150,7 @@
         </div>
 
         <div class="search-box">
-            <input type="text" id="userName" placeholder="👤 點歌稱號 (預設: 臭香腸)" oninput="setupPresence()">
+            <input type="text" id="userName" placeholder="👤 點歌稱號 (預設: 臭香腸)" oninput="debouncedSetupPresence()">
             <input type="text" id="searchInput" placeholder="🔍 搜尋歌名或貼上 YouTube 清單網址" onkeypress="if(event.key === 'Enter') searchYouTube()">
             
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:8px;">
@@ -195,7 +195,7 @@
             </h3>
             <div style="font-size: 11px; color: #888; display: flex; justify-content: space-between; margin-bottom:5px;">
                 <span><input type="checkbox" id="selAllFav" checked onchange="toggleAllFav()"> 全選 (已自動跳過封印禁曲)</span>
-                <span>特權解鎖上限</span>
+                <span id="favLimitHint">築基20首/仙尊無限</span>
             </div>
             <div class="modal-list" id="favItems"></div>
             <div style="display:flex; gap:10px;">
@@ -210,7 +210,7 @@
             <h3 style="color:var(--spotify-green); margin-top:0;">📋 匯入播放清單</h3>
             <div style="font-size: 11px; color: #888; display: flex; justify-content: space-between; margin-bottom:5px;">
                 <span><input type="checkbox" id="selAllPl" checked onchange="toggleAllPl()"> 全選 (已自動跳過封印禁曲)</span>
-                <span>特權解鎖上限</span>
+                <span id="plLimitHint">築基20首/仙尊無限</span>
             </div>
             <div class="modal-list" id="plItems"></div>
             <div style="display:flex; gap:12px;">
@@ -323,7 +323,7 @@
                         <tr style="background: rgba(168, 230, 207, 0.05);"><td style="color:#a8e6cf; font-weight:bold;">地仙</td><td>35,000</td><td>3%</td><td>-8,000</td><td>可長生不死，肉身能與名山大川、大地靈氣相融。<br><span style="color:#a8e6cf;">✦ 【地脈震怒】降雷威力全面暴增至 80~150 點</span></td></tr>
                         <tr style="background: rgba(135, 206, 235, 0.05);"><td style="color:#87ceeb; font-weight:bold;">天仙</td><td>55,000</td><td>2.5%</td><td>-12,000</td><td>白日飛升，舉形升虛，能自由遨遊於九天之上。<br><span style="color:#87ceeb;">✦ 【太虛神念】傳音符優先顯示，神念通達</span></td></tr>
                         <tr style="background: rgba(255, 119, 255, 0.05);"><td style="color:#ff77ff; font-weight:bold;">真仙</td><td>80,000</td><td>2%</td><td>-18,000</td><td>返璞歸真，體內元氣完全轉化為純淨的仙元力。<br><span style="color:#ff77ff;">✦ 解鎖【護道金身】1 次（免疫一切切歌與心魔）</span></td></tr>
-                        <tr style="background: rgba(216, 191, 216, 0.05);"><td style="color:#d8bfd8; font-weight:bold;">玄仙</td><td>120,000</td><td>1.5%</td><td>-25,000</td><td>玄之又玄，開始深刻感悟天地與空間奧義。<br><span style="color:#d8bfd8;">✦ 縮地成寸 6 次、切歌 5 次，單批匯入上限 50 首</span></td></tr>
+                        <tr style="background: rgba(216, 191, 216, 0.05);"><td style="color:#d8bfd8; font-weight:bold;">玄仙</td><td>120,000</td><td>1.5%</td><td>-25,000</td><td>玄之又玄，開始深刻感悟天地與空間奧義。<br><span style="color:#d8bfd8;">✦ 縮地成寸 6 次、切歌 5 次，匯入無限</span></td></tr>
                         <tr style="background: rgba(255, 191, 0, 0.05);"><td style="color:#ffbf00; font-weight:bold;">金仙</td><td>180,000</td><td>1%</td><td>-35,000</td><td>肉身與靈魂歷經千錘百鍊，達至「金性不朽」，壽元近乎無盡。<br><span style="color:#ffbf00;">✦ 降雷 4 次、金身 1 次，仙牌顯赫</span></td></tr>
                         <tr style="background: rgba(255, 105, 180, 0.05);"><td style="color:#ff69b4; font-weight:bold;">太乙金仙</td><td>260,000</td><td>0.8%</td><td>-50,000</td><td>超脫命運河流，掌握強大的仙界法則。<br><span style="color:#ff69b4;">✦ 【灌頂升級】單次賜緣暴增至 200 點、金身 2 次</span></td></tr>
                         <tr style="background: rgba(255, 20, 147, 0.05);"><td style="color:#ff1493; font-weight:bold;">大羅金仙</td><td>380,000</td><td>0.5%</td><td>-70,000</td><td>超脫時空，諸天萬界「一切時空永恆自在」的頂尖強者。<br><span style="color:#ff1493;">✦ 解鎖【強制奪舍】1 次（0秒腰斬插播）</span></td></tr>
@@ -341,7 +341,7 @@
             <h3 style="color:#fff; margin-top:0; text-align:center;">💬 宗門仙音頻道</h3>
             <div class="modal-list" id="chatBox" style="height: 300px; display: flex; flex-direction: column;"></div>
             <div class="chat-input-container">
-                <input type="text" id="chatInput" placeholder="在此輸入仙界法旨..." onkeypress="if(event.key === 'Enter') sendChatMessage(false)">
+                <input type="text" id="chatInput" placeholder="輸入訊息或 @天道 提問..." onkeypress="if(event.key === 'Enter') sendChatMessage(false)">
                 <button class="btn-mega" onclick="sendChatMessage(true)" title="花費 2 點修為發送醒目廣播">📢(-2)</button>
                 <button onclick="sendChatMessage(false)">傳音</button>
             </div>
@@ -378,6 +378,8 @@
         let localGuestId = localStorage.getItem('guestId') || ('guest_' + Math.random().toString(36).substr(2, 9));
         localStorage.setItem('guestId', localGuestId);
         let currentRoomId = null, roomRef = null, presenceRef = null;
+        let presenceDebounceTimer = null;
+        let connectedListenerBound = false;
 
         let myPoints = 0;
         let myBreakthroughs = {};
@@ -396,13 +398,21 @@
         let legitActionTime = 0;
         let cdTimer = null;
         let currentAdminTab = 'logs';
+        let activeUserListeners = [];
+
+        function escapeAttr(str) {
+            return String(str || '')
+                .replace(/\\/g, '\\\\')
+                .replace(/'/g, "\\'")
+                .replace(/"/g, '&quot;')
+                .replace(/\r?\n/g, ' ');
+        }
 
         function getTodayKey() {
             const d = new Date();
             return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
         }
 
-        // 🌟 跨裝置日期容錯比對函數（支援 YYYY-MM-DD 與各國 locale 日期格式）
         function isSameDay(dateStr) {
             if (!dateStr) return false;
             if (dateStr === getTodayKey() || dateStr === new Date().toLocaleDateString()) return true;
@@ -574,6 +584,7 @@
                 container.innerHTML = uids.map(uid => {
                     const u = users[uid];
                     const name = u.nickname || u.displayName || '某修士';
+                    const safeName = escapeAttr(name);
                     const cult = u.cultivation || 0;
                     const bts = u.breakthroughs || {};
                     const state = getUserRealmState(cult, bts);
@@ -588,10 +599,10 @@
                             <div>修為：<strong style="color:var(--gold);">${cult}</strong> | 天劫率: <span style="color:#ff8c00;">${customRate}</span></div>
                         </div>
                         <div style="display:flex; gap:5px; flex-wrap:wrap;">
-                            <button onclick="adminAdjustCultivation('${uid}', '${name.replace(/'/g, "\\'")}', true)" style="background:#2a2a2a; border:1px solid var(--spotify-green); color:var(--spotify-green); padding:3px 8px; border-radius:6px; font-size:11px; cursor:pointer;">➕ 加修為</button>
-                            <button onclick="adminAdjustCultivation('${uid}', '${name.replace(/'/g, "\\'")}', false)" style="background:#2a2a2a; border:1px solid #ff4b2b; color:#ff4b2b; padding:3px 8px; border-radius:6px; font-size:11px; cursor:pointer;">➖ 扣修為</button>
-                            <button onclick="adminSetBreakthroughRate('${uid}', '${name.replace(/'/g, "\\'")}')" style="background:#2a2a2a; border:1px solid #ffd700; color:#ffd700; padding:3px 8px; border-radius:6px; font-size:11px; cursor:pointer;">⚡ 天劫機率</button>
-                            <button onclick="adminDirectUnlock('${uid}', '${name.replace(/'/g, "\\'")}')" style="background:#2a2a2a; border:1px solid #9400d3; color:#e066ff; padding:3px 8px; border-radius:6px; font-size:11px; cursor:pointer;">👑 直升境界</button>
+                            <button onclick="adminAdjustCultivation('${uid}', '${safeName}', true)" style="background:#2a2a2a; border:1px solid var(--spotify-green); color:var(--spotify-green); padding:3px 8px; border-radius:6px; font-size:11px; cursor:pointer;">➕ 加修為</button>
+                            <button onclick="adminAdjustCultivation('${uid}', '${safeName}', false)" style="background:#2a2a2a; border:1px solid #ff4b2b; color:#ff4b2b; padding:3px 8px; border-radius:6px; font-size:11px; cursor:pointer;">➖ 扣修為</button>
+                            <button onclick="adminSetBreakthroughRate('${uid}', '${safeName}')" style="background:#2a2a2a; border:1px solid #ffd700; color:#ffd700; padding:3px 8px; border-radius:6px; font-size:11px; cursor:pointer;">⚡ 天劫機率</button>
+                            <button onclick="adminDirectUnlock('${uid}', '${safeName}')" style="background:#2a2a2a; border:1px solid #9400d3; color:#e066ff; padding:3px 8px; border-radius:6px; font-size:11px; cursor:pointer;">👑 直升境界</button>
                         </div>
                     </div>`;
                 }).join('');
@@ -630,10 +641,11 @@
                 html += keys.map(k => {
                     const item = bannedKeywords[k];
                     const kw = item.keyword || item;
+                    const safeKw = escapeAttr(kw);
                     return `
                         <div style="background:#1a1a1a; padding:10px 12px; border-radius:8px; margin-bottom:8px; border-left:3px solid #ff4b2b; display:flex; justify-content:space-between; align-items:center;">
                             <div style="color:#fff; font-size:14px; font-weight:bold;">🚫 ${kw}</div>
-                            <button onclick="removeBannedKeyword('${k}', '${kw.replace(/'/g, "\\'")}')" style="background:#333; border:1px solid #ff4b2b; color:#ff4b2b; padding:4px 8px; border-radius:6px; font-size:11px; cursor:pointer;">❌ 解除</button>
+                            <button onclick="removeBannedKeyword('${k}', '${safeKw}')" style="background:#333; border:1px solid #ff4b2b; color:#ff4b2b; padding:4px 8px; border-radius:6px; font-size:11px; cursor:pointer;">❌ 解除</button>
                         </div>
                     `;
                 }).join('');
@@ -779,10 +791,16 @@
 
             auth.onAuthStateChanged(handleAuthChange);
             roomRef.child('banned').on('value', s => { bannedList = s.val() || {}; renderOnlineModal(); });
-            roomRef.child('bannedSongs').on('value', s => { bannedSongs = s.val() || {}; });
+            roomRef.child('bannedSongs').on('value', s => { 
+                bannedSongs = s.val() || {}; 
+                if (document.getElementById('bannedModal').style.display === 'flex') renderBannedItems();
+            });
             roomRef.child('bannedKeywords').on('value', s => { 
                 bannedKeywords = s.val() || {}; 
                 if (document.getElementById('favModal').style.display === 'flex') renderFavItems();
+            });
+            roomRef.child('radioPlaylist').on('value', () => {
+                if (document.getElementById('radioModal').style.display === 'flex') renderRadioItems();
             });
             roomRef.child('online').on('value', s => { 
                 onlineUsers = s.val() || {}; 
@@ -795,7 +813,13 @@
             roomRef.child('chat').limitToLast(50).on('child_added', snap => renderChatMessage(snap.val()));
         }
 
-        // 🌟 修復：在線狀態監聽與寫入
+        function debouncedSetupPresence() {
+            if (presenceDebounceTimer) clearTimeout(presenceDebounceTimer);
+            presenceDebounceTimer = setTimeout(() => {
+                setupPresence('凡人', '#888', 0);
+            }, 400);
+        }
+
         function setupPresence(rName = "凡人", rColor = "#888", level = 0) {
             if (!currentRoomId || !roomRef) return;
             
@@ -828,15 +852,17 @@
             presenceRef.onDisconnect().remove();
             presenceRef.set(presenceData);
 
-            db.ref('.info/connected').once('value', snap => {
-                if (snap.val() === true && presenceRef) {
-                    presenceRef.onDisconnect().remove();
-                    presenceRef.set(presenceData);
-                }
-            });
+            if (!connectedListenerBound) {
+                connectedListenerBound = true;
+                db.ref('.info/connected').on('value', snap => {
+                    if (snap.val() === true && presenceRef) {
+                        presenceRef.onDisconnect().remove();
+                        presenceRef.update({ lastSeen: firebase.database.ServerValue.TIMESTAMP });
+                    }
+                });
+            }
         }
 
-        // 🌟 開啟/關閉在線名單 Modal（補全缺失函數）
         function openOnlineModal() {
             const modal = document.getElementById('onlineModal');
             if (modal) {
@@ -850,7 +876,13 @@
             if (modal) modal.style.display = 'none';
         }
 
+        function clearUserListeners() {
+            activeUserListeners.forEach(ref => ref.off());
+            activeUserListeners = [];
+        }
+
         function handleAuthChange(user) {
+            clearUserListeners();
             currentUser = user;
             if (user) {
                 document.getElementById('userName').style.display = 'none'; 
@@ -859,10 +891,18 @@
                 document.getElementById('my-fav-btn').style.display = 'flex'; 
                 document.getElementById('gacha-btn').style.display = 'flex';
                 
+                // 自動同步基本資料，確保管理員後台看得到名稱
+                db.ref(`users/${user.uid}`).update({
+                    displayName: user.displayName || '某修士',
+                    photoURL: user.photoURL || ''
+                });
+
                 let myLastPoints = null;
                 let myLastGainTime = 0;
 
-                db.ref(`users/${user.uid}`).on('value', userSnap => {
+                const userRef = db.ref(`users/${user.uid}`);
+                activeUserListeners.push(userRef);
+                userRef.on('value', userSnap => {
                     const userData = userSnap.val() || {};
                     const currentPoints = userData.cultivation || 0;
                     const bypassTime = userData.adminBypass || 0;
@@ -904,7 +944,9 @@
                 });
 
                 const today = getTodayKey();
-                db.ref(`users/${user.uid}/dailyStats/${today}`).on('value', s => { 
+                const statsRef = db.ref(`users/${user.uid}/dailyStats/${today}`);
+                activeUserListeners.push(statsRef);
+                statsRef.on('value', s => { 
                     const data = s.val() || {};
                     myDailyStats = {
                         jump: data.jump || 0,
@@ -916,9 +958,18 @@
                     };
                 });
 
-                db.ref(`users/${user.uid}/gachaHour`).on('value', s => { myGachaHour = s.val() || ""; });
+                const gachaRef = db.ref(`users/${user.uid}/gachaHour`);
+                activeUserListeners.push(gachaRef);
+                gachaRef.on('value', s => { myGachaHour = s.val() || ""; });
                 startGachaCountdown(); 
-                db.ref(`users/${user.uid}/favorites`).on('value', s => { myFavorites = s.val() || {}; updateAllStars(); });
+
+                const favRef = db.ref(`users/${user.uid}/favorites`);
+                activeUserListeners.push(favRef);
+                favRef.on('value', s => { 
+                    myFavorites = s.val() || {}; 
+                    updateAllStars(); 
+                    if (document.getElementById('favModal').style.display === 'flex') renderFavItems();
+                });
             } else {
                 myPoints = 0; myBreakthroughs = {}; myCustomRate = null;
                 if (countdownTimer) clearInterval(countdownTimer);
@@ -1016,8 +1067,12 @@
                 db.ref(`users/${currentUser.uid}/dailyStats/${today}/bestow`).set(used + 1);
                 myDailyStats.bestow = used + 1;
 
-                db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(-bestowAmount));
-                db.ref(`users/${targetUid}/cultivation`).set(firebase.database.ServerValue.increment(bestowAmount));
+                // 寫入 adminBypass 避免接收方誤觸防作弊扣分
+                const updates = {};
+                updates[`users/${currentUser.uid}/cultivation`] = firebase.database.ServerValue.increment(-bestowAmount);
+                updates[`users/${targetUid}/adminBypass`] = Date.now();
+                updates[`users/${targetUid}/cultivation`] = firebase.database.ServerValue.increment(bestowAmount);
+                db.ref().update(updates);
 
                 logAction(currentUser.uid, myName, `醍醐灌頂賜予${targetName}`, -bestowAmount);
                 logAction(targetUid, targetName, `獲${myName}醍醐灌頂`, bestowAmount);
@@ -1058,6 +1113,12 @@
                     timestamp: minTimestamp,
                     isGolden: true
                 });
+
+                roomRef.child(`songStats/${id}/count`).set(firebase.database.ServerValue.increment(1));
+                roomRef.child(`songStats/${id}/title`).set(title);
+                db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(1));
+                logAction(currentUser.uid, myName, '強制奪舍點播', 1);
+                incrementScore(1);
 
                 sendSystemMsg(`⚡ 【奪舍降世】大羅仙尊【${myName}】發動無上神通強制奪舍！全場歌曲為其讓路，《${title}》即刻奏響！`, 'mega');
                 alert(`⚡ 奪舍成功！歌曲已瞬間登上大螢幕！`);
@@ -1413,13 +1474,14 @@
 
                 container.innerHTML = keys.map(k => {
                     const item = data[k];
+                    const safeTitle = escapeAttr(item.title || '');
                     return `<div class="res-item" style="padding:10px 12px; margin:0 0 8px 0; border-left:3px solid #ff4b2b;">
                         <div style="flex-grow:1; overflow:hidden; margin-right:8px;">
                             <div style="font-size:13px; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">🔒 ${item.title}</div>
                             <div style="font-size:11px; color:#aaa;">原因：<span style="color:#ff4b2b;">${item.reason}</span></div>
                         </div>
                         <div class="res-actions">
-                            <button onclick="unbanSong('${item.videoId}', '${item.title.replace(/'/g, "\\'")}')" style="background:linear-gradient(45deg, #ffd700, #ff8c00); border:none; padding:6px 10px; border-radius:6px; font-weight:bold; cursor:pointer; font-size:11px; color:black;">⚡ 解封</button>
+                            <button onclick="unbanSong('${item.videoId}', '${safeTitle}')" style="background:linear-gradient(45deg, #ffd700, #ff8c00); border:none; padding:6px 10px; border-radius:6px; font-weight:bold; cursor:pointer; font-size:11px; color:black;">⚡ 解封</button>
                         </div>
                     </div>`;
                 }).join('');
@@ -1445,6 +1507,29 @@
             }
         }
 
+        function fetchYouTubeWithRetry(urlBuilder, callback, attempt = 0) {
+            const key = YOUTUBE_API_KEYS[currentKeyIndex];
+            fetch(urlBuilder(key))
+                .then(r => r.json())
+                .then(data => {
+                    if (data && data.error) {
+                        console.warn("⚠️ YouTube API Key 異常，嘗試切換備援金鑰:", data.error.message);
+                        if (attempt < YOUTUBE_API_KEYS.length - 1) {
+                            currentKeyIndex = (currentKeyIndex + 1) % YOUTUBE_API_KEYS.length;
+                            fetchYouTubeWithRetry(urlBuilder, callback, attempt + 1);
+                        } else {
+                            alert("⚠️ 今日 YouTube 搜尋靈力已耗盡，請改貼完整 YouTube 網址或稍後再試！");
+                        }
+                        return;
+                    }
+                    callback(data);
+                })
+                .catch(err => {
+                    console.error("YouTube 請求失敗:", err);
+                    alert("⚠️ 網路連線不穩，搜尋失敗！");
+                });
+        }
+
         function searchYouTube() { 
             const input = document.getElementById('searchInput').value.trim(); 
             if (!input) return; 
@@ -1465,26 +1550,34 @@
 
             const lid = (input.match(/[?&]list=([^#\&\?]+)/) || [])[1]; 
             const vid = (input.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/) || [])[2]; 
-            const key = YOUTUBE_API_KEYS[currentKeyIndex]; 
             let loadPlaylist = (lid && vid) ? confirm("讀取整張清單嗎？") : (!!lid); 
             
             if (loadPlaylist && lid) { 
-                fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=${lid}&key=${key}`).then(r => r.json()).then(data => { 
-                    if(!data.items || data.items.length === 0) return alert("清單為空！"); 
-                    tempPlaylist = data.items.map(it => ({ id: it.snippet.resourceId.videoId, title: it.snippet.title })); 
-                    document.getElementById('plItems').innerHTML = tempPlaylist.map((it, i) => {
-                        const kw = checkBannedKeyword(it.title);
-                        return `<div style="padding:10px 0; border-bottom:1px solid #111; font-size:12px; display:flex; align-items:center;">
-                            <input type="checkbox" class="pl-chk" value="${i}" ${kw ? 'disabled' : 'checked'} style="margin-right:8px;">
-                            <span style="${kw ? 'text-decoration:line-through; color:#ff4b2b;' : ''}">${it.title}</span>
-                        </div>`;
-                    }).join(''); 
-                    document.getElementById('playlistModal').style.display = 'flex'; 
-                }); 
+                fetchYouTubeWithRetry(
+                    key => `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=${lid}&key=${key}`,
+                    data => { 
+                        if(!data.items || data.items.length === 0) return alert("清單為空！"); 
+                        tempPlaylist = data.items.map(it => ({ id: it.snippet.resourceId.videoId, title: it.snippet.title })); 
+                        document.getElementById('plItems').innerHTML = tempPlaylist.map((it, i) => {
+                            const kw = checkBannedKeyword(it.title);
+                            return `<div style="padding:10px 0; border-bottom:1px solid #111; font-size:12px; display:flex; align-items:center;">
+                                <input type="checkbox" class="pl-chk" value="${i}" ${kw ? 'disabled' : 'checked'} style="margin-right:8px;">
+                                <span style="${kw ? 'text-decoration:line-through; color:#ff4b2b;' : ''}">${it.title}</span>
+                            </div>`;
+                        }).join(''); 
+                        document.getElementById('playlistModal').style.display = 'flex'; 
+                    }
+                );
             } else if (vid) { 
-                fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${vid}&key=${key}`).then(r=>r.json()).then(render); 
+                fetchYouTubeWithRetry(
+                    key => `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${vid}&key=${key}`,
+                    render
+                );
             } else { 
-                fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=5&q=${encodeURIComponent(input)}&type=video&key=${key}`).then(r=>r.json()).then(render); 
+                fetchYouTubeWithRetry(
+                    key => `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=5&q=${encodeURIComponent(input)}&type=video&key=${key}`,
+                    render
+                );
             } 
         }
 
@@ -1500,7 +1593,7 @@
                 return alert('🛑 你已被禁言！');
             }
 
-            let name = currentUser ? (currentUser.customName || currentUser.displayName) : (document.getElementById('userName').value || '臭香腸');
+            let name = currentUser ? (currentUser.customName || currentUser.displayName) : (document.getElementById('userName').value.trim() || '臭香腸');
             if (currentQueue.some(s => s.videoId === id)) return alert('重複點歌囉！');
 
             let finalTimestamp = Date.now();
@@ -1552,10 +1645,7 @@
             if(currentQueue.length === 0) return; 
             const s = currentQueue[0]; 
 
-            if (s.isGolden) {
-                return alert(`🛡️ 【萬法不侵】此曲已被真仙大能施加「護道金身」，防禦一切切歌神通！`);
-            }
-            
+            // 本人點播的歌曲允許自行取消，其餘人受護道金身阻擋
             if(currentUser && s.uid === currentUser.uid){ 
                 if(confirm("切除自己的歌？(倒扣 1 點修為)")) {
                     db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(-1));
@@ -1563,6 +1653,10 @@
                     return roomRef.child('queue/'+s.key).remove(); 
                 } else return;
             } 
+
+            if (s.isGolden) {
+                return alert(`🛡️ 【萬法不侵】此曲已被真仙大能施加「護道金身」，防禦一切切歌神通！`);
+            }
             
             const myState = getUserRealmState(myPoints, myBreakthroughs);
             const today = getTodayKey();
@@ -1621,7 +1715,7 @@
                 const rColor = u.realmColor || "#888";
                 const lv = (typeof u.level === 'number') ? u.level : 0;
                 const uName = u.name || '未知修士';
-                const safeNameEscaped = String(uName).replace(/'/g, "\\'").replace(/"/g, "&quot;");
+                const safeNameEscaped = escapeAttr(uName);
                 const uPhoto = u.photo || 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
                 const uPoints = (typeof u.points === 'number') ? u.points : 0;
                 
@@ -1670,7 +1764,6 @@
         function signIn() { auth.signInWithPopup(provider); }
         function signOut() { auth.signOut(); }
 
-        // 🌟 投票功能容錯（即使訪客點的歌也能正常投票累積 3 心魔抹殺）
         function castVote(type) {
             if (!currentUser) return alert("⚠️ 登入後方可賜予仙丹或心魔！");
             if (!checkCooldown()) return; 
@@ -1699,7 +1792,10 @@
                 
                 if (newVote) voteRef.set(newVote); else voteRef.remove();
                 if (curSong.uid && diff !== 0) {
-                    db.ref(`users/${curSong.uid}/cultivation`).set(firebase.database.ServerValue.increment(diff));
+                    const targetUpdates = {};
+                    if (diff > 0) targetUpdates[`users/${curSong.uid}/adminBypass`] = Date.now();
+                    targetUpdates[`users/${curSong.uid}/cultivation`] = firebase.database.ServerValue.increment(diff);
+                    db.ref().update(targetUpdates);
                 }
                 if (giverDiff !== 0) {
                     if (giverDiff > 0) isHeavenReward = true;
@@ -1739,11 +1835,11 @@
 
             if (currentQueue.length > 0) {
                 const cur = currentQueue[0];
-                document.getElementById('now-playing-title').innerHTML = `${cur.isGolden ? '🛡️ ' : ''}${cur.title}`;
+                const safeCurTitle = escapeAttr(cur.title || '');
+                document.getElementById('now-playing-title').innerText = `${cur.isGolden ? '🛡️ ' : ''}${cur.title}`;
                 document.getElementById('now-playing-user').innerText = `👤 點歌人：${cur.nickname || '神秘修士'}`;
-                document.getElementById('now-playing-fav').innerHTML = currentUser ? `<button class="btn-fav star-btn" data-vid="${cur.videoId}" onclick="toggleFav('${cur.videoId}', '${cur.title.replace(/'/g, "\\'")}')">☆</button>` : '';
+                document.getElementById('now-playing-fav').innerHTML = currentUser ? `<button class="btn-fav star-btn" data-vid="${cur.videoId}" onclick="toggleFav('${cur.videoId}', '${safeCurTitle}')">☆</button>` : '';
                 
-                // 只要清單有歌就開放仙丹與心魔面板
                 voteSection.style.display = 'flex';
                 let likes = 0, dislikes = 0, myVote = null;
                 if (cur.votes) {
@@ -1758,18 +1854,20 @@
                 btnLike.className = `vote-btn ${myVote === 'like' ? 'active-like' : ''}`;
                 btnDislike.className = `vote-btn ${myVote === 'dislike' ? 'active-dislike' : ''}`;
                 
-                qDiv.innerHTML = currentQueue.slice(1).map((s, i) => `
-                    <div class="queue-item ${s.isGolden ? 'queue-item-golden' : ''}">
+                qDiv.innerHTML = currentQueue.slice(1).map((s, i) => {
+                    const safeSubTitle = escapeAttr(s.title || '');
+                    return `<div class="queue-item ${s.isGolden ? 'queue-item-golden' : ''}">
                         <div class="q-idx">${i+1}</div>
                         <div class="q-info">
                             <span class="q-title">${s.isGolden ? '<span style="color:#ffd700;">[🛡️金身]</span> ' : ''}${s.title}</span>
                             <span class="q-user">👤 ${s.nickname}</span>
                         </div>
                         <div class="res-actions">
-                            ${currentUser?`<button class="btn-fav star-btn" data-vid="${s.videoId}" onclick="toggleFav('${s.videoId}', '${s.title.replace(/'/g, "\\'")}')">☆</button>`:''}
-                            <button class="btn-del" onclick="removeSong('${s.key}', '${s.uid}')">🗑️</button>
+                            ${currentUser?`<button class="btn-fav star-btn" data-vid="${s.videoId}" onclick="toggleFav('${s.videoId}', '${safeSubTitle}')">☆</button>`:''}
+                            <button class="btn-del" onclick="removeSong('${s.key}', '${s.uid || ''}')">🗑️</button>
                         </div>
-                    </div>`).join('') || '<p style="text-align:center; color:#444; font-size:12px; padding:15px;">後面沒歌了！</p>';
+                    </div>`;
+                }).join('') || '<p style="text-align:center; color:#444; font-size:12px; padding:15px;">後面沒歌了！</p>';
                 updateAllStars();
             } else {
                 document.getElementById('now-playing-title').innerText = '📻 派對電台放送中';
@@ -1786,7 +1884,7 @@
 
             document.getElementById('results').innerHTML = (data.items || []).map(it => { 
                 const id = it.id.videoId || it.id; 
-                const t = it.snippet.title.replace(/'/g, "\\'").replace(/"/g, "&quot;"); 
+                const t = escapeAttr(it.snippet.title); 
                 const thumbUrl = it.snippet.thumbnails?.default?.url || ''; 
                 return `<div class="res-item" style="align-items: flex-start; padding: 12px;">
                     <img src="${thumbUrl}" onclick="secretInsert('${id}', '${t}')" title="🤫 點擊暗門插播" style="width: 80px; height: 60px; object-fit: cover; border-radius: 8px; margin-right: 12px; flex-shrink: 0; cursor:pointer;">
@@ -1804,18 +1902,34 @@
             updateAllStars(); 
         }
 
+        // 📻 單首收錄至派對電台（含防重複檢查）
         function addToRadio(id, title) {
+            if (!checkCooldown()) return;
             const myState = getUserRealmState(myPoints, myBreakthroughs);
             if (myState.currentLevel < 4) return alert("❌ 需【化神期】以上方可收錄至電台！");
             const matchedKw = checkBannedKeyword(title);
             if (matchedKw) return alert(`🛑 包含禁字「${matchedKw}」！`);
 
-            roomRef.child('radioPlaylist').push({
-                videoId: id, title, uid: currentUser ? currentUser.uid : null,
-                nickname: currentUser ? (currentUser.customName || currentUser.displayName) : '化神修士',
-                addedAt: Date.now()
+            roomRef.child('radioPlaylist').once('value', snap => {
+                const data = snap.val() || {};
+                const exists = Object.values(data).some(item => {
+                    const existingVid = (typeof item === 'object') ? item.videoId : item;
+                    return existingVid === id;
+                });
+
+                if (exists) {
+                    return alert(`⚠️ 《${title}》已經在派對電台曲庫中了，無需重複收錄！`);
+                }
+
+                roomRef.child('radioPlaylist').push({
+                    videoId: id,
+                    title: title,
+                    uid: currentUser ? currentUser.uid : null,
+                    nickname: currentUser ? (currentUser.customName || currentUser.displayName) : '化神修士',
+                    addedAt: Date.now()
+                });
+                alert(`✅ 已將《${title}》收錄至派對電台！`);
             });
-            alert(`✅ 已收錄至電台！`);
         }
 
         function openRadioModal() {
@@ -1824,73 +1938,181 @@
             renderRadioItems();
         }
 
+        // 📻 渲染電台曲庫（含刪除按鈕與一鍵去重工具）
         function renderRadioItems() {
             const container = document.getElementById('radioItems');
+            container.innerHTML = '<p style="text-align:center; color:#888;">讀取電台曲庫中...</p>';
+
             roomRef.child('radioPlaylist').once('value', snap => {
                 const data = snap.val() || {};
                 const keys = Object.keys(data);
                 document.getElementById('radioCountBadge').innerText = `${keys.length} 首`;
-                if (keys.length === 0) return container.innerHTML = '<p style="text-align:center; color:#555; padding:20px;">電台曲庫為空！</p>';
 
-                container.innerHTML = keys.map(k => {
+                if (keys.length === 0) {
+                    container.innerHTML = '<p style="text-align:center; color:#555; padding:20px;">電台曲庫為空！</p>';
+                    return;
+                }
+
+                const seenVids = new Set();
+                let dupCount = 0;
+                keys.forEach(k => {
                     const item = data[k];
-                    const vid = typeof item === 'object' ? item.videoId : item;
+                    const vid = (typeof item === 'object') ? item.videoId : item;
+                    if (vid) {
+                        if (seenVids.has(vid)) dupCount++;
+                        else seenVids.add(vid);
+                    }
+                });
+
+                let headerTool = '';
+                if (dupCount > 0) {
+                    headerTool = `
+                        <button onclick="deduplicateRadio()" style="width:100%; margin-bottom:10px; padding:9px; background:linear-gradient(45deg, #ff8c00, #ff4b2b); color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-size:12px;">
+                            🧹 偵測到 ${dupCount} 首重複曲目（點擊一鍵清理）
+                        </button>`;
+                }
+
+                const listHtml = keys.map(k => {
+                    const item = data[k];
+                    const vid = (typeof item === 'object') ? item.videoId : item;
                     const title = (typeof item === 'object' && item.title) ? item.title : `電台歌曲 (${vid})`;
+                    const itemUid = (typeof item === 'object' && item.uid) ? item.uid : '';
+                    const nickname = (typeof item === 'object' && item.nickname) ? item.nickname : '上古大能';
+                    const isMySong = currentUser && itemUid && currentUser.uid === itemUid;
+                    const safeTitle = escapeAttr(title);
+
                     return `<div class="res-item" style="padding:10px 12px; margin:0 0 8px 0;">
                         <div style="flex-grow:1; overflow:hidden; margin-right:8px;">
-                            <div style="font-size:13px; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${title}</div>
+                            <div style="font-size:13px; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${safeTitle}">${title}</div>
+                            <div style="font-size:11px; color:#888; margin-top:2px;">
+                                收錄者：<span style="color:#ff8c00;">${nickname}</span> ${isMySong ? '<strong style="color:var(--spotify-green);">(你)</strong>' : ''}
+                            </div>
                         </div>
                         <div class="res-actions">
-                            <button onclick="addToQueue('${vid}', '${title.replace(/'/g, "\\'")}')" style="background:var(--spotify-green); border:none; padding:6px 10px; border-radius:6px; font-weight:bold; cursor:pointer; font-size:11px; color:black;">點播</button>
+                            <button onclick="addToQueue('${vid}', '${safeTitle}')" style="background:var(--spotify-green); border:none; padding:6px 10px; border-radius:6px; font-weight:bold; cursor:pointer; font-size:11px; color:black;">點播</button>
+                            <button onclick="removeRadioSong('${k}', '${itemUid}')" style="background:none; border:none; color:#ff4b2b; font-size:14px; cursor:pointer; padding:4px 6px;" title="從電台移除">🗑️</button>
                         </div>
                     </div>`;
                 }).join('');
+
+                container.innerHTML = headerTool + listHtml;
+            });
+        }
+
+        // 🗑️ 移除電台歌曲
+        function removeRadioSong(key, itemUid) {
+            if (!checkCooldown()) return;
+            const isMySong = currentUser && itemUid && currentUser.uid === itemUid;
+
+            if (isMySong) {
+                if (confirm("確定要從派對電台中移除這首由你收錄的歌曲嗎？")) {
+                    roomRef.child(`radioPlaylist/${key}`).remove().then(() => {
+                        renderRadioItems();
+                    });
+                }
+            } else {
+                if (prompt("移除他人或系統收錄的歌曲，請輸入管理員密碼：") === "1234") {
+                    roomRef.child(`radioPlaylist/${key}`).remove().then(() => {
+                        renderRadioItems();
+                    });
+                } else {
+                    alert("❌ 密碼錯誤或權限不足！");
+                }
+            }
+        }
+
+        // 🧹 一鍵清理重複歌曲
+        function deduplicateRadio() {
+            if (prompt("清理重複曲目請輸入管理員密碼：") !== "1234") return alert("❌ 密碼錯誤！");
+
+            roomRef.child('radioPlaylist').once('value', snap => {
+                const data = snap.val() || {};
+                const seenVids = new Set();
+                const updates = {};
+                let removedCount = 0;
+
+                Object.keys(data).forEach(k => {
+                    const item = data[k];
+                    const vid = (typeof item === 'object') ? item.videoId : item;
+                    if (!vid || seenVids.has(vid)) {
+                        updates[k] = null;
+                        removedCount++;
+                    } else {
+                        seenVids.add(vid);
+                    }
+                });
+
+                if (removedCount === 0) return alert("曲庫目前沒有重複歌曲！");
+
+                roomRef.child('radioPlaylist').update(updates).then(() => {
+                    alert(`✅ 清理完成！共移除 ${removedCount} 首重複曲目。`);
+                    renderRadioItems();
+                });
             });
         }
 
         function batchAdd() { 
+            if (!currentUser) return alert("⚠️ 請先登入才可使用歌單批次匯入！");
+            const myState = getUserRealmState(myPoints, myBreakthroughs);
+            if (myState.currentLevel < 1) return alert("❌ 境界不足！需達到【築基期】(100修為) 方可批次匯入歌單！");
+
+            const chks = document.querySelectorAll('.pl-chk:checked');
+            if (chks.length === 0) return alert("請至少勾選一首歌曲！");
+            if (myState.currentLevel < 6 && chks.length > 20) {
+                return alert(`⚠️ 當前境界【${myState.realmName}】單批匯入上限為 20 首（你勾選了 ${chks.length} 首），晉升【大乘仙尊】可解鎖無上限！`);
+            }
+
             if (!checkCooldown()) return; 
-            const chks = document.querySelectorAll('.pl-chk:checked'), now = Date.now(); 
+            const now = Date.now(); 
             let added = 0;
             chks.forEach((chk, i) => { 
                 const it = tempPlaylist[chk.value]; 
-                if (!bannedSongs[it.id] && !checkBannedKeyword(it.title) && !currentQueue.some(s => s.videoId === it.id)) { 
-                    roomRef.child('queue').push({ videoId: it.id, title: it.title, nickname: currentUser ? currentUser.customName : '訪客', uid: currentUser ? currentUser.uid : null, timestamp: now + i }); 
+                if (it && !bannedSongs[it.id] && !checkBannedKeyword(it.title) && !currentQueue.some(s => s.videoId === it.id)) { 
+                    roomRef.child('queue').push({ videoId: it.id, title: it.title, nickname: currentUser.customName, uid: currentUser.uid, timestamp: now + i }); 
+                    roomRef.child(`songStats/${it.id}/count`).set(firebase.database.ServerValue.increment(1));
+                    roomRef.child(`songStats/${it.id}/title`).set(it.title);
                     added++; 
                 } 
             }); 
             if (added > 0) {
-                if (currentUser) {
-                    db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(added));
-                    logAction(currentUser.uid, currentUser.customName, '批次匯入歌單', added);
-                }
+                db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(added));
+                logAction(currentUser.uid, currentUser.customName, '批次匯入歌單', added);
                 incrementScore(added);
             }
             document.getElementById('playlistModal').style.display = 'none'; 
         }
 
         function batchAddFromFav() { 
+            if (!currentUser) return alert("⚠️ 請先登入才可使用批次點播！");
+            const myState = getUserRealmState(myPoints, myBreakthroughs);
+            if (myState.currentLevel < 1) return alert("❌ 境界不足！需達到【築基期】(100修為) 方可批次點播！");
+
+            const chks = document.querySelectorAll('.fav-chk:checked');
+            if (chks.length === 0) return alert("請至少勾選一首歌曲！");
+            if (myState.currentLevel < 6 && chks.length > 20) {
+                return alert(`⚠️ 當前境界【${myState.realmName}】單批點播上限為 20 首（你勾選了 ${chks.length} 首），晉升【大乘仙尊】可解鎖無上限！`);
+            }
+
             if (!checkCooldown()) return; 
-            const chks = document.querySelectorAll('.fav-chk:checked'), now = Date.now(); 
+            const now = Date.now(); 
             let added = 0;
             chks.forEach((chk, i) => { 
                 const vid = chk.getAttribute('data-vid'), t = chk.getAttribute('data-title'); 
                 if (!bannedSongs[vid] && !checkBannedKeyword(t) && !currentQueue.some(s => s.videoId === vid)) { 
-                    roomRef.child('queue').push({ videoId: vid, title: t, nickname: currentUser ? currentUser.customName : '訪客', uid: currentUser ? currentUser.uid : null, timestamp: now + i }); 
+                    roomRef.child('queue').push({ videoId: vid, title: t, nickname: currentUser.customName, uid: currentUser.uid, timestamp: now + i }); 
+                    roomRef.child(`songStats/${vid}/count`).set(firebase.database.ServerValue.increment(1));
+                    roomRef.child(`songStats/${vid}/title`).set(t);
                     added++; 
                 } 
             }); 
             if (added > 0) {
-                if (currentUser) {
-                    db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(added));
-                    logAction(currentUser.uid, currentUser.customName, '批次匯入收藏', added);
-                }
+                db.ref(`users/${currentUser.uid}/cultivation`).set(firebase.database.ServerValue.increment(added));
+                logAction(currentUser.uid, currentUser.customName, '批次匯入收藏', added);
                 incrementScore(added);
             }
             document.getElementById('favModal').style.display = 'none'; 
         }
 
-        // 🌟 徹底修復：點歌王榜單即時更新（相容所有日期格式）
         function updateLeaderboard(s) { 
             const data = s.val() || {}; 
             let maxCount = 0; 
@@ -1919,7 +2141,6 @@
             }
         }
 
-        // 🌟 徹底修復：點歌計數遞增（支援登入與訪客模式）
         function incrementScore(c) { 
             const today = getTodayKey(); 
             const isLog = !!currentUser;
@@ -1958,7 +2179,8 @@
                 if(s.length===0) return c.innerHTML='<p style="text-align:center; color:#555;">還沒有點歌紀錄喔！</p>';
                 c.innerHTML=s.map((it,i)=>{
                     let medal = i===0?'🥇':i===1?'🥈':i===2?'🥉':`<span style="color:#888; font-size:12px;">${i+1}.</span>`;
-                    return `<div class="res-item" style="padding:10px 0;"><div style="width:30px; text-align:center;">${medal}</div><div style="flex-grow:1; margin:0 10px; overflow:hidden;"><div style="font-size:13px; color:white;">${it.title || it.id}</div><div style="font-size:11px; color:#1DB954;">點了 ${it.count || 0} 次</div></div><button onclick="addToQueue('${it.id}', '${(it.title||'').replace(/'/g, "\\'")}')" style="background:var(--spotify-green); border:none; padding:6px 12px; border-radius:8px; font-weight:bold; cursor:pointer; font-size:11px; color:black;">點播</button></div>`;
+                    const safeTitle = escapeAttr(it.title || '');
+                    return `<div class="res-item" style="padding:10px 0;"><div style="width:30px; text-align:center;">${medal}</div><div style="flex-grow:1; margin:0 10px; overflow:hidden;"><div style="font-size:13px; color:white;">${it.title || it.id}</div><div style="font-size:11px; color:#1DB954;">點了 ${it.count || 0} 次</div></div><button onclick="addToQueue('${it.id}', '${safeTitle}')" style="background:var(--spotify-green); border:none; padding:6px 12px; border-radius:8px; font-weight:bold; cursor:pointer; font-size:11px; color:black;">點播</button></div>`;
                 }).join(''); 
             }); 
         }
@@ -1978,8 +2200,9 @@
 
             c.innerHTML = adminBtn + sorted.map(s => {
                 const kw = checkBannedKeyword(s.title);
+                const safeTitle = escapeAttr(s.title || '');
                 return `<div class="res-item" style="border:none; padding:8px 0; margin:0; opacity:${kw ? '0.6' : '1'};">
-                    <input type="checkbox" class="fav-chk" data-vid="${s.id}" data-title="${(s.title||'').replace(/'/g, "\\'")}" ${kw ? 'disabled' : 'checked'} style="margin-right:10px;">
+                    <input type="checkbox" class="fav-chk" data-vid="${s.id}" data-title="${safeTitle}" ${kw ? 'disabled' : 'checked'} style="margin-right:10px;">
                     <div style="flex-grow:1; overflow:hidden;">
                         <span class="res-title" style="${kw ? 'text-decoration:line-through; color:#ff4b2b;' : ''}">${s.title || s.id}</span>
                         ${kw ? `<div style="font-size:10px; color:#ff4b2b; font-weight:bold;">[🚫 含「${kw}」]</div>` : ''}
@@ -1990,26 +2213,40 @@
         }
 
         function syncFavToRadio() { 
+            if (!checkCooldown()) return;
             const myState = getUserRealmState(myPoints, myBreakthroughs); 
             if (myState.currentLevel < 4) return alert("❌ 境界不足！【化神期】以上方可發動此陣法！"); 
             const ids = Object.keys(myFavorites); 
             if (ids.length === 0) return alert("你的收藏是空的！"); 
             
-            const myName = currentUser ? (currentUser.customName || currentUser.displayName) : '化神修士';
-            const uid = currentUser ? currentUser.uid : null;
-            const now = Date.now();
-            let added = 0, skipped = 0;
+            roomRef.child('radioPlaylist').once('value', snap => {
+                const data = snap.val() || {};
+                const existingVids = new Set(
+                    Object.values(data).map(item => (typeof item === 'object' ? item.videoId : item)).filter(Boolean)
+                );
 
-            ids.forEach((id, idx) => {
-                const item = myFavorites[id];
-                const t = item.title || id;
-                if (checkBannedKeyword(t)) { skipped++; return; }
-                roomRef.child('radioPlaylist').push({
-                    videoId: id, title: t, uid: uid, nickname: myName, addedAt: now + idx
-                });
-                added++;
-            }); 
-            alert(`✅ 已將 ${added} 首歌曲擴充至電台！${skipped > 0 ? `(另有 ${skipped} 首命中誅絕令已自動過濾)` : ''}`); 
+                const myName = currentUser ? (currentUser.customName || currentUser.displayName) : '化神修士';
+                const uid = currentUser ? currentUser.uid : null;
+                const now = Date.now();
+                let added = 0, skippedBanned = 0, skippedDup = 0;
+
+                ids.forEach((id, idx) => {
+                    const item = myFavorites[id];
+                    const t = item.title || id;
+                    if (checkBannedKeyword(t)) { skippedBanned++; return; }
+                    if (existingVids.has(id)) { skippedDup++; return; }
+
+                    existingVids.add(id);
+                    roomRef.child('radioPlaylist').push({
+                        videoId: id, title: t, uid: uid, nickname: myName, addedAt: now + idx
+                    });
+                    added++;
+                }); 
+
+                alert(`✅ 電台擴充完成！新增 ${added} 首新曲` +
+                      (skippedDup > 0 ? `，略過 ${skippedDup} 首已存在曲目` : '') +
+                      (skippedBanned > 0 ? `，過濾 ${skippedBanned} 首禁曲` : '') + `！`); 
+            });
         }
 
         function renderChatMessage(data) {
@@ -2033,6 +2270,11 @@
             }
             cb.innerHTML += html;
             cb.scrollTop = cb.scrollHeight;
+
+            if (document.getElementById('chatModal').style.display !== 'flex') {
+                hasUnreadChat = true;
+                document.getElementById('chatBtnNotification').innerText = "💬 宗門頻道 🔴";
+            }
         }
     </script>
 </body>
