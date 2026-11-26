@@ -2180,4 +2180,118 @@
 
         function toggleAllPl() { const s = document.getElementById('selAllPl').checked; document.querySelectorAll('.pl-chk:not(:disabled)').forEach(c => c.checked = s); }
         function toggleFav(id, title) { if(currentUser) { const r = db.ref(`users/${currentUser.uid}/favorites/${id}`); myFavorites[id]?r.remove():r.set({title, addedAt:Date.now()}); } }
-        function updateAllStars() { document.querySelectorAll('.star-btn').forEach(btn => { const vid = btn.getAttribute('data-vid'); btn.innerHTML = myFavorites[vid]?'
+        function updateAllStars() { document.querySelectorAll('.star-btn').forEach(btn => { const vid = btn.getAttribute('data-vid'); btn.innerHTML = myFavorites[vid]?'★':'☆'; btn.style.color = myFavorites[vid]?'var(--spotify-green)':'#888'; }); }
+        function openFavModal() { if(currentUser){ document.getElementById('favModal').style.display='flex'; renderFavItems(); } }
+        function toggleAllFav() { const s = document.getElementById('selAllFav').checked; document.querySelectorAll('.fav-chk:not(:disabled)').forEach(c => c.checked = s); }
+        function toggleBan(id, isB) { if(prompt("密碼：")==="1234") isB ? roomRef.child(`banned/${id}`).remove() : roomRef.child(`banned/${id}`).set(true); }
+        function togglePlayPause() { roomRef.child('isPaused').once('value', s => roomRef.child('isPaused').set(!s.val())); }
+        function changeVolume(v) { roomRef.child('volume').set(parseInt(v)); }
+        
+        function openHotModal() { 
+            const m = document.getElementById('hotModal'); if(!m)return; m.style.display='flex'; 
+            const c = document.getElementById('hotItems'); c.innerHTML='<p style="text-align:center; color:#888;">統計中...</p>'; 
+            roomRef.child('songStats').once('value', snap => { 
+                const d = snap.val()||{}; const s = Object.keys(d).map(id=>({id,...d[id]})).sort((a,b)=>(b.count||0)-(a.count||0)).slice(0,10); 
+                if(s.length===0) return c.innerHTML='<p style="text-align:center; color:#555;">還沒有點歌紀錄喔！</p>';
+                c.innerHTML=s.map((it,i)=>{
+                    let medal = i===0?'🥇':i===1?'🥈':i===2?'🥉':`<span style="color:#888; font-size:12px;">${i+1}.</span>`;
+                    const safeTitle = escapeAttr(it.title || '');
+                    return `<div class="res-item" style="padding:10px 0;"><div style="width:30px; text-align:center;">${medal}</div><div style="flex-grow:1; margin:0 10px; overflow:hidden;"><div style="font-size:13px; color:white;">${it.title || it.id}</div><div style="font-size:11px; color:#1DB954;">點了 ${it.count || 0} 次</div></div><button onclick="addToQueue('${it.id}', '${safeTitle}')" style="background:var(--spotify-green); border:none; padding:6px 12px; border-radius:8px; font-weight:bold; cursor:pointer; font-size:11px; color:black;">點播</button></div>`;
+                }).join(''); 
+            }); 
+        }
+
+        function renderFavItems() { 
+            const c = document.getElementById('favItems'); 
+            const sortSelect = document.getElementById('favSortSelect'); 
+            const sortType = sortSelect ? sortSelect.value : 'dateDesc'; 
+            let sorted = Object.keys(myFavorites).map(id => ({ id, ...myFavorites[id] })); 
+
+            if (sortType === 'dateDesc') sorted.sort((a,b) => b.addedAt - a.addedAt); 
+            else if (sortType === 'dateAsc') sorted.sort((a,b) => a.addedAt - b.addedAt); 
+            else if (sortType === 'az') sorted.sort((a,b) => (a.title||'').localeCompare(b.title||'')); 
+
+            let adminBtn = `<button onclick="syncFavToRadio()" style="width:100%; margin-bottom:15px; padding:12px; background:linear-gradient(45deg, #ff4b2b, #ff416c); color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-size:14px; box-shadow: 0 4px 10px rgba(255,75,43,0.3);">📻 將這份歌單設為大螢幕「派對電台」</button>`; 
+            if (sorted.length === 0) return c.innerHTML = adminBtn + '<p style="text-align:center; color:#555;">無收藏</p>'; 
+
+            c.innerHTML = adminBtn + sorted.map(s => {
+                const kw = checkBannedKeyword(s.title);
+                const safeTitle = escapeAttr(s.title || '');
+                return `<div class="res-item" style="border:none; padding:8px 0; margin:0; opacity:${kw ? '0.6' : '1'};">
+                    <input type="checkbox" class="fav-chk" data-vid="${s.id}" data-title="${safeTitle}" ${kw ? 'disabled' : 'checked'} style="margin-right:10px;">
+                    <div style="flex-grow:1; overflow:hidden;">
+                        <span class="res-title" style="${kw ? 'text-decoration:line-through; color:#ff4b2b;' : ''}">${s.title || s.id}</span>
+                        ${kw ? `<div style="font-size:10px; color:#ff4b2b; font-weight:bold;">[🚫 含「${kw}」]</div>` : ''}
+                    </div>
+                    <button onclick="toggleFav('${s.id}', '')" style="background:none; border:none; color:#ff4b2b; font-size:10px; cursor:pointer;">移除</button>
+                </div>`;
+            }).join(''); 
+        }
+
+        function syncFavToRadio() { 
+            if (!checkCooldown()) return;
+            const myState = getUserRealmState(myPoints, myBreakthroughs); 
+            if (myState.currentLevel < 4) return alert("❌ 境界不足！【化神期】以上方可發動此陣法！"); 
+            const ids = Object.keys(myFavorites); 
+            if (ids.length === 0) return alert("你的收藏是空的！"); 
+            
+            roomRef.child('radioPlaylist').once('value', snap => {
+                const data = snap.val() || {};
+                const existingVids = new Set(
+                    Object.values(data).map(item => (typeof item === 'object' ? item.videoId : item)).filter(Boolean)
+                );
+
+                const myName = currentUser ? (currentUser.customName || currentUser.displayName) : '化神修士';
+                const uid = currentUser ? currentUser.uid : null;
+                const now = Date.now();
+                let added = 0, skippedBanned = 0, skippedDup = 0;
+
+                ids.forEach((id, idx) => {
+                    const item = myFavorites[id];
+                    const t = item.title || id;
+                    if (checkBannedKeyword(t)) { skippedBanned++; return; }
+                    if (existingVids.has(id)) { skippedDup++; return; }
+
+                    existingVids.add(id);
+                    roomRef.child('radioPlaylist').push({
+                        videoId: id, title: t, uid: uid, nickname: myName, addedAt: now + idx
+                    });
+                    added++;
+                }); 
+
+                alert(`✅ 電台擴充完成！新增 ${added} 首新曲` +
+                      (skippedDup > 0 ? `，略過 ${skippedDup} 首已存在曲目` : '') +
+                      (skippedBanned > 0 ? `，過濾 ${skippedBanned} 首禁曲` : '') + `！`); 
+            });
+        }
+
+        function renderChatMessage(data) {
+            if (!data) return;
+            const cb = document.getElementById('chatBox');
+            if (!cb) return;
+
+            const timeStr = data.timestamp ? new Date(data.timestamp).toLocaleTimeString('zh-TW', {hour: '2-digit', minute:'2-digit'}) : '剛剛';
+            const msgText = String(data.msg || '').replace(/</g, "&lt;");
+            const nameText = String(data.name || '').replace(/</g, "&lt;");
+            const realmText = data.realm || "凡人";
+            const colorText = data.color || "#888";
+            
+            let html = "";
+            if (data.type === 'system') {
+                html = `<div class="chat-msg ${data.sysType === 'bad' ? 'chat-system-bad' : 'chat-system'}"><span class="chat-time">${timeStr}</span> <b>${msgText}</b></div>`;
+            } else if (data.type === 'mega') {
+                html = `<div class="chat-msg chat-mega"><span class="chat-time" style="color:#eee;">${timeStr}</span> [法旨] <strong style="color:#fff;">[${realmText}] ${nameText}:</strong> <span style="color:#fff;">${msgText}</span></div>`;
+            } else {
+                html = `<div class="chat-msg"><span class="chat-time">${timeStr}</span> <strong style="color:${colorText};">[${realmText}] ${nameText}:</strong> <span style="color:#eee;">${msgText}</span></div>`;
+            }
+            cb.innerHTML += html;
+            cb.scrollTop = cb.scrollHeight;
+
+            if (document.getElementById('chatModal').style.display !== 'flex') {
+                hasUnreadChat = true;
+                document.getElementById('chatBtnNotification').innerText = "💬 宗門頻道 🔴";
+            }
+        }
+    </script>
+</body>
+</html>
